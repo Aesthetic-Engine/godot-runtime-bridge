@@ -39,7 +39,28 @@ Connect via TCP to `127.0.0.1:<port>` and send newline-delimited JSON:
 
 ### 4. Use with an MCP Client (Cursor, Claude Code)
 
-A companion MCP package (`godot-runtime-bridge-mcp`) is available separately for integration with AI clients like Cursor and Claude Code. It handles launching Godot, parsing the READY line, and exposing all commands as MCP tools. See the project repository for details.
+A companion MCP server lets AI assistants launch, observe, and control your game directly. Setup:
+
+```bash
+git clone https://github.com/Aesthetic-Engine/godot-runtime-bridge.git
+cd godot-runtime-bridge/mcp
+npm install
+```
+
+Then add to your `.cursor/mcp.json` (replace the path with where you cloned):
+
+```json
+{
+  "mcpServers": {
+    "godot-runtime-bridge": {
+      "command": "node",
+      "args": ["C:/path/to/godot-runtime-bridge/mcp/index.js"]
+    }
+  }
+}
+```
+
+See [`mcp/README.md`](mcp/README.md) for Claude Code setup and the full list of 17 AI tools.
 
 ## Security
 

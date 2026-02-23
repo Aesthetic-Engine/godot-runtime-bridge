@@ -1,0 +1,26 @@
+{
+  "name": "@aesthetic-engine/godot-runtime-bridge-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Godot Runtime Bridge — AI-driven game testing and automation",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "grb-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Aesthetic-Engine/godot-runtime-bridge.git",
+    "directory": "mcp"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "keywords": ["godot", "mcp", "testing", "automation", "gamedev"],
+  "license": "MIT"
+}
