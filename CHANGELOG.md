@@ -12,3 +12,4 @@ Initial public release.
 - Thread-safe producer-consumer architecture
 - Editor bottom panel with launch configuration and command reference
 - Zero overhead when inactive — safe to ship in production
+- 20 game-agnostic QA missions with CLI runner and perceptual screenshot diff
