@@ -89,7 +89,7 @@ func _ready() -> void:
 		_input_mode = "synthetic"
 
 	if OS.get_environment("GDRB_FORCE_WINDOWED") == "1":
-		_force_windowed_frames = 120
+		_force_windowed_frames = 1
 
 	OS.low_processor_usage_mode = false
 
@@ -102,13 +102,10 @@ func _ready() -> void:
 
 
 func _enforce_windowed() -> void:
-	if DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_WINDOWED:
+	var mode := DisplayServer.window_get_mode()
+	if mode != DisplayServer.WINDOW_MODE_WINDOWED:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-	var screen_size := DisplayServer.screen_get_size()
-	var win_size := DisplayServer.window_get_size()
-	# Use non-screen-sized dimensions to avoid the known Godot bug where
-	# screen-sized windows can't toggle back from fullscreen on Windows.
-	if win_size.x >= screen_size.x and win_size.y >= screen_size.y:
+		var screen_size := DisplayServer.screen_get_size()
 		var safe_size := Vector2i(mini(1280, screen_size.x - 1), mini(720, screen_size.y - 1))
 		DisplayServer.window_set_size(safe_size)
 		DisplayServer.window_set_position(Vector2i(50, 50))
@@ -494,10 +491,22 @@ func _inject_mouse_release(pos: Vector2, button: int) -> void:
 ## Routes input events: synthetic mode uses push_input (viewport-local, no cursor
 ## movement), OS mode uses parse_input_event (global, moves cursor).
 func _inject_event(event: InputEvent) -> void:
+	event.set_meta("_grb", true)
 	if _input_mode == "synthetic":
 		get_viewport().push_input(event)
 	else:
 		Input.parse_input_event(event)
+
+
+## In synthetic mode, block real device input so the game only responds to
+## GRB-injected events. Events tagged with _grb meta are allowed through.
+func _input(event: InputEvent) -> void:
+	if not _active or _input_mode != "synthetic":
+		return
+	if event.has_meta("_grb"):
+		return
+	if event is InputEventMouse or event is InputEventKey:
+		get_viewport().set_input_as_handled()
 
 
 func _cmd_key(req_id: String, args: Dictionary) -> Dictionary:
