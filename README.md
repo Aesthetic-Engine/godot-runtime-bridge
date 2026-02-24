@@ -66,6 +66,8 @@ Create a file called **`mcp.json`** inside the `.cursor` folder in your project 
 
 **`GDRB_EXE`** is the path to your exported game executable — the `.exe` (Windows), `.app` (Mac), or binary (Linux) that you export from Godot. GRB tests the exported build, not the editor.
 
+>If you're having trouble with this step, try copy/paste into Cursor and ask your Cursor agent it to do it for you.
+
 ---
 
 ### Step 5 — Enable the Server in Cursor ⚠️
@@ -95,6 +97,7 @@ Cursor will launch your game, interact with it, capture screenshots, and report 
 ---
 
 **Having trouble?** If the GRB tools aren't showing up in Cursor, check **Settings → Tools & MCP → godot-runtime-bridge → Logs** for a startup message with troubleshooting hints.
+**Still having trouble?** Feed this entire readme into Cursor and it'll likely help you troubleshoot until you're set.
 
 See [`mcp/README.md`](mcp/README.md) for Claude Code setup, advanced configuration, and the full list of available AI tools.
 
