@@ -1,6 +1,6 @@
 # Godot Runtime Bridge
 
-**Runtime automation and AI-driven testing for Godot 4.x**
+**Runtime automation and AI-driven testing for Godot 4.5+**
 
 A lightweight TCP debug server that lets AI assistants (Cursor, Claude Code) and automation scripts launch, control, observe, and test your running Godot game — no editor required.
 
@@ -11,6 +11,8 @@ This setup lets Cursor's AI agent launch your exported game, watch it run, click
 ---
 
 ### Step 1 — Install the Addon in Godot
+
+**Requires Godot 4.5 or later.** GRB uses the `Logger` API (`OS.add_logger`) introduced in 4.5 for engine error capture. Earlier versions of Godot 4 are not supported.
 
 **From the Asset Library (recommended):**
 Open your project in the Godot editor, click the **AssetLib** tab at the top, search for **"Godot Runtime Bridge"**, and install it.
