@@ -4,46 +4,37 @@
 
 A lightweight TCP debug server that lets AI assistants (Cursor, Claude Code) and automation scripts launch, control, observe, and test your running Godot game — no editor required.
 
-## Quick Start
+## Quick Start: Connect Cursor to Your Game in 5 Steps
 
-### 1. Install the Addon
+This setup lets Cursor's AI agent launch your exported game, watch it run, click buttons, take screenshots, and report bugs — all on its own.
 
-**From the Asset Library:** Search "Godot Runtime Bridge" in **AssetLib** within the Godot editor and install.
+---
 
-**Manual:** Copy `addons/godot-runtime-bridge/` into your project's `addons/` folder.
+### Step 1 — Install the Addon in Godot
 
-Enable the plugin in **Project → Project Settings → Plugins**.
+**From the Asset Library (recommended):**
+Open your project in the Godot editor, click the **AssetLib** tab at the top, search for **"Godot Runtime Bridge"**, and install it.
 
-### 2. Run Your Game with the Bridge Enabled
+**Manual:**
+Download this repo and copy the `addons/godot-runtime-bridge/` folder into your project's `addons/` folder.
 
-```bash
-# Auto-generated token, random port, tier 1 (observe + input)
-GODOT_DEBUG_SERVER=1 godot --path /your/project
+Then go to **Project → Project Settings → Plugins** and enable **Godot Runtime Bridge**.
 
-# Or with explicit token and tier
-GDRB_TOKEN=my_secret_token GDRB_PORT=9999 GDRB_TIER=2 godot --path /your/project
-```
+---
 
-On startup, the server prints:
+### Step 2 — Install Node.js (one-time)
 
-```
-GDRB_READY:{"proto":"grb/1","port":54321,"token":"xK9m...","tier_default":1}
-```
+The bridge talks to Cursor through a small helper program that requires Node.js.
 
-### 3. Send Commands
+1. Go to **https://nodejs.org** and download the LTS version
+2. Run the installer — defaults are fine
+3. Restart your computer if prompted
 
-Connect via TCP to `127.0.0.1:<port>` and send newline-delimited JSON:
+---
 
-```json
-{"id":"1","cmd":"ping"}
-{"id":"2","cmd":"screenshot","token":"xK9m..."}
-{"id":"3","cmd":"click","args":{"x":100,"y":200},"token":"xK9m..."}
-{"id":"4","cmd":"scene_tree","args":{"max_depth":3},"token":"xK9m..."}
-```
+### Step 3 — Set Up the MCP Helper
 
-### 4. Use with an MCP Client (Cursor, Claude Code)
-
-A companion MCP server lets AI assistants launch, observe, and control your game directly. Setup:
+Open a terminal (Command Prompt on Windows, Terminal on Mac) and run:
 
 ```bash
 git clone https://github.com/Aesthetic-Engine/godot-runtime-bridge.git
@@ -51,22 +42,61 @@ cd godot-runtime-bridge/mcp
 npm install
 ```
 
-Then add to your `.cursor/mcp.json` (replace the path with where you cloned):
+This downloads the helper and installs its dependencies. You only need to do this once.
+
+---
+
+### Step 4 — Tell Cursor Where the Helper Lives
+
+Create a file called **`mcp.json`** inside the `.cursor` folder in your project (create the folder if it doesn't exist). Paste this in, replacing the path with the actual location where you cloned the repo:
 
 ```json
 {
   "mcpServers": {
     "godot-runtime-bridge": {
       "command": "node",
-      "args": ["C:/path/to/godot-runtime-bridge/mcp/index.js"]
+      "args": ["C:/path/to/godot-runtime-bridge/mcp/index.js"],
+      "env": {
+        "GDRB_EXE": "C:/path/to/your/exported/game.exe"
+      }
     }
   }
 }
 ```
 
-See [`mcp/README.md`](mcp/README.md) for Claude Code setup and the full list of 17 AI tools.
+**`GDRB_EXE`** is the path to your exported game executable — the `.exe` (Windows), `.app` (Mac), or binary (Linux) that you export from Godot. GRB tests the exported build, not the editor.
 
-> ⚠️ **Cursor users — required step:** After adding the entry to `mcp.json`, you must also go to **Cursor → Settings → Tools & MCP → Installed MCP Servers**, find **godot-runtime-bridge**, and toggle it **ON**. The tools will not appear in Cursor until this is done.
+---
+
+### Step 5 — Enable the Server in Cursor ⚠️
+
+**This step is easy to miss — nothing will work without it.**
+
+1. Open Cursor
+2. Go to **Settings → Tools & MCP**
+3. Under **Installed MCP Servers**, find **godot-runtime-bridge**
+4. Click the toggle to turn it **ON**
+
+Once the toggle is on, Cursor will show a green indicator next to the server name. You're connected.
+
+---
+
+### Step 6 — Direct Cursor to Playtest Your Game
+
+You're ready. In Cursor's chat, you can now say things like:
+
+- *"Launch my game and take a screenshot of the title screen."*
+- *"Click the Start button and verify the game enters gameplay."*
+- *"Run a smoke test and report any issues you find."*
+- *"Play through the first room and tell me if anything looks broken."*
+
+Cursor will launch your game, interact with it, capture screenshots, and report back — no manual playtesting required.
+
+---
+
+**Having trouble?** If the GRB tools aren't showing up in Cursor, check **Settings → Tools & MCP → godot-runtime-bridge → Logs** for a startup message with troubleshooting hints.
+
+See [`mcp/README.md`](mcp/README.md) for Claude Code setup, advanced configuration, and the full list of available AI tools.
 
 ## Security
 
