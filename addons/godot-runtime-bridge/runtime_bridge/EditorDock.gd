@@ -3,12 +3,16 @@ extends VBoxContainer
 
 const _Commands := preload("res://addons/godot-runtime-bridge/runtime_bridge/Commands.gd")
 
-const VERSION := "0.1.0"
+const VERSION := "0.1.3"
+
+const SCREENSHOTS_DIR := "res://debug/screenshots"
+const VERIFY_MARKER := "res://debug/screenshots/.verify_enabled"
+const LOOP_MARKER := "res://debug/screenshots/.loop_prevention"
 
 const TIER_TOOLTIPS := {
 	0: "Observe only — take screenshots, read scene tree, inspect values, wait for conditions.",
 	1: "Everything in Observe, plus click buttons, press keys, drag, and scroll. Enough for automated playtests and bug reports.",
-	2: "Advanced control — everything in Playtester, plus set values and call methods directly. Useful for fast test setup that changes game state.",
+	2: "Advanced control — everything in Tier 1, plus set values and call methods directly. Useful for fast test setup that changes game state.",
 }
 
 var _tier_option: OptionButton
@@ -20,6 +24,9 @@ var _tier_detail: Label
 var _technical_container: VBoxContainer
 var _technical_toggle: CheckButton
 var _content: VBoxContainer
+var _verify_toggle: CheckButton
+var _loop_toggle: CheckButton
+var _clear_btn: Button
 
 
 func _ready() -> void:
@@ -36,6 +43,7 @@ func _ready() -> void:
 	_build_header()
 	_build_quickstart()
 	_build_technical_toggle()
+	_build_agent_settings()
 	_update_command()
 	_update_tier_detail()
 
@@ -247,7 +255,7 @@ func _update_command() -> void:
 	var input_mode: String = _input_option.get_item_text(_input_option.selected)
 
 	var parts: PackedStringArray = []
-	parts.append("GODOT_DEBUG_SERVER=1")
+	parts.append("GDRB_TOKEN=auto")
 	if tier != 1:
 		parts.append("GDRB_TIER=%d" % tier)
 	if port != 0:
@@ -276,3 +284,87 @@ func _on_docs_pressed(filename: String) -> void:
 	var path := "res://addons/godot-runtime-bridge/%s" % filename
 	var abs_path := ProjectSettings.globalize_path(path)
 	OS.shell_open(abs_path)
+
+
+func _build_agent_settings() -> void:
+	_content.add_child(HSeparator.new())
+
+	var heading := Label.new()
+	heading.text = "Agent Settings"
+	heading.add_theme_font_size_override("font_size", 13)
+	_content.add_child(heading)
+
+	_verify_toggle = CheckButton.new()
+	_verify_toggle.text = "Screenshot verification"
+	_verify_toggle.tooltip_text = "When enabled, the AI agent must take a screenshot after visual changes and confirm the result before reporting done."
+	_verify_toggle.button_pressed = FileAccess.file_exists(VERIFY_MARKER)
+	_verify_toggle.toggled.connect(_on_verify_toggled)
+	_content.add_child(_verify_toggle)
+
+	_loop_toggle = CheckButton.new()
+	_loop_toggle.text = "Loop prevention"
+	_loop_toggle.tooltip_text = "When enabled, the agent stops retrying after 3 failed screenshot checks and asks for guidance instead of looping indefinitely."
+	_loop_toggle.button_pressed = FileAccess.file_exists(LOOP_MARKER)
+	if not FileAccess.file_exists(LOOP_MARKER) and not FileAccess.file_exists(VERIFY_MARKER):
+		_loop_toggle.button_pressed = true
+		_write_marker(LOOP_MARKER)
+	_loop_toggle.toggled.connect(_on_loop_prevention_toggled)
+	_content.add_child(_loop_toggle)
+
+	var clear_row := HBoxContainer.new()
+	clear_row.add_theme_constant_override("separation", 6)
+
+	_clear_btn = Button.new()
+	_clear_btn.text = "Clear Screenshots"
+	_clear_btn.tooltip_text = "Delete all screenshot files from debug/screenshots/"
+	_clear_btn.pressed.connect(_on_clear_screenshots)
+	clear_row.add_child(_clear_btn)
+
+	_content.add_child(clear_row)
+
+
+func _on_verify_toggled(pressed: bool) -> void:
+	if pressed:
+		_write_marker(VERIFY_MARKER)
+	else:
+		_remove_marker(VERIFY_MARKER)
+
+
+func _on_loop_prevention_toggled(pressed: bool) -> void:
+	if pressed:
+		_write_marker(LOOP_MARKER)
+	else:
+		_remove_marker(LOOP_MARKER)
+
+
+func _on_clear_screenshots() -> void:
+	var dir := DirAccess.open(SCREENSHOTS_DIR)
+	if dir == null:
+		return
+	var count := 0
+	dir.list_dir_begin()
+	var fname := dir.get_next()
+	while fname != "":
+		if not dir.current_is_dir() and fname.ends_with(".png"):
+			dir.remove(fname)
+			count += 1
+		fname = dir.get_next()
+	dir.list_dir_end()
+	_clear_btn.text = "Cleared %d!" % count
+	get_tree().create_timer(1.5).timeout.connect(func() -> void:
+		if is_instance_valid(_clear_btn):
+			_clear_btn.text = "Clear Screenshots"
+	)
+
+
+func _write_marker(path: String) -> void:
+	DirAccess.make_dir_recursive_absolute(SCREENSHOTS_DIR)
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f:
+		f.store_string("")
+		f.close()
+
+
+func _remove_marker(path: String) -> void:
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path)

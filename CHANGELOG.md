@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3 — 2026-02-24
+
+- **Agent Settings** section in EditorDock: screenshot verification toggle, loop prevention toggle, and clear screenshots button
+- Screenshot verification writes a marker file (`debug/screenshots/.verify_enabled`) that AI agent rules can check to know when to capture and verify screenshots after visual changes
+- Loop prevention toggle (`debug/screenshots/.loop_prevention`) caps failed retry attempts at 3 before the agent asks for guidance
+- Clear Screenshots button deletes all `.png` files from the screenshots directory
+
 ## 0.1.2 — 2026-02-24
 
 - **Repo restructured** for Godot Asset Library conventions: addon content now lives under `addons/godot-runtime-bridge/`; `.gitattributes` ensures AssetLib downloads only include the addon folder
