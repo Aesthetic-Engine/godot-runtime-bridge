@@ -2,1357 +2,486 @@
   {
     "id": "smoke_test",
     "name": "Smoke Test: Boot → First Interaction",
-    "goal": "Verify game launches, title screen renders, and first button is clickable",
-    "tier_required": 1,
+    "goal": "Verify game launches, title screen renders, StartGameBtn enters gameplay",
+    "tier_required": 2,
     "estimated_time_sec": 15,
     "starter": true,
     "steps": [
-      {
-        "action": "runtime_info"
-      },
-      {
-        "action": "screenshot",
-        "label": "title_screen"
-      },
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 2000
-      },
-      {
-        "action": "screenshot",
-        "label": "after_first_click"
-      },
-      {
-        "action": "screenshot_diff",
-        "a": "title_screen",
-        "b": "after_first_click",
-        "issue_title": "First button click had no visible effect",
-        "severity": "Major"
-      }
+      {"action": "runtime_info"},
+      {"action": "screenshot", "label": "title_screen"},
+      {"action": "find_buttons"},
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "screenshot", "label": "after_start"},
+      {"action": "screenshot_diff", "a": "title_screen", "b": "after_start", "issue_title": "StartGameBtn had no visible effect — game did not enter gameplay", "severity": "Major"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "GameState.game_started is not true after pressing StartGameBtn", "severity": "Major"}
     ]
   },
   {
     "id": "ui_legibility",
     "name": "UI Legibility Scan",
-    "goal": "Capture screenshots at key moments to check text readability, contrast, and clipping",
-    "tier_required": 1,
+    "goal": "Capture screenshots at title, gameplay, and pause to check text readability and contrast",
+    "tier_required": 2,
     "estimated_time_sec": 20,
     "starter": true,
     "steps": [
-      {
-        "action": "screenshot",
-        "label": "screen_1_initial"
-      },
-      {
-        "action": "runtime_info"
-      },
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 2000
-      },
-      {
-        "action": "screenshot",
-        "label": "screen_2_after_action"
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 500
-      },
-      {
-        "action": "screenshot",
-        "label": "screen_3_pause_or_menu"
-      },
-      {
-        "action": "scene_tree",
-        "label": "legibility_tree",
-        "max_depth": 4
-      }
+      {"action": "screenshot", "label": "screen_1_title"},
+      {"action": "runtime_info"},
+      {"action": "find_buttons"},
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "screenshot", "label": "screen_2_gameplay"},
+      {"action": "screenshot_diff", "a": "screen_1_title", "b": "screen_2_gameplay", "issue_title": "Title and gameplay look identical", "severity": "Major"},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "screen_3_pause"},
+      {"action": "scene_tree", "label": "legibility_tree", "max_depth": 8}
     ]
   },
   {
     "id": "input_sanity",
     "name": "Input Sanity: Mouse + Keyboard",
-    "goal": "Verify core input bindings respond (mouse click, Esc, Enter, arrow keys)",
-    "tier_required": 1,
+    "goal": "Verify core input bindings respond in gameplay (mouse click, Esc, Enter)",
+    "tier_required": 2,
     "estimated_time_sec": 15,
     "starter": true,
     "steps": [
-      {
-        "action": "screenshot",
-        "label": "before_input"
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "ui_accept"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 500
-      },
-      {
-        "action": "screenshot",
-        "label": "after_accept"
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 500
-      },
-      {
-        "action": "screenshot",
-        "label": "after_pause"
-      },
-      {
-        "action": "click",
-        "x": 320,
-        "y": 180
-      },
-      {
-        "action": "wait",
-        "ms": 500
-      },
-      {
-        "action": "screenshot",
-        "label": "after_click"
-      },
-      {
-        "action": "screenshot_diff",
-        "a": "before_input",
-        "b": "after_accept",
-        "issue_title": "ui_accept had no visible effect",
-        "severity": "Minor"
-      },
-      {
-        "action": "runtime_info"
-      }
+      {"action": "screenshot", "label": "before_input"},
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "screenshot", "label": "in_gameplay"},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "after_pause"},
+      {"action": "screenshot_diff", "a": "in_gameplay", "b": "after_pause", "issue_title": "Pause had no visible effect in gameplay", "severity": "Minor"},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 500},
+      {"action": "click", "x": 160, "y": 100},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "after_click"},
+      {"action": "runtime_info"}
     ]
   },
   {
     "id": "menu_loop",
     "name": "Menu Loop Integrity",
-    "goal": "Navigate Start → Options → Back → Start to verify menu flow doesn't break",
-    "tier_required": 1,
+    "goal": "Start game → Esc back to menu → Start again to verify menu flow doesn't break",
+    "tier_required": 2,
     "estimated_time_sec": 20,
     "steps": [
-      {
-        "action": "screenshot",
-        "label": "menu_start"
-      },
-      {
-        "action": "scene_tree",
-        "label": "menu_tree",
-        "max_depth": 5
-      },
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "press_button",
-        "name": "OptionsBtn",
-        "optional": true
-      },
-      {
-        "action": "wait",
-        "ms": 1000
-      },
-      {
-        "action": "screenshot",
-        "label": "options_screen"
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 1000
-      },
-      {
-        "action": "screenshot",
-        "label": "back_to_menu"
-      },
-      {
-        "action": "screenshot_diff",
-        "a": "menu_start",
-        "b": "back_to_menu",
-        "expect_same": true,
-        "issue_title": "Menu state changed after Options round-trip",
-        "severity": "Minor"
-      }
+      {"action": "screenshot", "label": "menu_start"},
+      {"action": "scene_tree", "label": "menu_tree", "max_depth": 12},
+      {"action": "find_buttons"},
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "started_1"},
+      {"action": "assert_property", "label": "started_1", "expected": true, "issue_title": "Game did not start (cycle 1)", "severity": "Major"},
+      {"action": "screenshot", "label": "in_game_1"},
+      {"action": "screenshot_diff", "a": "menu_start", "b": "in_game_1", "issue_title": "Game screen identical to menu after StartGameBtn", "severity": "Major"},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 1000},
+      {"action": "screenshot", "label": "back_to_menu"},
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "started_2"},
+      {"action": "assert_property", "label": "started_2", "expected": true, "issue_title": "Game did not start (cycle 2)", "severity": "Major"},
+      {"action": "screenshot", "label": "in_game_2"}
     ]
   },
   {
     "id": "back_button_torture",
     "name": "Back Button Torture Test",
-    "goal": "Spam Escape/back through 10 steps to find softlocks or stuck modals",
-    "tier_required": 1,
+    "goal": "Enter game, spam Escape 10 times to find softlocks or stuck modals",
+    "tier_required": 2,
     "estimated_time_sec": 15,
     "steps": [
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 1000
-      },
-      {
-        "action": "screenshot",
-        "label": "before_spam"
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 300
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 300
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 300
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 300
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 300
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 300
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 300
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 300
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 300
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 500
-      },
-      {
-        "action": "screenshot",
-        "label": "after_spam"
-      },
-      {
-        "action": "runtime_info"
-      }
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "screenshot", "label": "before_spam"},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 300},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 300},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 300},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 300},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 300},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 300},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 300},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 300},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 300},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "after_spam"},
+      {"action": "runtime_info"}
     ]
   },
   {
     "id": "restart_cycle",
     "name": "Repeated Start/Stop",
     "goal": "Start game → quit to menu → start again (3 cycles) checking for state leaks",
-    "tier_required": 1,
+    "tier_required": 2,
     "estimated_time_sec": 30,
     "steps": [
-      {
-        "action": "scene_tree",
-        "label": "tree_initial",
-        "max_depth": 6
-      },
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 2000
-      },
-      {
-        "action": "scene_tree",
-        "label": "tree_cycle1",
-        "max_depth": 6
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 1000
-      },
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 2000
-      },
-      {
-        "action": "scene_tree",
-        "label": "tree_cycle2",
-        "max_depth": 6
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 1000
-      },
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 2000
-      },
-      {
-        "action": "scene_tree",
-        "label": "tree_cycle3",
-        "max_depth": 6
-      },
-      {
-        "action": "scene_tree_diff",
-        "a": "tree_cycle1",
-        "b": "tree_cycle3"
-      },
-      {
-        "action": "screenshot",
-        "label": "after_3_cycles"
-      },
-      {
-        "action": "runtime_info"
-      }
+      {"action": "scene_tree", "label": "tree_initial", "max_depth": 12},
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "gs1"},
+      {"action": "assert_property", "label": "gs1", "expected": true, "issue_title": "Cycle 1: game did not start", "severity": "Major"},
+      {"action": "screenshot", "label": "cycle1_gameplay"},
+      {"action": "scene_tree", "label": "tree_cycle1", "max_depth": 12},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 1000},
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "gs2"},
+      {"action": "assert_property", "label": "gs2", "expected": true, "issue_title": "Cycle 2: game did not start", "severity": "Major"},
+      {"action": "screenshot", "label": "cycle2_gameplay"},
+      {"action": "scene_tree", "label": "tree_cycle2", "max_depth": 12},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 1000},
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "gs3"},
+      {"action": "assert_property", "label": "gs3", "expected": true, "issue_title": "Cycle 3: game did not start", "severity": "Major"},
+      {"action": "screenshot", "label": "cycle3_gameplay"},
+      {"action": "scene_tree", "label": "tree_cycle3", "max_depth": 12},
+      {"action": "scene_tree_diff", "a": "tree_cycle1", "b": "tree_cycle3"},
+      {"action": "runtime_info"}
     ]
   },
   {
     "id": "pause_resume",
     "name": "Pause/Resume Stability",
-    "goal": "Trigger pause → resume → interact to verify no input bleed or stuck overlays",
-    "tier_required": 1,
+    "goal": "Enter gameplay, pause → resume → interact to verify no input bleed or stuck overlays",
+    "tier_required": 2,
     "estimated_time_sec": 15,
     "steps": [
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 2000
-      },
-      {
-        "action": "screenshot",
-        "label": "gameplay"
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 500
-      },
-      {
-        "action": "screenshot",
-        "label": "paused"
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 500
-      },
-      {
-        "action": "screenshot",
-        "label": "resumed"
-      },
-      {
-        "action": "click",
-        "x": 100,
-        "y": 60
-      },
-      {
-        "action": "wait",
-        "ms": 500
-      },
-      {
-        "action": "screenshot",
-        "label": "after_interact"
-      },
-      {
-        "action": "screenshot_diff",
-        "a": "gameplay",
-        "b": "paused",
-        "issue_title": "Pause had no visible effect",
-        "severity": "Minor"
-      },
-      {
-        "action": "screenshot_diff",
-        "a": "paused",
-        "b": "resumed",
-        "issue_title": "Resume did not restore gameplay view",
-        "severity": "Major"
-      }
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "screenshot", "label": "gameplay"},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "paused"},
+      {"action": "screenshot_diff", "a": "gameplay", "b": "paused", "issue_title": "Pause had no visible effect", "severity": "Minor"},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "resumed"},
+      {"action": "screenshot_diff", "a": "paused", "b": "resumed", "issue_title": "Resume did not restore gameplay view", "severity": "Major"},
+      {"action": "click", "x": 160, "y": 100},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "after_interact"}
     ]
   },
   {
     "id": "flicker_stability",
     "name": "Flicker/CRT Stability Watch",
-    "goal": "Rapid screenshot burst to detect unintended flicker or render instability",
-    "tier_required": 0,
+    "goal": "Rapid screenshot burst in gameplay to detect unintended flicker or render instability",
+    "tier_required": 2,
     "estimated_time_sec": 10,
     "steps": [
-      {
-        "action": "screenshot",
-        "label": "flicker_01"
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "screenshot",
-        "label": "flicker_02"
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "screenshot",
-        "label": "flicker_03"
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "screenshot",
-        "label": "flicker_04"
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "screenshot",
-        "label": "flicker_05"
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "screenshot",
-        "label": "flicker_06"
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "screenshot",
-        "label": "flicker_07"
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "screenshot",
-        "label": "flicker_08"
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "screenshot",
-        "label": "flicker_09"
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "screenshot",
-        "label": "flicker_10"
-      },
-      {
-        "action": "runtime_info"
-      }
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "screenshot", "label": "flicker_01"},
+      {"action": "wait", "ms": 200},
+      {"action": "screenshot", "label": "flicker_02"},
+      {"action": "wait", "ms": 200},
+      {"action": "screenshot", "label": "flicker_03"},
+      {"action": "wait", "ms": 200},
+      {"action": "screenshot", "label": "flicker_04"},
+      {"action": "wait", "ms": 200},
+      {"action": "screenshot", "label": "flicker_05"},
+      {"action": "wait", "ms": 200},
+      {"action": "screenshot", "label": "flicker_06"},
+      {"action": "wait", "ms": 200},
+      {"action": "screenshot", "label": "flicker_07"},
+      {"action": "wait", "ms": 200},
+      {"action": "screenshot", "label": "flicker_08"},
+      {"action": "wait", "ms": 200},
+      {"action": "screenshot", "label": "flicker_09"},
+      {"action": "wait", "ms": 200},
+      {"action": "screenshot", "label": "flicker_10"},
+      {"action": "runtime_info"}
     ]
   },
   {
     "id": "stuck_frame",
     "name": "Stuck Frame Detector",
-    "goal": "Detect if rendering is frozen by comparing screenshots 1 second apart",
-    "tier_required": 0,
+    "goal": "Enter gameplay, compare screenshots 1 second apart to detect frozen rendering",
+    "tier_required": 2,
     "estimated_time_sec": 10,
     "steps": [
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 2000
-      },
-      {
-        "action": "screenshot",
-        "label": "frame_a"
-      },
-      {
-        "action": "wait",
-        "ms": 1000
-      },
-      {
-        "action": "screenshot",
-        "label": "frame_b"
-      },
-      {
-        "action": "screenshot_diff",
-        "a": "frame_a",
-        "b": "frame_b",
-        "issue_title": "Render appears frozen — identical frames 1s apart",
-        "severity": "Major"
-      },
-      {
-        "action": "runtime_info"
-      }
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "screenshot", "label": "frame_a"},
+      {"action": "wait", "ms": 1000},
+      {"action": "screenshot", "label": "frame_b"},
+      {"action": "screenshot_diff", "a": "frame_a", "b": "frame_b", "issue_title": "Render appears frozen — identical frames 1s apart in gameplay", "severity": "Major"},
+      {"action": "runtime_info"}
     ]
   },
   {
     "id": "interactable_hunt",
     "name": "Interactable Hunt",
-    "goal": "Click a grid of screen points to discover interactive regions and dead zones",
-    "tier_required": 1,
+    "goal": "Enter gameplay, click a grid of screen points to discover interactive regions",
+    "tier_required": 2,
     "estimated_time_sec": 20,
     "steps": [
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 2000
-      },
-      {
-        "action": "screenshot",
-        "label": "before_hunt"
-      },
-      {
-        "action": "grid_click",
-        "cols": 5,
-        "rows": 4,
-        "delay": 150
-      },
-      {
-        "action": "wait",
-        "ms": 500
-      },
-      {
-        "action": "screenshot",
-        "label": "after_hunt"
-      },
-      {
-        "action": "screenshot_diff",
-        "a": "before_hunt",
-        "b": "after_hunt",
-        "issue_title": "Grid click had no visible effect — possible dead zone",
-        "severity": "Minor"
-      },
-      {
-        "action": "runtime_info"
-      }
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["living_room"]},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "before_hunt"},
+      {"action": "grid_click", "cols": 5, "rows": 4, "delay": 150},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "after_hunt"},
+      {"action": "get_property", "node": "GameState", "property": "current_room_id", "label": "room_after_hunt"},
+      {"action": "runtime_info"}
     ]
   },
   {
     "id": "traversal_loop",
     "name": "Traversal Loop",
-    "goal": "Attempt 5 navigation clicks to test room-to-room or screen-to-screen flow",
-    "tier_required": 1,
+    "goal": "Enter gameplay, navigate through rooms using grb_load_room, screenshot each",
+    "tier_required": 2,
     "estimated_time_sec": 25,
     "steps": [
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 2000
-      },
-      {
-        "action": "screenshot",
-        "label": "nav_start"
-      },
-      {
-        "action": "click",
-        "x": 100,
-        "y": 60
-      },
-      {
-        "action": "wait",
-        "ms": 1500
-      },
-      {
-        "action": "screenshot",
-        "label": "nav_step1"
-      },
-      {
-        "action": "click",
-        "x": 300,
-        "y": 60
-      },
-      {
-        "action": "wait",
-        "ms": 1500
-      },
-      {
-        "action": "screenshot",
-        "label": "nav_step2"
-      },
-      {
-        "action": "click",
-        "x": 50,
-        "y": 90
-      },
-      {
-        "action": "wait",
-        "ms": 1500
-      },
-      {
-        "action": "screenshot",
-        "label": "nav_step3"
-      },
-      {
-        "action": "click",
-        "x": 150,
-        "y": 50
-      },
-      {
-        "action": "wait",
-        "ms": 1500
-      },
-      {
-        "action": "screenshot",
-        "label": "nav_step4"
-      },
-      {
-        "action": "click",
-        "x": 200,
-        "y": 80
-      },
-      {
-        "action": "wait",
-        "ms": 1500
-      },
-      {
-        "action": "screenshot",
-        "label": "nav_step5"
-      },
-      {
-        "action": "runtime_info"
-      }
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["foyer"]},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "nav_foyer"},
+      {"action": "get_property", "node": "GameState", "property": "current_room_id", "label": "room_1"},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["living_room"]},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "nav_living_room"},
+      {"action": "get_property", "node": "GameState", "property": "current_room_id", "label": "room_2"},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["kitchen"]},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "nav_kitchen"},
+      {"action": "get_property", "node": "GameState", "property": "current_room_id", "label": "room_3"},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["upstairs_hall"]},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "nav_upstairs"},
+      {"action": "get_property", "node": "GameState", "property": "current_room_id", "label": "room_4"},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["master_bedroom"]},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "nav_bedroom"},
+      {"action": "get_property", "node": "GameState", "property": "current_room_id", "label": "room_5"},
+      {"action": "screenshot_diff", "a": "nav_foyer", "b": "nav_bedroom", "issue_title": "Rooms look identical — traversal may be broken", "severity": "Major"},
+      {"action": "runtime_info"}
     ]
   },
   {
     "id": "inventory_stress",
     "name": "Inventory Open/Close Stress",
-    "goal": "Rapidly open/close inventory or secondary UI panel 10 times",
-    "tier_required": 1,
+    "goal": "Enter gameplay, rapidly pause/resume 10 times to stress UI toggle",
+    "tier_required": 2,
     "estimated_time_sec": 15,
     "steps": [
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 2000
-      },
-      {
-        "action": "screenshot",
-        "label": "before_stress"
-      },
-      {
-        "action": "scene_tree",
-        "label": "tree_before_stress",
-        "max_depth": 5
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 200
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 500
-      },
-      {
-        "action": "screenshot",
-        "label": "after_stress"
-      },
-      {
-        "action": "scene_tree",
-        "label": "tree_after_stress",
-        "max_depth": 5
-      },
-      {
-        "action": "scene_tree_diff",
-        "a": "tree_before_stress",
-        "b": "tree_after_stress"
-      },
-      {
-        "action": "runtime_info"
-      }
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "screenshot", "label": "before_stress"},
+      {"action": "scene_tree", "label": "tree_before_stress", "max_depth": 8},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 200},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 200},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 200},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 200},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 200},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 200},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 200},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 200},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 200},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "after_stress"},
+      {"action": "scene_tree", "label": "tree_after_stress", "max_depth": 8},
+      {"action": "scene_tree_diff", "a": "tree_before_stress", "b": "tree_after_stress"},
+      {"action": "runtime_info"}
     ]
   },
   {
     "id": "input_spam",
     "name": "Invalid Input Spam",
-    "goal": "Mash random keys and clicks rapidly to surface exceptions or stuck states",
-    "tier_required": 1,
+    "goal": "Enter gameplay, mash random keys and clicks to surface exceptions or stuck states",
+    "tier_required": 2,
     "estimated_time_sec": 15,
     "steps": [
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 2000
-      },
-      {
-        "action": "screenshot",
-        "label": "before_spam"
-      },
-      {
-        "action": "rapid_input",
-        "inputs": [
-          {
-            "type": "click",
-            "x": 50,
-            "y": 50,
-            "delay": 30
-          },
-          {
-            "type": "key",
-            "args": {
-              "action": "ui_accept"
-            },
-            "delay": 30
-          },
-          {
-            "type": "click",
-            "x": 300,
-            "y": 200,
-            "delay": 30
-          },
-          {
-            "type": "key",
-            "args": {
-              "action": "pause"
-            },
-            "delay": 30
-          },
-          {
-            "type": "click",
-            "x": 150,
-            "y": 100,
-            "delay": 30
-          },
-          {
-            "type": "key",
-            "args": {
-              "action": "cancel"
-            },
-            "delay": 30
-          },
-          {
-            "type": "click",
-            "x": 600,
-            "y": 350,
-            "delay": 30
-          },
-          {
-            "type": "key",
-            "args": {
-              "action": "ui_accept"
-            },
-            "delay": 30
-          },
-          {
-            "type": "click",
-            "x": 10,
-            "y": 10,
-            "delay": 30
-          },
-          {
-            "type": "key",
-            "args": {
-              "action": "pause"
-            },
-            "delay": 30
-          },
-          {
-            "type": "click",
-            "x": 320,
-            "y": 180,
-            "delay": 30
-          },
-          {
-            "type": "key",
-            "args": {
-              "action": "cancel"
-            },
-            "delay": 30
-          },
-          {
-            "type": "click",
-            "x": 500,
-            "y": 300,
-            "delay": 30
-          },
-          {
-            "type": "key",
-            "args": {
-              "action": "ui_accept"
-            },
-            "delay": 30
-          },
-          {
-            "type": "click",
-            "x": 100,
-            "y": 300,
-            "delay": 30
-          }
-        ]
-      },
-      {
-        "action": "wait",
-        "ms": 500
-      },
-      {
-        "action": "screenshot",
-        "label": "after_spam"
-      },
-      {
-        "action": "runtime_info"
-      },
-      {
-        "action": "check_runtime",
-        "min_fps": 5
-      }
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "screenshot", "label": "before_spam"},
+      {"action": "rapid_input", "inputs": [
+        {"type": "click", "x": 50, "y": 50, "delay": 30},
+        {"type": "key", "args": {"action": "ui_accept"}, "delay": 30},
+        {"type": "click", "x": 300, "y": 200, "delay": 30},
+        {"type": "key", "args": {"action": "pause"}, "delay": 30},
+        {"type": "click", "x": 150, "y": 100, "delay": 30},
+        {"type": "key", "args": {"action": "cancel"}, "delay": 30},
+        {"type": "click", "x": 600, "y": 350, "delay": 30},
+        {"type": "key", "args": {"action": "ui_accept"}, "delay": 30},
+        {"type": "click", "x": 10, "y": 10, "delay": 30},
+        {"type": "key", "args": {"action": "pause"}, "delay": 30},
+        {"type": "click", "x": 320, "y": 180, "delay": 30},
+        {"type": "key", "args": {"action": "cancel"}, "delay": 30},
+        {"type": "click", "x": 500, "y": 300, "delay": 30},
+        {"type": "key", "args": {"action": "ui_accept"}, "delay": 30},
+        {"type": "click", "x": 100, "y": 300, "delay": 30}
+      ]},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "after_spam"},
+      {"action": "runtime_info"},
+      {"action": "check_runtime", "min_fps": 5}
     ]
   },
   {
     "id": "long_idle",
     "name": "Long Idle Watch",
-    "goal": "Idle for 30 seconds to detect audio loops, CPU spikes, or timer issues",
-    "tier_required": 0,
+    "goal": "Enter gameplay, idle for 30 seconds to detect audio loops, CPU spikes, or timer issues",
+    "tier_required": 2,
     "estimated_time_sec": 40,
     "steps": [
-      {
-        "action": "screenshot",
-        "label": "idle_start"
-      },
-      {
-        "action": "runtime_info"
-      },
-      {
-        "action": "wait",
-        "ms": 10000
-      },
-      {
-        "action": "check_runtime",
-        "min_fps": 10
-      },
-      {
-        "action": "screenshot",
-        "label": "idle_10s"
-      },
-      {
-        "action": "wait",
-        "ms": 10000
-      },
-      {
-        "action": "check_runtime",
-        "min_fps": 10
-      },
-      {
-        "action": "screenshot",
-        "label": "idle_20s"
-      },
-      {
-        "action": "wait",
-        "ms": 10000
-      },
-      {
-        "action": "check_runtime",
-        "min_fps": 10
-      },
-      {
-        "action": "screenshot",
-        "label": "idle_30s"
-      },
-      {
-        "action": "runtime_info"
-      }
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "screenshot", "label": "idle_start"},
+      {"action": "runtime_info"},
+      {"action": "wait", "ms": 10000},
+      {"action": "check_runtime", "min_fps": 10},
+      {"action": "screenshot", "label": "idle_10s"},
+      {"action": "wait", "ms": 10000},
+      {"action": "check_runtime", "min_fps": 10},
+      {"action": "screenshot", "label": "idle_20s"},
+      {"action": "wait", "ms": 10000},
+      {"action": "check_runtime", "min_fps": 10},
+      {"action": "screenshot", "label": "idle_30s"},
+      {"action": "runtime_info"}
     ]
   },
   {
     "id": "node_tree_snapshot",
     "name": "Node Tree Snapshot + Regression Diff",
     "goal": "Capture scene tree on menu and in-game for structural comparison",
-    "tier_required": 1,
+    "tier_required": 2,
     "estimated_time_sec": 15,
     "steps": [
-      {
-        "action": "scene_tree",
-        "label": "tree_menu",
-        "max_depth": 6
-      },
-      {
-        "action": "screenshot",
-        "label": "menu_tree_view"
-      },
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 3000
-      },
-      {
-        "action": "scene_tree",
-        "label": "tree_ingame",
-        "max_depth": 6
-      },
-      {
-        "action": "screenshot",
-        "label": "ingame_tree_view"
-      },
-      {
-        "action": "scene_tree_diff",
-        "a": "tree_menu",
-        "b": "tree_ingame"
-      },
-      {
-        "action": "runtime_info"
-      }
+      {"action": "scene_tree", "label": "tree_menu", "max_depth": 12},
+      {"action": "screenshot", "label": "menu_tree_view"},
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 3000},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "scene_tree", "label": "tree_ingame", "max_depth": 12},
+      {"action": "screenshot", "label": "ingame_tree_view"},
+      {"action": "screenshot_diff", "a": "menu_tree_view", "b": "ingame_tree_view", "issue_title": "Menu and gameplay screenshots identical — game may not have entered gameplay", "severity": "Major"},
+      {"action": "scene_tree_diff", "a": "tree_menu", "b": "tree_ingame"},
+      {"action": "runtime_info"}
     ]
   },
   {
     "id": "keyboard_nav",
     "name": "Focus + Accessibility Pass",
-    "goal": "Attempt keyboard-only navigation to verify focus visibility and tab order",
-    "tier_required": 1,
+    "goal": "Verify keyboard-only navigation works on title screen (Tab through buttons, Enter to activate)",
+    "tier_required": 2,
     "estimated_time_sec": 15,
     "steps": [
-      {
-        "action": "screenshot",
-        "label": "focus_start"
-      },
-      {
-        "action": "key",
-        "args": {
-          "keycode": 4194306
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 300
-      },
-      {
-        "action": "screenshot",
-        "label": "after_tab_1"
-      },
-      {
-        "action": "key",
-        "args": {
-          "keycode": 4194306
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 300
-      },
-      {
-        "action": "screenshot",
-        "label": "after_tab_2"
-      },
-      {
-        "action": "key",
-        "args": {
-          "keycode": 4194306
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 300
-      },
-      {
-        "action": "screenshot",
-        "label": "after_tab_3"
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "ui_accept"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 500
-      },
-      {
-        "action": "screenshot",
-        "label": "after_enter"
-      },
-      {
-        "action": "screenshot_diff",
-        "a": "focus_start",
-        "b": "after_tab_1",
-        "issue_title": "Tab key had no visible focus change",
-        "severity": "Minor"
-      }
+      {"action": "screenshot", "label": "focus_start"},
+      {"action": "key", "args": {"keycode": 4194306}},
+      {"action": "wait", "ms": 300},
+      {"action": "screenshot", "label": "after_tab_1"},
+      {"action": "key", "args": {"keycode": 4194306}},
+      {"action": "wait", "ms": 300},
+      {"action": "screenshot", "label": "after_tab_2"},
+      {"action": "key", "args": {"keycode": 4194306}},
+      {"action": "wait", "ms": 300},
+      {"action": "screenshot", "label": "after_tab_3"},
+      {"action": "screenshot_diff", "a": "focus_start", "b": "after_tab_1", "issue_title": "Tab key had no visible focus change", "severity": "Minor"},
+      {"action": "key", "args": {"action": "ui_accept"}},
+      {"action": "wait", "ms": 2500},
+      {"action": "screenshot", "label": "after_enter"},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "screenshot_diff", "a": "after_tab_3", "b": "after_enter", "issue_title": "Enter key had no visible effect after Tab navigation", "severity": "Minor"}
     ]
   },
   {
     "id": "wait_for_validation",
     "name": "Deterministic Wait-For Validation",
-    "goal": "Test wait_for on a state transition to verify async polling works",
-    "tier_required": 1,
+    "goal": "Press StartGameBtn and verify game_started becomes true",
+    "tier_required": 2,
     "estimated_time_sec": 15,
     "steps": [
-      {
-        "action": "runtime_info"
-      },
-      {
-        "action": "screenshot",
-        "label": "wait_before"
-      },
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 3000
-      },
-      {
-        "action": "screenshot",
-        "label": "wait_after"
-      },
-      {
-        "action": "screenshot_diff",
-        "a": "wait_before",
-        "b": "wait_after",
-        "issue_title": "No state change detected after button click — transition may be broken",
-        "severity": "Major"
-      },
-      {
-        "action": "runtime_info"
-      }
+      {"action": "runtime_info"},
+      {"action": "screenshot", "label": "wait_before"},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "before_started"},
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 3000},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "after_started"},
+      {"action": "assert_property", "label": "after_started", "expected": true, "issue_title": "GameState.game_started did not become true after StartGameBtn", "severity": "Major"},
+      {"action": "screenshot", "label": "wait_after"},
+      {"action": "screenshot_diff", "a": "wait_before", "b": "wait_after", "issue_title": "No visible change after StartGameBtn — transition may be broken", "severity": "Major"},
+      {"action": "runtime_info"}
     ]
   },
   {
     "id": "crash_sentinel",
     "name": "Crash/Exception Sentinel",
-    "goal": "Perform risky actions and verify game stays alive via ping + runtime_info",
-    "tier_required": 1,
+    "goal": "Enter gameplay, perform risky edge-case inputs, verify game stays alive",
+    "tier_required": 2,
     "estimated_time_sec": 15,
     "steps": [
-      {
-        "action": "runtime_info"
-      },
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 1000
-      },
-      {
-        "action": "rapid_input",
-        "inputs": [
-          {
-            "type": "click",
-            "x": 0,
-            "y": 0,
-            "delay": 50
-          },
-          {
-            "type": "click",
-            "x": 639,
-            "y": 359,
-            "delay": 50
-          },
-          {
-            "type": "click",
-            "x": -10,
-            "y": -10,
-            "delay": 50
-          },
-          {
-            "type": "click",
-            "x": 999,
-            "y": 999,
-            "delay": 50
-          },
-          {
-            "type": "key",
-            "args": {
-              "keycode": 4194305
-            },
-            "delay": 50
-          },
-          {
-            "type": "key",
-            "args": {
-              "keycode": 4194309
-            },
-            "delay": 50
-          }
-        ]
-      },
-      {
-        "action": "wait",
-        "ms": 1000
-      },
-      {
-        "action": "screenshot",
-        "label": "after_edge_inputs"
-      },
-      {
-        "action": "runtime_info"
-      },
-      {
-        "action": "check_runtime",
-        "min_fps": 5
-      }
+      {"action": "runtime_info"},
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "rapid_input", "inputs": [
+        {"type": "click", "x": 0, "y": 0, "delay": 50},
+        {"type": "click", "x": 639, "y": 359, "delay": 50},
+        {"type": "click", "x": -10, "y": -10, "delay": 50},
+        {"type": "click", "x": 999, "y": 999, "delay": 50},
+        {"type": "key", "args": {"keycode": 4194305}, "delay": 50},
+        {"type": "key", "args": {"keycode": 4194309}, "delay": 50}
+      ]},
+      {"action": "wait", "ms": 1000},
+      {"action": "screenshot", "label": "after_edge_inputs"},
+      {"action": "runtime_info"},
+      {"action": "check_runtime", "min_fps": 5}
     ]
   },
   {
@@ -1362,155 +491,121 @@
     "tier_required": 0,
     "estimated_time_sec": 10,
     "steps": [
-      {
-        "action": "screenshot",
-        "label": "resolution_capture"
-      },
-      {
-        "action": "runtime_info"
-      },
-      {
-        "action": "scene_tree",
-        "label": "resolution_tree",
-        "max_depth": 3
-      }
+      {"action": "screenshot", "label": "resolution_capture"},
+      {"action": "runtime_info"},
+      {"action": "scene_tree", "label": "resolution_tree", "max_depth": 3}
     ]
   },
   {
     "id": "full_sweep",
     "name": "Full Sweep: All Core Checks",
-    "goal": "Run boot, input, UI, idle, and stress checks in a single comprehensive pass",
-    "tier_required": 1,
+    "goal": "Comprehensive pass: boot, enter gameplay, navigate rooms, pause, stress, idle",
+    "tier_required": 2,
     "estimated_time_sec": 60,
     "steps": [
-      {
-        "action": "runtime_info"
-      },
-      {
-        "action": "screenshot",
-        "label": "sweep_boot"
-      },
-      {
-        "action": "scene_tree",
-        "label": "sweep_tree_boot",
-        "max_depth": 5
-      },
-      {
-        "action": "find_buttons"
-      },
-      {
-        "action": "click_first_button"
-      },
-      {
-        "action": "wait",
-        "ms": 2000
-      },
-      {
-        "action": "screenshot",
-        "label": "sweep_ingame"
-      },
-      {
-        "action": "scene_tree",
-        "label": "sweep_tree_ingame",
-        "max_depth": 5
-      },
-      {
-        "action": "scene_tree_diff",
-        "a": "sweep_tree_boot",
-        "b": "sweep_tree_ingame"
-      },
-      {
-        "action": "grid_click",
-        "cols": 4,
-        "rows": 3,
-        "delay": 100
-      },
-      {
-        "action": "wait",
-        "ms": 1000
-      },
-      {
-        "action": "screenshot",
-        "label": "sweep_after_grid"
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 500
-      },
-      {
-        "action": "screenshot",
-        "label": "sweep_paused"
-      },
-      {
-        "action": "key",
-        "args": {
-          "action": "pause"
-        }
-      },
-      {
-        "action": "wait",
-        "ms": 500
-      },
-      {
-        "action": "rapid_input",
-        "inputs": [
-          {
-            "type": "key",
-            "args": {
-              "action": "ui_accept"
-            },
-            "delay": 50
-          },
-          {
-            "type": "click",
-            "x": 320,
-            "y": 180,
-            "delay": 50
-          },
-          {
-            "type": "key",
-            "args": {
-              "action": "cancel"
-            },
-            "delay": 50
-          },
-          {
-            "type": "click",
-            "x": 100,
-            "y": 50,
-            "delay": 50
-          }
-        ]
-      },
-      {
-        "action": "wait",
-        "ms": 2000
-      },
-      {
-        "action": "screenshot",
-        "label": "sweep_after_stress"
-      },
-      {
-        "action": "wait",
-        "ms": 5000
-      },
-      {
-        "action": "check_runtime",
-        "min_fps": 10
-      },
-      {
-        "action": "screenshot",
-        "label": "sweep_idle"
-      },
-      {
-        "action": "runtime_info"
-      }
+      {"action": "runtime_info"},
+      {"action": "screenshot", "label": "sweep_title"},
+      {"action": "scene_tree", "label": "sweep_tree_boot", "max_depth": 12},
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "screenshot", "label": "sweep_gameplay"},
+      {"action": "screenshot_diff", "a": "sweep_title", "b": "sweep_gameplay", "issue_title": "Title and gameplay screens identical", "severity": "Major"},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["living_room"]},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "sweep_living_room"},
+      {"action": "get_property", "node": "GameState", "property": "current_room_id", "label": "room_id"},
+      {"action": "scene_tree", "label": "sweep_tree_ingame", "max_depth": 12},
+      {"action": "scene_tree_diff", "a": "sweep_tree_boot", "b": "sweep_tree_ingame"},
+      {"action": "grid_click", "cols": 4, "rows": 3, "delay": 100},
+      {"action": "wait", "ms": 1000},
+      {"action": "screenshot", "label": "sweep_after_grid"},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "sweep_paused"},
+      {"action": "key", "args": {"action": "pause"}},
+      {"action": "wait", "ms": 500},
+      {"action": "rapid_input", "inputs": [
+        {"type": "key", "args": {"action": "ui_accept"}, "delay": 50},
+        {"type": "click", "x": 160, "y": 100, "delay": 50},
+        {"type": "key", "args": {"action": "cancel"}, "delay": 50},
+        {"type": "click", "x": 80, "y": 50, "delay": 50}
+      ]},
+      {"action": "wait", "ms": 2000},
+      {"action": "screenshot", "label": "sweep_after_stress"},
+      {"action": "wait", "ms": 5000},
+      {"action": "check_runtime", "min_fps": 10},
+      {"action": "screenshot", "label": "sweep_idle"},
+      {"action": "runtime_info"}
+    ]
+  },
+  {
+    "id": "voice_qa",
+    "name": "Voice Command QA",
+    "goal": "Enter gameplay, navigate rooms, inject voice phrases, verify ghost reactions",
+    "tier_required": 2,
+    "estimated_time_sec": 45,
+    "steps": [
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["living_room"]},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "living_room"},
+      {"action": "get_property", "node": "GameState", "property": "current_room_id", "label": "room_living"},
+      {"action": "get_property", "node": "GameState", "property": "property_attachment", "label": "att_before"},
+      {"action": "inject_voice", "phrase": "ha ha very funny", "wait_after_ms": 1200},
+      {"action": "screenshot", "label": "after_voice_living"},
+      {"action": "get_property", "node": "GameState", "property": "property_attachment", "label": "att_after_poltergeist"},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["master_bedroom"]},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "master_bedroom"},
+      {"action": "get_property", "node": "GameState", "property": "current_room_id", "label": "room_bedroom"},
+      {"action": "inject_voice", "phrase": "you can go now", "wait_after_ms": 1200},
+      {"action": "screenshot", "label": "after_voice_bedroom"},
+      {"action": "get_property", "node": "GameState", "property": "property_attachment", "label": "att_after_lost_soul"},
+      {"action": "runtime_info"}
+    ]
+  },
+  {
+    "id": "demon_arc_storyboard",
+    "name": "Demon Arc Storyboard",
+    "goal": "Full demon arc: enter gameplay, attic → voice combat → retreat → basement. Screenshots at each beat.",
+    "tier_required": 2,
+    "estimated_time_sec": 90,
+    "steps": [
+      {"action": "press_button", "name": "StartGameBtn"},
+      {"action": "wait", "ms": 2500},
+      {"action": "get_property", "node": "GameState", "property": "game_started", "label": "game_started"},
+      {"action": "assert_property", "label": "game_started", "expected": true, "issue_title": "Game did not start", "severity": "Major"},
+      {"action": "screenshot", "label": "gameplay_start"},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["upstairs_hall"]},
+      {"action": "wait", "ms": 400},
+      {"action": "screenshot", "label": "upstairs_hall"},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["attic"]},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "attic_entrance"},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["attic"]},
+      {"action": "wait", "ms": 300},
+      {"action": "press_button", "name": "USE", "optional": true},
+      {"action": "wait", "ms": 600},
+      {"action": "screenshot", "label": "attic_lit"},
+      {"action": "inject_voice", "phrase": "i banish you", "wait_after_ms": 1200},
+      {"action": "inject_voice", "phrase": "begone", "wait_after_ms": 1200},
+      {"action": "inject_voice", "phrase": "i cast you out", "wait_after_ms": 1200},
+      {"action": "screenshot", "label": "attic_after_voice"},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["upstairs_hall"]},
+      {"action": "wait", "ms": 400},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["attic"]},
+      {"action": "wait", "ms": 600},
+      {"action": "screenshot", "label": "attic_revisit"},
+      {"action": "call_method", "node": "Main", "method": "grb_load_room", "args": ["basement"]},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "basement"},
+      {"action": "get_property", "node": "GameState", "property": "current_room_id", "label": "final_room"},
+      {"action": "runtime_info"}
     ]
   }
 ]

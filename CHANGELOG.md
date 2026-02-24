@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.1.5 — 2026-02-24
+
+### Added
+- **`quit` command (Tier 2)** — cleanly exits the running game via `get_tree().quit()` (deferred). Enables the mission runner to close the game without killing the OS process.
+- **Mission runner: `check_errors` step** — polls `get_errors` at a specific point in a mission and files issues for any engine errors found since the last check.
+- **Mission runner: `assert_property` step** — asserts that a previously fetched property (`get_property` with a `label`) equals an expected value; files an issue on mismatch.
+- **Mission runner: `assert_screen` / `save_reference` steps** — compare a live screenshot against a saved reference PNG on disk. `save_reference` captures and saves to `missions/references/` for future assertions.
+- **Mission runner: startup health check** — after connecting, auto-queries `get_errors` for boot-time errors and aborts with exit code 2 if any are found. Use `--allow-boot-errors` to run missions anyway.
+- **Mission runner: post-mission error sweep** — after each mission, automatically queries `get_errors` for errors that fired during the run. Results appear in the report's Engine Errors section.
+- **Mission runner: Godot stderr capture** — stderr from the Godot process is buffered and included in reports under a "Godot Stderr" section.
+- **`perceptual_diff.mjs`: `compareToReference` export** — compares a base64 PNG against a reference file on disk; returns `{ matches, ratio, detail }`.
+- **Per-step diff thresholds** — `screenshot_diff` steps now accept `block_thresh` and `change_thresh` fields that override CLI-level defaults for that specific comparison.
+- **`--capture-refs` and `--allow-boot-errors` CLI flags.**
+- **MCP startup notice** — on launch, the MCP server logs a message to stderr reminding users to enable the server in Cursor → Settings → Tools & MCP if tools are not appearing.
+
+### Changed
+- **Perceptual diff defaults tightened** — `blockThresh` 8 → 3, `changeThresh` 0.03 → 0.01. Catches more subtle visual regressions by default.
+- **Home screen detection thresholds lowered** — recognizes a home screen with ≥2 buttons + ≥1 keyword match (was ≥3 + ≥2), and ≥4 total buttons (was ≥5).
+- **`resetToHome` scene tree depth** — `max_depth` increased from 6 to 12.
+- **Starter missions updated** — `smoke_test`, `ui_legibility`, `input_sanity`, `menu_loop` now use `press_button` with `StartGameBtn` + `assert_property` on `GameState.game_started`; require Tier 2.
+- **Report Coverage Summary** extended with engine error and warning counts.
+- **README: Cursor enable step** — setup instructions now explicitly call out the required Settings → Tools & MCP → enable toggle.
+
 ## 0.1.4 — 2026-02-24
 
 - **Windowed launch via `override.cfg`** — MCP server writes a temporary `override.cfg` before spawning Godot, forcing `window/size/mode=0` at engine level; file is auto-deleted on exit

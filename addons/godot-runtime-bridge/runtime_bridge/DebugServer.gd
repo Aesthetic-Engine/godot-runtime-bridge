@@ -387,6 +387,8 @@ func _execute(cmd: String, args: Dictionary, req_id: String) -> Dictionary:
 			return _cmd_scroll(req_id, args)
 		"eval":
 			return _cmd_eval(req_id, str(args.get("expr", "")))
+		"quit":
+			return _cmd_quit(req_id)
 		_:
 			return _Protocol.error(req_id, "unknown_cmd", "Unhandled command: " + cmd)
 
@@ -709,6 +711,11 @@ func _cmd_call_method(req_id: String, args: Dictionary) -> Dictionary:
 		return _Protocol.error(req_id, "not_found", "Method not found: " + method_name)
 	var result: Variant = node.callv(method_name, method_args)
 	return _Protocol.ok(req_id, {"result": _safe_serialize(result)})
+
+
+func _cmd_quit(req_id: String) -> Dictionary:
+	get_tree().call_deferred("quit")
+	return _Protocol.ok(req_id, {"message": "Quitting game"})
 
 
 # ── Tier 3: Danger ──

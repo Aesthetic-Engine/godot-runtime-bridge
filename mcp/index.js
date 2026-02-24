@@ -331,7 +331,7 @@ const TOOLS = [
   },
   {
     name: "grb_get_errors",
-    description: "Get captured engine errors, warnings, and log messages. Returns entries since a given index for incremental polling.",
+    description: "Get captured engine errors, warnings, and log messages. Call after launch and before other commands; fix any reported errors before proceeding. Returns entries since a given index for incremental polling.",
     inputSchema: {
       type: "object",
       properties: {
@@ -365,6 +365,30 @@ const TOOLS = [
     inputSchema: { type: "object", properties: {} },
   },
   {
+    name: "grb_quit",
+    description: "Gracefully quit the running game. Requires tier 2.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "grb_reset",
+    description:
+      "Quit the running game and relaunch a fresh instance. Use instead of quit+launch when Godot doesn't exit cleanly. Same args as grb_launch.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        project_path: {
+          type: "string",
+          description: "Path to project folder (required)",
+        },
+        godot_exe: { type: "string" },
+        tier: { type: "number" },
+        enable_danger: { type: "boolean" },
+        window_size: { type: "string" },
+      },
+      required: ["project_path"],
+    },
+  },
+  {
     name: "grb_eval",
     description:
       "Execute arbitrary GDScript expression. Requires tier 3 + GDRB_ENABLE_DANGER=1.",
@@ -383,6 +407,13 @@ const TOOLS = [
 async function handleTool(name, args) {
   switch (name) {
     case "grb_launch": {
+      if (grbProcess) {
+        try { grbProcess.kill(); } catch {}
+        grbProcess = null;
+        grbPort = null;
+        grbToken = null;
+      }
+
       const projectPath = args.project_path;
       const godotExe = args.godot_exe || process.env.GODOT_PATH || "godot";
       const tier = args.tier != null ? String(args.tier) : "1";
@@ -670,6 +701,35 @@ async function handleTool(name, args) {
       };
     }
 
+    case "grb_quit": {
+      try {
+        await sendCommand("quit");
+      } catch {}
+      if (grbProcess) {
+        try { grbProcess.kill(); } catch {}
+        grbProcess = null;
+      }
+      grbPort = null;
+      grbToken = null;
+      return {
+        content: [{ type: "text", text: "Game quit successfully." }],
+      };
+    }
+
+    case "grb_reset": {
+      try {
+        await sendCommand("quit");
+      } catch {}
+      if (grbProcess) {
+        try { grbProcess.kill(); } catch {}
+        grbProcess = null;
+      }
+      grbPort = null;
+      grbToken = null;
+      await new Promise((r) => setTimeout(r, 800));
+      return await handleTool("grb_launch", args);
+    }
+
     case "grb_eval": {
       const r = await sendCommand("eval", { expr: args.expr });
       if (!r.ok) return errResult(r);
@@ -718,3 +778,14 @@ mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 const transport = new StdioServerTransport();
 await mcpServer.connect(transport);
+
+// Startup notice — visible in Cursor's MCP output panel (Settings → Tools & MCP → godot-runtime-bridge → Logs)
+// If GRB tools are not appearing in Cursor, the most common cause is the server not being enabled.
+process.stderr.write(
+  "[GRB] MCP server started (godot-runtime-bridge v0.1.5)\n" +
+  "[GRB] If tools are not appearing in Cursor:\n" +
+  "[GRB]   1. Open Cursor → Settings → Tools & MCP\n" +
+  "[GRB]   2. Find 'godot-runtime-bridge' under Installed MCP Servers\n" +
+  "[GRB]   3. Toggle it ON — this step is required\n" +
+  "[GRB] Docs: https://github.com/your-repo/godot-runtime-bridge\n"
+);

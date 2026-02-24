@@ -25,11 +25,12 @@ import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
-import { compareScreenshots } from "./perceptual_diff.mjs";
+import { compareScreenshots, compareToReference } from "./perceptual_diff.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_MISSIONS_FILE = path.join(__dirname, "missions.json");
 const OUTPUT_DIR = path.join(__dirname, "reports");
+const REFS_DIR = path.join(__dirname, "references");
 
 // ── CLI args ──
 
@@ -39,6 +40,8 @@ for (let i = 0; i < args.length; i++) {
   if (args[i] === "--list") { flags.list = true; }
   else if (args[i] === "--reset") { flags.reset = true; }
   else if (args[i] === "--no-reset") { flags.noReset = true; }
+  else if (args[i] === "--capture-refs") { flags.captureRefs = true; }
+  else if (args[i] === "--allow-boot-errors") { flags["allow-boot-errors"] = true; }
   else if (args[i].startsWith("--") && i + 1 < args.length && !args[i + 1].startsWith("--")) {
     flags[args[i].slice(2)] = args[i + 1];
     i++;
@@ -104,25 +107,22 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 async function launchGame(exe, project, tier = 1) {
   const token = crypto.randomBytes(16).toString("hex");
   const isWatch = (flags.mode === "watch");
-  const godotArgs = ["--path", project];
-  if (!isWatch) {
-    godotArgs.push("--windowed", "--resolution", "1280x720", "--position", "50,50");
-  }
+  const godotArgs = ["--path", project, "--windowed", "--resolution", "1280x720", "--position", "50,50"];
   const envVars = {
     ...process.env,
     GDRB_TOKEN: token,
     GDRB_TIER: String(tier),
-    GDRB_INPUT_MODE: isWatch ? "os" : "synthetic",
+    GDRB_INPUT_MODE: "synthetic",
+    GDRB_FORCE_WINDOWED: "1",
   };
-  if (!isWatch) {
-    envVars.GDRB_FORCE_WINDOWED = "1";
-  }
   const child = spawn(exe, godotArgs, {
     cwd: project,
     env: envVars,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  child.stderr.on("data", () => {});
+  let stderrBuf = "";
+  child.stderr.on("data", (chunk) => { stderrBuf += chunk.toString(); });
+  child.stderrBuffer = () => stderrBuf;
   grbProcess = child;
 
   return new Promise((resolve, reject) => {
@@ -197,8 +197,8 @@ function looksLikeHomeScreen(buttons) {
   if (buttons.length === 0) return false;
   const lower = buttons.map(b => b.toLowerCase().replace(/[^a-z]/g, ""));
   const matches = MENU_KEYWORDS.filter(kw => lower.some(bn => bn.includes(kw)));
-  if (buttons.length >= 3 && matches.length >= 2) return true;
-  if (buttons.length >= 5) return true;
+  if (buttons.length >= 2 && matches.length >= 1) return true;
+  if (buttons.length >= 4) return true;
   return false;
 }
 
@@ -206,7 +206,7 @@ async function resetToHome(logPrefix = "  ") {
   const MAX_ATTEMPTS = 12;
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const tree = await sendCommand("scene_tree", { max_depth: 6 });
+    const tree = await sendCommand("scene_tree", { max_depth: 12 });
     if (!tree.ok) continue;
 
     const buttons = findButtons(tree.scene);
@@ -272,6 +272,28 @@ async function executeStep(step, context) {
       }
       break;
     }
+    case "check_errors": {
+      const sinceIdx = step.since_index ?? context._errorIndex ?? 0;
+      const r = await sendCommand("get_errors", { since_index: sinceIdx });
+      if (r.ok) {
+        context._errorIndex = r.next_index;
+        const errs = r.errors || [];
+        const errCount = errs.filter(e => e.type !== "warning").length;
+        const warnCount = errs.filter(e => e.type === "warning").length;
+        actions.push(`Error check: ${errCount} errors, ${warnCount} warnings (since index ${sinceIdx})`);
+        if (errCount > 0 && !step.allow_errors) {
+          for (const e of errs.filter(e => e.type !== "warning")) {
+            issues.push({
+              severity: step.severity || "Major",
+              title: `Engine ${e.type}: ${e.code || e.message || "unknown"}`,
+              detail: `${e.file || ""}:${e.line || ""} ${e.rationale || e.message || ""}`
+            });
+          }
+        }
+        context.engineErrors = (context.engineErrors || []).concat(errs);
+      }
+      break;
+    }
     case "click": {
       const r = await sendCommand("click", { x: step.x, y: step.y });
       if (r.ok) actions.push(`Clicked (${step.x}, ${step.y})`);
@@ -321,8 +343,10 @@ async function executeStep(step, context) {
       const b = screenshots[step.b];
       if (a && b) {
         const diffOpts = {};
-        if (flags["diff-block-thresh"]) diffOpts.blockThresh = Number(flags["diff-block-thresh"]);
-        if (flags["diff-change-thresh"]) diffOpts.changeThresh = Number(flags["diff-change-thresh"]);
+        if (step.block_thresh != null) diffOpts.blockThresh = Number(step.block_thresh);
+        else if (flags["diff-block-thresh"]) diffOpts.blockThresh = Number(flags["diff-block-thresh"]);
+        if (step.change_thresh != null) diffOpts.changeThresh = Number(step.change_thresh);
+        else if (flags["diff-change-thresh"]) diffOpts.changeThresh = Number(flags["diff-change-thresh"]);
         const result = compareScreenshots(a.b64, b.b64, diffOpts);
         if (result.changed) {
           actions.push(`Screenshots differ: ${step.a} vs ${step.b} (${result.detail})`);
@@ -405,6 +429,56 @@ async function executeStep(step, context) {
       }
       break;
     }
+    case "assert_property": {
+      const val = (context.properties || {})[step.label];
+      if (val === step.expected) {
+        actions.push(`Assert ${step.label} === ${JSON.stringify(step.expected)} ✓`);
+      } else {
+        issues.push({
+          severity: step.severity || "Major",
+          title: step.issue_title || `Assertion failed: ${step.label}`,
+          detail: `Expected ${JSON.stringify(step.expected)}, got ${JSON.stringify(val)}`
+        });
+      }
+      break;
+    }
+    case "assert_screen": {
+      const r = await sendCommand("screenshot");
+      if (!r.ok) {
+        issues.push({ severity: "Major", title: "assert_screen: screenshot failed", detail: JSON.stringify(r.error) });
+        break;
+      }
+      const refName = step.ref;
+      const refPath = path.join(REFS_DIR, `${refName}.png`);
+      const result = compareToReference(r.png_base64, refPath, {
+        blockThresh: step.block_thresh,
+        matchThresh: step.match_thresh,
+      });
+      const snapFile = saveScreenshot(r.png_base64, `assert_${refName}`, outDir);
+      if (result.matches) {
+        actions.push(`Screen matches reference "${refName}" (${result.detail})`);
+      } else {
+        issues.push({
+          severity: step.severity || "Major",
+          title: step.issue_title || `Screen does not match reference: ${refName}`,
+          detail: `${result.detail}. Screenshot saved: ${snapFile}`
+        });
+      }
+      break;
+    }
+    case "save_reference": {
+      const r = await sendCommand("screenshot");
+      if (!r.ok) {
+        issues.push({ severity: "Major", title: "save_reference: screenshot failed", detail: JSON.stringify(r.error) });
+        break;
+      }
+      if (!fs.existsSync(REFS_DIR)) fs.mkdirSync(REFS_DIR, { recursive: true });
+      const refFile = path.join(REFS_DIR, `${step.ref}.png`);
+      fs.writeFileSync(refFile, Buffer.from(r.png_base64, "base64"));
+      saveScreenshot(r.png_base64, `ref_${step.ref}`, outDir);
+      actions.push(`Saved reference: ${step.ref} (${r.width}x${r.height})`);
+      break;
+    }
     case "set_property": {
       const r = await sendCommand("set_property", { node: step.node, property: step.property, value: step.value });
       if (r.ok) actions.push(`Set ${step.node}.${step.property} = ${JSON.stringify(step.value)}`);
@@ -434,8 +508,8 @@ async function executeStep(step, context) {
     case "inject_voice": {
       const phrase = step.phrase || step.text;
       const r = await sendCommand("call_method", {
-        node: "Main/VoiceGameplayController",
-        method: "inject_transcript",
+        node: "Main",
+        method: "grb_inject_voice",
         args: [phrase]
       });
       if (r.ok) actions.push(`Inject voice: "${phrase}"`);
@@ -580,20 +654,54 @@ function generateReport(mission, context) {
     md += `\n`;
   }
 
+  // Engine errors section
+  const engineErrors = context.engineErrors || [];
+  if (engineErrors.length > 0) {
+    const errs = engineErrors.filter(e => e.type !== "warning");
+    const warns = engineErrors.filter(e => e.type === "warning");
+    md += `## Engine Errors (${errs.length} errors, ${warns.length} warnings)\n\n`;
+    if (errs.length > 0) {
+      md += `### Errors\n\n`;
+      for (const e of errs.slice(0, 25)) {
+        md += `- **${e.type}** \`${e.file || ""}:${e.line || ""}\` ${e.code || ""} — ${e.rationale || e.message || ""}\n`;
+      }
+      if (errs.length > 25) md += `- ... and ${errs.length - 25} more\n`;
+      md += `\n`;
+    }
+    if (warns.length > 0) {
+      md += `### Warnings\n\n`;
+      for (const w of warns.slice(0, 15)) {
+        md += `- \`${w.file || ""}:${w.line || ""}\` ${w.code || ""} — ${w.rationale || w.message || ""}\n`;
+      }
+      if (warns.length > 15) md += `- ... and ${warns.length - 15} more\n`;
+      md += `\n`;
+    }
+  }
+
+  // Stderr section
+  const stderr = (context.stderr || "").trim();
+  if (stderr) {
+    md += `## Godot Stderr\n\n`;
+    md += "```\n" + stderr.slice(0, 3000) + "\n```\n\n";
+    if (stderr.length > 3000) md += `(truncated, ${stderr.length} chars total)\n\n`;
+  }
+
   md += `## Coverage Summary\n\n`;
   md += `- Actions executed: ${actions.length}\n`;
   md += `- Screenshots captured: ${Object.keys(screenshots).length}\n`;
   md += `- Issues found: ${issues.length}\n`;
+  md += `- Engine errors: ${engineErrors.filter(e => e.type !== "warning").length}\n`;
+  md += `- Engine warnings: ${engineErrors.filter(e => e.type === "warning").length}\n`;
   if (context.discoveredButtons) md += `- Buttons discovered: ${context.discoveredButtons.length}\n`;
   if (treeDiff) md += `- Node tree delta: ${treeDiff.countA} → ${treeDiff.countB} (+${treeDiff.added.length}/-${treeDiff.removed.length})\n`;
-  md += `\n---\n*Generated by Godot Runtime Bridge Mission Runner v0.1.0*\n`;
+  md += `\n---\n*Generated by Godot Runtime Bridge Mission Runner v0.1.5*\n`;
 
   return { md, timestamp };
 }
 
 // ── Main ──
 
-async function runMission(mission, shouldReset) {
+async function runMission(mission, shouldReset, errorIndex = 0) {
   const missionOutDir = path.join(OUTPUT_DIR, mission.id);
   fs.mkdirSync(missionOutDir, { recursive: true });
 
@@ -609,6 +717,9 @@ async function runMission(mission, shouldReset) {
     resetResult: null,
     outDir: missionOutDir,
     elapsedSec: 0,
+    engineErrors: [],
+    stderr: "",
+    _errorIndex: errorIndex,
   };
 
   const startTime = Date.now();
@@ -651,13 +762,33 @@ async function runMission(mission, shouldReset) {
     console.log(` FAILED: ${err.message}`);
   }
 
+  // Post-mission: capture any engine errors that occurred during the mission
+  try {
+    const sinceIdx = context._errorIndex ?? 0;
+    const postCheck = await sendCommand("get_errors", { since_index: sinceIdx });
+    if (postCheck.ok) {
+      context._errorIndex = postCheck.next_index;
+      const errs = postCheck.errors || [];
+      context.engineErrors = (context.engineErrors || []).concat(errs);
+    }
+  } catch (_) { /* get_errors not available */ }
+
+  // Also capture stderr from the Godot process
+  if (grbProcess && grbProcess.stderrBuffer) {
+    context.stderr = grbProcess.stderrBuffer();
+  }
+
   context.elapsedSec = Math.round((Date.now() - startTime) / 1000);
 
   const { md, timestamp } = generateReport(mission, context);
   const reportFile = path.join(missionOutDir, `report-${timestamp}.md`);
   fs.writeFileSync(reportFile, md);
 
-  console.log(`\n  Issues: ${context.issues.length} | Screenshots: ${Object.keys(context.screenshots).length} | Time: ${context.elapsedSec}s`);
+  const eeCount = (context.engineErrors || []).filter(e => e.type !== "warning").length;
+  const ewCount = (context.engineErrors || []).filter(e => e.type === "warning").length;
+  const errStr = eeCount > 0 ? ` | Errors: ${eeCount}` : "";
+  const warnStr = ewCount > 0 ? ` | Warnings: ${ewCount}` : "";
+  console.log(`\n  Issues: ${context.issues.length}${errStr}${warnStr} | Screenshots: ${Object.keys(context.screenshots).length} | Time: ${context.elapsedSec}s`);
   console.log(`  Report: ${reportFile}`);
 
   return { ...context, reportFile };
@@ -698,11 +829,40 @@ async function main() {
   console.log(`Connected on port ${grbPort}`);
   await sleep(3000);
 
+  // Auto health-check: query startup errors
+  let startupErrors = [];
+  let startupErrorIndex = 0;
+  try {
+    const errCheck = await sendCommand("get_errors", { since_index: 0 });
+    if (errCheck.ok) {
+      startupErrorIndex = errCheck.next_index;
+      startupErrors = errCheck.errors || [];
+      const ec = startupErrors.filter(e => e.type !== "warning").length;
+      const wc = startupErrors.filter(e => e.type === "warning").length;
+      if (ec > 0 || wc > 0) {
+        console.log(`  Startup health: ${ec} errors, ${wc} warnings`);
+        for (const e of startupErrors.filter(e => e.type !== "warning").slice(0, 10)) {
+          console.log(`    ERROR: ${e.file || ""}:${e.line || ""} ${e.code || ""} — ${e.rationale || e.message || ""}`);
+        }
+        if (ec > 10) console.log(`    ... and ${ec - 10} more errors`);
+      } else {
+        console.log("  Startup health: OK (0 errors, 0 warnings)");
+      }
+      // Prioritize fixing boot errors: abort mission run if any errors so agent fixes them first
+      if (ec > 0 && !flags["allow-boot-errors"]) {
+        console.error("\n*** Boot errors detected. Fix engine errors before running missions. ***");
+        console.error("(Use --allow-boot-errors to run anyway.)");
+        killGame();
+        process.exit(2);
+      }
+    }
+  } catch (_) { /* get_errors not supported by older GRB */ }
+
   let totalIssues = 0;
   const summaries = [];
 
   for (const mission of toRun) {
-    const result = await runMission(mission, shouldReset);
+    const result = await runMission(mission, shouldReset, startupErrorIndex);
     totalIssues += result.issues.length;
     summaries.push({
       id: mission.id,
