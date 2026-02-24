@@ -375,11 +375,32 @@ async function handleTool(name, args) {
       };
       if (args.enable_danger) env.GDRB_ENABLE_DANGER = "1";
 
-      const child = spawn(godotExe, ["--path", projectPath], {
-        cwd: projectPath,
-        env,
-        stdio: ["ignore", "pipe", "pipe"],
+      let child;
+      try {
+        child = spawn(godotExe, ["--path", projectPath], {
+          cwd: projectPath,
+          env,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+      } catch (e) {
+        return errResult({
+          ok: false,
+          error_code: "launch_failed",
+          error_msg: `Failed to spawn Godot: ${e.message}`,
+        });
+      }
+
+      const spawnError = await new Promise((resolve) => {
+        child.on("error", (err) => resolve(err));
+        setTimeout(() => resolve(null), 1000);
       });
+      if (spawnError) {
+        return errResult({
+          ok: false,
+          error_code: "launch_failed",
+          error_msg: `Godot executable not found: "${godotExe}". Pass godot_exe or set GODOT_PATH env var.`,
+        });
+      }
 
       grbProcess = child;
       child.stderr.on("data", () => {});
