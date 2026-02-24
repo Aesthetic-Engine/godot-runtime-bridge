@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.4 — 2026-02-20
+## 0.1.4 — 2026-02-24
 
 - **Windowed launch via `override.cfg`** — MCP server writes a temporary `override.cfg` before spawning Godot, forcing `window/size/mode=0` at engine level; file is auto-deleted on exit
 - **Configurable test window size** — `grb_launch` accepts `window_size` param (default `"960x540"`, or any `"WxH"`, or `"minimized"`); viewport resolution is unaffected
