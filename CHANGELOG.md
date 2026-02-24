@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.4 — 2026-02-20
+
+- **Windowed launch via `override.cfg`** — MCP server writes a temporary `override.cfg` before spawning Godot, forcing `window/size/mode=0` at engine level; file is auto-deleted on exit
+- **Configurable test window size** — `grb_launch` accepts `window_size` param (default `"960x540"`, or any `"WxH"`, or `"minimized"`); viewport resolution is unaffected
+- **`get_errors` MCP tool** — wired up in the MCP server for error/warning log polling via `since_index`
+- **DebugServer windowed enforcement** — reads `GDRB_WINDOW_WIDTH`/`GDRB_WINDOW_HEIGHT` env vars for size-aware safety-net enforcement
+
 ## 0.1.3 — 2026-02-24
 
 - **Agent Settings** section in EditorDock: screenshot verification toggle, loop prevention toggle, and clear screenshots button

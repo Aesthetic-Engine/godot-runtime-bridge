@@ -55,6 +55,7 @@ var _pending_waits: Array = []
 
 # GDRB_FORCE_WINDOWED: enforce windowed mode for N frames to override project fullscreen settings
 var _force_windowed_frames: int = 0
+var _force_windowed_size: Vector2i = Vector2i(960, 540)
 
 # Synthetic-mode input isolation: nodes whose set_process_input was disabled by GRB
 var _input_disabled_nodes: Array[NodePath] = []
@@ -97,7 +98,13 @@ func _ready() -> void:
 		_input_mode = "synthetic"
 
 	if OS.get_environment("GDRB_FORCE_WINDOWED") == "1":
-		_force_windowed_frames = 1
+		var w_env := OS.get_environment("GDRB_WINDOW_WIDTH")
+		var h_env := OS.get_environment("GDRB_WINDOW_HEIGHT")
+		if w_env != "" and h_env != "":
+			_force_windowed_size = Vector2i(int(w_env), int(h_env))
+		push_warning("GRB: FORCE_WINDOWED active. target=%dx%d, DisplayServer mode=%d" % [_force_windowed_size.x, _force_windowed_size.y, DisplayServer.window_get_mode()])
+		_enforce_windowed()
+		_force_windowed_frames = 10
 
 	OS.low_processor_usage_mode = false
 
@@ -141,10 +148,11 @@ func _restore_input_isolation() -> void:
 func _enforce_windowed() -> void:
 	var mode := DisplayServer.window_get_mode()
 	if mode != DisplayServer.WINDOW_MODE_WINDOWED:
+		push_warning("GRB: enforcing windowed (current mode=%d, frame=%d)" % [mode, Engine.get_process_frames()])
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-		var screen_size := DisplayServer.screen_get_size()
-		var safe_size := Vector2i(mini(1280, screen_size.x - 1), mini(720, screen_size.y - 1))
-		DisplayServer.window_set_size(safe_size)
+	var cur_size := DisplayServer.window_get_size()
+	if cur_size != _force_windowed_size:
+		DisplayServer.window_set_size(_force_windowed_size)
 		DisplayServer.window_set_position(Vector2i(50, 50))
 
 
@@ -256,8 +264,9 @@ func _process(_delta: float) -> void:
 	if not _active:
 		return
 
-	if _force_windowed_frames > 0:
-		_force_windowed_frames -= 1
+	if _force_windowed_frames != 0:
+		if _force_windowed_frames > 0:
+			_force_windowed_frames -= 1
 		_enforce_windowed()
 
 	# In synthetic mode, disable _input on game nodes.

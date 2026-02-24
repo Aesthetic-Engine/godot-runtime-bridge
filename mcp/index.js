@@ -17,6 +17,8 @@ import {
 import { spawn } from "child_process";
 import net from "net";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 
 const HOST = "127.0.0.1";
 const LAUNCH_TIMEOUT_MS = 30000;
@@ -168,6 +170,11 @@ const TOOLS = [
         enable_danger: {
           type: "boolean",
           description: "Enable tier-3 eval command (default: false)",
+        },
+        window_size: {
+          type: "string",
+          description:
+            'Test window size as "WxH" (default: "960x540"). Use "minimized" to hide the window entirely. Viewport resolution is unaffected.',
         },
       },
       required: ["project_path"],
@@ -323,6 +330,19 @@ const TOOLS = [
     inputSchema: { type: "object", properties: {} },
   },
   {
+    name: "grb_get_errors",
+    description: "Get captured engine errors, warnings, and log messages. Returns entries since a given index for incremental polling.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        since_index: {
+          type: "number",
+          description: "Return entries starting from this index (default: 0)",
+        },
+      },
+    },
+  },
+  {
     name: "grb_wait_for",
     description: "Wait until a node property matches a value (or timeout).",
     inputSchema: {
@@ -368,21 +388,56 @@ async function handleTool(name, args) {
       const tier = args.tier != null ? String(args.tier) : "1";
       const token = crypto.randomBytes(24).toString("hex");
 
+      // Parse window_size: "WxH", "minimized", or default 960x540
+      const winSizeArg = args.window_size || "960x540";
+      const minimized = winSizeArg.toLowerCase() === "minimized";
+      let winW = 960, winH = 540;
+      if (!minimized) {
+        const m = winSizeArg.match(/^(\d+)x(\d+)$/i);
+        if (m) { winW = parseInt(m[1]); winH = parseInt(m[2]); }
+      }
+
       const env = {
         ...process.env,
         GDRB_TOKEN: token,
         GDRB_TIER: tier,
+        GDRB_FORCE_WINDOWED: "1",
+        GDRB_WINDOW_WIDTH: String(winW),
+        GDRB_WINDOW_HEIGHT: String(winH),
       };
       if (args.enable_danger) env.GDRB_ENABLE_DANGER = "1";
 
+      // Write override.cfg to force windowed mode at engine level.
+      // Godot reads this after project.godot and it takes priority.
+      const overridePath = path.join(projectPath, "override.cfg");
+      let prevOverride = null;
+      try {
+        prevOverride = fs.readFileSync(overridePath, "utf8");
+      } catch {}
+      const overrideLines = [
+        "[display]",
+        "",
+        "window/size/mode=0",
+        `window/size/window_width_override=${winW}`,
+        `window/size/window_height_override=${winH}`,
+        "",
+      ];
+      fs.writeFileSync(overridePath, overrideLines.join("\n"), "utf8");
+
       let child;
       try {
-        child = spawn(godotExe, ["--path", projectPath], {
+        child = spawn(godotExe, ["--path", projectPath, "--windowed"], {
           cwd: projectPath,
           env,
           stdio: ["ignore", "pipe", "pipe"],
         });
       } catch (e) {
+        // Restore override.cfg on failure
+        if (prevOverride != null) {
+          fs.writeFileSync(overridePath, prevOverride, "utf8");
+        } else {
+          try { fs.unlinkSync(overridePath); } catch {}
+        }
         return errResult({
           ok: false,
           error_code: "launch_failed",
@@ -395,6 +450,11 @@ async function handleTool(name, args) {
         setTimeout(() => resolve(null), 1000);
       });
       if (spawnError) {
+        if (prevOverride != null) {
+          fs.writeFileSync(overridePath, prevOverride, "utf8");
+        } else {
+          try { fs.unlinkSync(overridePath); } catch {}
+        }
         return errResult({
           ok: false,
           error_code: "launch_failed",
@@ -404,6 +464,15 @@ async function handleTool(name, args) {
 
       grbProcess = child;
       child.stderr.on("data", () => {});
+
+      // Clean up override.cfg when Godot exits
+      child.on("exit", () => {
+        if (prevOverride != null) {
+          try { fs.writeFileSync(overridePath, prevOverride, "utf8"); } catch {}
+        } else {
+          try { fs.unlinkSync(overridePath); } catch {}
+        }
+      });
 
       const ready = await waitForReady(child);
 
@@ -555,6 +624,16 @@ async function handleTool(name, args) {
       const { id: _id, ok: _ok, ...info } = r;
       return {
         content: [{ type: "text", text: JSON.stringify(info, null, 2) }],
+      };
+    }
+
+    case "grb_get_errors": {
+      const r = await sendCommand("get_errors", {
+        since_index: args.since_index ?? 0,
+      });
+      if (!r.ok) return errResult(r);
+      return {
+        content: [{ type: "text", text: JSON.stringify(r, null, 2) }],
       };
     }
 
