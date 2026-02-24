@@ -2,6 +2,7 @@ extends Node
 
 const _Protocol := preload("res://addons/godot-runtime-bridge/runtime_bridge/Protocol.gd")
 const _Commands := preload("res://addons/godot-runtime-bridge/runtime_bridge/Commands.gd")
+const _GRBLoggerClass := preload("res://addons/godot-runtime-bridge/runtime_bridge/GRBLogger.gd")
 
 ## Godot Runtime Bridge — TCP debug server for automation and AI-driven testing.
 ##
@@ -55,6 +56,13 @@ var _pending_waits: Array = []
 # GDRB_FORCE_WINDOWED: enforce windowed mode for N frames to override project fullscreen settings
 var _force_windowed_frames: int = 0
 
+# Synthetic-mode input isolation: nodes whose set_process_input was disabled by GRB
+var _input_disabled_nodes: Array[NodePath] = []
+
+# Error/warning capture
+var _grb_logger: RefCounted = null
+
+
 
 func _ready() -> void:
 	# Gate 1: Export feature check — prevents accidental inclusion in retail builds
@@ -95,10 +103,39 @@ func _ready() -> void:
 
 	_incoming_mutex = Mutex.new()
 	_outgoing_mutex = Mutex.new()
+
+	_grb_logger = _GRBLoggerClass.new()
+	_grb_logger.register()
+
 	_active = true
 
 	_io_thread = Thread.new()
 	_io_thread.start(_io_thread_func)
+
+
+## Synthetic-mode input isolation: disable _input processing on all game nodes
+## so real mouse/key events never reach game code (e.g. InputCursor).
+## GRBServer is an autoload near the tree root, so its _input() fires AFTER
+## deeper game nodes in Godot 4's propagation order. set_input_as_handled()
+## alone is insufficient — the events have already been processed by the time
+## GRBServer sees them. Runs each frame to catch newly added nodes.
+func _disable_input_recursive(node: Node) -> void:
+	if node == self:
+		return
+	if node.is_processing_input():
+		node.set_process_input(false)
+		if not _input_disabled_nodes.has(node.get_path()):
+			_input_disabled_nodes.append(node.get_path())
+	for child in node.get_children():
+		_disable_input_recursive(child)
+
+
+func _restore_input_isolation() -> void:
+	for np: NodePath in _input_disabled_nodes:
+		var node := get_node_or_null(np)
+		if node:
+			node.set_process_input(true)
+	_input_disabled_nodes.clear()
 
 
 func _enforce_windowed() -> void:
@@ -114,6 +151,9 @@ func _enforce_windowed() -> void:
 func _exit_tree() -> void:
 	if not _active:
 		return
+	_restore_input_isolation()
+	if _grb_logger:
+		_grb_logger.unregister()
 	_should_stop = true
 	if _io_thread != null:
 		_io_thread.wait_to_finish()
@@ -175,12 +215,7 @@ func _io_thread_func() -> void:
 				var bytes := stream.get_data(available)
 				if bytes[0] == OK:
 					read_buffer += bytes[1].get_string_from_utf8()
-					if read_buffer.length() > 10_000_000:
-						push_warning("GRB: client exceeded max buffer size, disconnecting")
-						stream.disconnect_from_host()
-						stream = null
-						read_buffer = ""
-						continue
+					# Parse complete lines into requests
 					while true:
 						var idx: int = read_buffer.find("\n")
 						if idx < 0:
@@ -224,6 +259,13 @@ func _process(_delta: float) -> void:
 	if _force_windowed_frames > 0:
 		_force_windowed_frames -= 1
 		_enforce_windowed()
+
+	# In synthetic mode, disable _input on game nodes.
+	# Scan every frame for the first 60 frames (scene loading), then every 30th frame.
+	if _input_mode == "synthetic":
+		var frame := Engine.get_process_frames()
+		if frame < 60 or frame % 30 == 0:
+			_disable_input_recursive(get_tree().root)
 
 	# Handle pending mouse release from previous frame
 	if _pending_release:
@@ -322,6 +364,8 @@ func _execute(cmd: String, args: Dictionary, req_id: String) -> Dictionary:
 			return _cmd_call_method(req_id, args)
 		"runtime_info":
 			return _cmd_runtime_info(req_id)
+		"get_errors":
+			return _cmd_get_errors(req_id, args)
 		"click":
 			return _cmd_click(req_id, int(args.get("x", 0)), int(args.get("y", 0)))
 		"key":
@@ -391,12 +435,24 @@ func _cmd_runtime_info(req_id: String) -> Dictionary:
 		"current_scene": "",
 		"node_count": get_tree().root.get_child_count(),
 		"input_mode": _input_mode,
+		"error_count": 0,
+		"warning_count": 0,
 	}
+	if _grb_logger:
+		info["error_count"] = _grb_logger.get_error_count()
+		info["warning_count"] = _grb_logger.get_warning_count()
 	var scene: Node = get_tree().current_scene
 	if scene:
 		info["current_scene"] = str(scene.scene_file_path)
 		info["current_scene_name"] = str(scene.name)
 	return _Protocol.ok(req_id, info)
+
+
+func _cmd_get_errors(req_id: String, args: Dictionary) -> Dictionary:
+	if not _grb_logger:
+		return _Protocol.ok(req_id, {"errors": [], "next_index": 0, "error_count": 0, "warning_count": 0})
+	var since: int = int(args.get("since_index", 0))
+	return _Protocol.ok(req_id, _grb_logger.get_errors(since))
 
 
 # ── Tier 0: wait_for (async, polled each frame on main thread) ──
@@ -542,16 +598,25 @@ func _cmd_press_button(req_id: String, node_name: String) -> Dictionary:
 	if node == null:
 		return _Protocol.error(req_id, "not_found", "Node not found: " + node_name)
 	if node is BaseButton:
-		node.emit_signal("pressed")
-		return _Protocol.ok(req_id, {"node": str(node.get_path())})
+		if node.toggle_mode:
+			node.button_pressed = !node.button_pressed
+		# Iterate signal connections and call each bound callable directly.
+		# pressed.emit() and emit_signal("pressed") are unreliable for
+		# buttons inside SubViewports; calling the callables bypasses the
+		# engine's signal dispatch quirks.
+		var conns: Array = node.pressed.get_connections()
+		for c: Dictionary in conns:
+			var callable: Callable = c["callable"]
+			callable.call()
+		return _Protocol.ok(req_id, {"node": str(node.get_path()), "connections": conns.size()})
 	return _Protocol.error(req_id, "bad_args", "Node is not a button: " + node.get_class())
 
 
 func _cmd_drag(req_id: String, args: Dictionary) -> Dictionary:
 	var from_arr: Variant = args.get("from", [0, 0])
 	var to_arr: Variant = args.get("to", [0, 0])
-	if not from_arr is Array or not to_arr is Array or from_arr.size() < 2 or to_arr.size() < 2:
-		return _Protocol.error(req_id, "bad_args", "'from' and 'to' must be [x, y] arrays with 2 elements")
+	if not from_arr is Array or not to_arr is Array:
+		return _Protocol.error(req_id, "bad_args", "'from' and 'to' must be [x, y] arrays")
 	var from := Vector2(float(from_arr[0]), float(from_arr[1]))
 	var to := Vector2(float(to_arr[0]), float(to_arr[1]))
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2 — 2026-02-24
+
+- **Repo restructured** for Godot Asset Library conventions: addon content now lives under `addons/godot-runtime-bridge/`; `.gitattributes` ensures AssetLib downloads only include the addon folder
+- **Error/warning capture** via new `GRBLogger` — engine errors, warnings, and script errors are captured into a thread-safe ring buffer (capped at 500 entries)
+- **New `get_errors` command** (tier 0) — retrieve captured errors/warnings with incremental polling via `since_index`
+- **`runtime_info` now reports** `error_count` and `warning_count`
+- **`press_button` fix** — supports `toggle_mode` buttons; calls connected callables directly instead of `emit_signal("pressed")` to work around SubViewport signal dispatch quirks
+- **Input isolation refinement** — synthetic mode now scans for new input-processing nodes every frame for the first 60 frames, then every 30th frame, to catch dynamically added nodes
+
 ## 0.1.1 — 2026-02-23
 
 - Synthetic input isolation: GRB-injected events are tagged with `_grb` meta; real device input is blocked in synthetic mode so the game only responds to bridge commands

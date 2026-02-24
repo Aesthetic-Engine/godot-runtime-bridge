@@ -11,6 +11,7 @@ const COMMAND_TIERS: Dictionary = {
 	"scene_tree":    Tier.OBSERVE,
 	"get_property":  Tier.OBSERVE,
 	"runtime_info":  Tier.OBSERVE,
+	"get_errors":    Tier.OBSERVE,
 	"wait_for":      Tier.OBSERVE,
 
 	"click":         Tier.INPUT,

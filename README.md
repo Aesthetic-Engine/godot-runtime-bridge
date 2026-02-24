@@ -8,7 +8,11 @@ A lightweight TCP debug server that lets AI assistants (Cursor, Claude Code) and
 
 ### 1. Install the Addon
 
-Copy `addons/godot-runtime-bridge/` into your project's `addons/` folder. Enable the plugin in **Project → Project Settings → Plugins**.
+**From the Asset Library:** Search "Godot Runtime Bridge" in **AssetLib** within the Godot editor and install.
+
+**Manual:** Copy `addons/godot-runtime-bridge/` into your project's `addons/` folder.
+
+Enable the plugin in **Project → Project Settings → Plugins**.
 
 ### 2. Run Your Game with the Bridge Enabled
 
@@ -81,7 +85,7 @@ See [PROTOCOL.md](PROTOCOL.md) for the complete command reference.
 
 | Tier | Commands |
 |------|----------|
-| 0 (observe) | ping, auth_info, capabilities, screenshot, scene_tree, get_property, runtime_info, wait_for |
+| 0 (observe) | ping, auth_info, capabilities, screenshot, scene_tree, get_property, runtime_info, get_errors, wait_for |
 | 1 (input) | click, key, press_button, drag, scroll |
 | 2 (control) | set_property, call_method |
 | 3 (danger) | eval |
@@ -94,17 +98,17 @@ See [PROTOCOL.md](PROTOCOL.md) for the complete command reference.
 | `GDRB_PORT` | 0 (random) | TCP port. Set for deterministic setups |
 | `GDRB_TIER` | 1 | Max session tier (0-3) |
 | `GDRB_INPUT_MODE` | `synthetic` | `synthetic` (no OS cursor movement) or `os` (moves real cursor) |
-| `GDRB_FORCE_WINDOWED` | (none) | Set to `1` to enforce windowed mode for ~120 frames at startup (overrides project fullscreen settings) |
+| `GDRB_FORCE_WINDOWED` | (none) | Set to `1` to enforce windowed mode at startup (overrides project fullscreen settings) |
 | `GDRB_ENABLE_DANGER` | (none) | Set to `1` to allow eval. Also requires tier 3 |
 | `GODOT_DEBUG_SERVER` | (none) | Legacy activation. Set to `1` to enable |
 
 ## Background Testing
 
-By default (`GDRB_INPUT_MODE=synthetic`), all input commands inject Godot `InputEvent` objects without touching the OS cursor. This means you can **run automated tests in the background while you work** — your mouse and keyboard remain yours.
+By default (`GDRB_INPUT_MODE=synthetic`), all input commands inject Godot `InputEvent` objects without touching the OS cursor. In this mode, real mouse and keyboard events from your hardware are **blocked from reaching game nodes entirely** — the bridge intercepts them at the viewport level so only GRB-injected events get through. Your mouse and keyboard remain yours.
 
 If you need OS-level input (rare edge cases), set `GDRB_INPUT_MODE=os`.
 
-For projects configured with fullscreen display settings, set `GDRB_FORCE_WINDOWED=1` to override the project's window mode at startup. The bridge enforces windowed mode with a non-screen-sized resolution to work around a known Godot issue where screen-sized windows prevent proper fullscreen/windowed toggling.
+For projects configured with fullscreen display settings, set `GDRB_FORCE_WINDOWED=1` to override the project's window mode at startup.
 
 **Important: do not minimize the game window.** Godot drastically throttles processing when its window is minimized to the taskbar, which will slow or break tests. Covering the game window with other applications is perfectly fine — only minimizing causes throttling. For best results, leave the game window open somewhere on screen (behind other windows is OK) while you work.
 
