@@ -66,6 +66,8 @@ Then add to your `.cursor/mcp.json` (replace the path with where you cloned):
 
 See [`mcp/README.md`](mcp/README.md) for Claude Code setup and the full list of 17 AI tools.
 
+> ⚠️ **Cursor users — required step:** After adding the entry to `mcp.json`, you must also go to **Cursor → Settings → Tools & MCP → Installed MCP Servers**, find **godot-runtime-bridge**, and toggle it **ON**. The tools will not appear in Cursor until this is done.
+
 ## Security
 
 The bridge is designed with security-first defaults:
