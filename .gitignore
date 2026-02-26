@@ -6,3 +6,6 @@ node_modules/
 
 # Temporary override.cfg written by MCP server during test launches
 override.cfg
+
+# Mission runner output
+missions/reports/
