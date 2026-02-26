@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 — 2026-02-26
+## 1.0.0 — 2026-02-25
 
 **First stable release.** GRB is production-ready for agentic game development and runtime automation. AI agents can launch your game, observe it, control it, run QA missions, and iterate on fixes — all without opening the editor.
 
@@ -9,7 +9,7 @@
 - **Full command set** — 25+ commands across 4 tiers (Observe, Input, Control, Danger). Screenshot capture, scene tree inspection, property get/set, synthetic input (mouse, keyboard, gamepad, gestures), custom commands, eval.
 - **MCP bridge** — Cursor and Claude Code connect via `godot-runtime-bridge` MCP server. `grb_launch` auto-discovers port and token. All commands exposed as tools.
 - **QA mission pack** — 25+ game-agnostic missions (smoke test, UI bounds, menu navigation, perf profiling, audio check, error sweep). Perceptual screenshot diff, baseline+compare workflow, ticket-ready markdown reports.
-- **Editor integration** — Mission dashboard, launch configuration, screenshot verification toggle, loop prevention, copy-prompt-for-Cursor panel.
+- **Editor dock — click-to-copy prompts** — Missions and rules are presented as buttons; click one to copy a ready-to-paste prompt for Cursor Agent chat. "Fix bugs automatically" toggle switches between auto-fix and report-only modes. Testing guidance rule copyable to `.cursor/rules`.
 - **Security-first** — Localhost only, random port, bearer token auth, capability tiers, eval off by default.
 - **Zero overhead when inactive** — Safe to ship in production builds.
 
@@ -27,6 +27,15 @@
 - **Visual regression workflow** — formalized in `missions/README.md`.
 - **GUT integration docs** — unit test runner integration documented.
 - **CI/CD documentation** — `docs/ci.md` with xvfb GitHub Actions examples.
+
+### Changed (1.0.0)
+
+- **Editor dock redesigned for vibe coders** — removed old checkbox mission list, run button, progress bar, thread runner, report finder, thumbnail gallery, and "Show technical command names" toggle. Replaced with a streamlined prompt-copy UI.
+- **Mission buttons** — each mission is a clickable button in a 3-column grid. Click copies a ready-to-paste prompt for Cursor Agent chat.
+- **"Fix bugs automatically" toggle** — defaults to OFF (report-only). When ON, prompts tell Cursor to fix bugs on the fly. When OFF, prompts tell Cursor to produce a `.md` bug report without fixing anything.
+- **"Run ALL missions" button** — copies a single prompt to run every mission sequentially.
+- **Quickstart simplified** — replaced complex power-level / port / input-mode UI with a single copy-paste setup prompt for Cursor Agent mode.
+- **Testing guidance** — replaced screenshot verification and loop prevention toggles with a copyable Cursor rule that agents can use for proper testing behavior.
 
 ## 0.1.5 — 2026-02-24
 

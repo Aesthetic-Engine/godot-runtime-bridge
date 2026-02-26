@@ -6,40 +6,18 @@ const _Commands := preload("res://addons/godot-runtime-bridge/runtime_bridge/Com
 const VERSION := "1.0.0"
 
 const SCREENSHOTS_DIR := "res://debug/screenshots"
-const VERIFY_MARKER := "res://debug/screenshots/.verify_enabled"
-const LOOP_MARKER := "res://debug/screenshots/.loop_prevention"
 
-const TIER_TOOLTIPS := {
-	0: "Observe only — take screenshots, read scene tree, inspect values, wait for conditions.",
-	1: "Everything in Observe, plus click buttons, press keys, drag, and scroll. Enough for automated playtests and bug reports.",
-	2: "Advanced control — everything in Tier 1, plus set values and call methods directly. Useful for fast test setup that changes game state.",
-}
+const GRB_TESTING_RULE := """When testing with GRB:
+- After any visual change, take a screenshot (grb_screenshot) and verify the result before reporting done.
+- If a fix fails 3 times in a row, stop and ask the user for guidance instead of retrying."""
 
-var _tier_option: OptionButton
-var _port_spin: SpinBox
-var _input_option: OptionButton
-var _command_label: RichTextLabel
-var _copy_btn: Button
-var _tier_detail: Label
-var _technical_container: VBoxContainer
-var _technical_toggle: CheckButton
 var _content: VBoxContainer
-var _verify_toggle: CheckButton
-var _loop_toggle: CheckButton
 var _clear_btn: Button
 
-# Mission Dashboard (GRB Pro)
+# Mission prompt buttons
 var _mission_section: VBoxContainer
-var _mission_list: VBoxContainer
-var _mission_checkboxes: Dictionary = {}
-var _run_btn: Button
-var _progress: ProgressBar
-var _progress_label: Label
-var _thumbnails: HBoxContainer
-var _copy_prompt_btn: Button
-var _run_thread: Thread
-var _run_mutex: Mutex
-var _run_done: bool = false
+var _autofix_toggle: CheckButton
+var _mission_data: Array = []
 
 
 func _ready() -> void:
@@ -58,11 +36,8 @@ func _ready() -> void:
 
 	_build_header()
 	_build_quickstart()
-	_build_technical_toggle()
 	_build_agent_settings()
 	_build_mission_dashboard()
-	_update_command()
-	_update_tier_detail()
 
 
 func _build_header() -> void:
@@ -91,210 +66,58 @@ func _build_header() -> void:
 	_content.add_child(HSeparator.new())
 
 
+const CURSOR_SETUP_PROMPT := "Set up the Godot Runtime Bridge (GRB) for this project. Install the addon if missing, create .cursor/mcp.json with the GRB MCP server (args: path to godot-runtime-bridge/mcp/index.js), add GODOT_PATH to env with the path to my Godot executable — search common locations or ask me. Run npm install in the mcp folder if needed. Tell me when done."
+
+
 func _build_quickstart() -> void:
-	var qs_label := Label.new()
-	qs_label.text = "Quickstart (60 seconds)"
-	qs_label.add_theme_font_size_override("font_size", 13)
-	_content.add_child(qs_label)
+	var heading := Label.new()
+	heading.text = "Connect Cursor to this project"
+	heading.add_theme_font_size_override("font_size", 13)
+	_content.add_child(heading)
 
-	# Step 1: Power level
-	var step1 := HBoxContainer.new()
-	step1.add_theme_constant_override("separation", 8)
+	var first_time := Label.new()
+	first_time.text = "If you haven't connected before, paste this into Cursor Agent mode:"
+	first_time.add_theme_font_size_override("font_size", 11)
+	first_time.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75))
+	first_time.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_content.add_child(first_time)
 
-	var step1_lbl := Label.new()
-	step1_lbl.text = "1. Power level:"
-	step1.add_child(step1_lbl)
+	var prompt_row := HBoxContainer.new()
+	prompt_row.add_theme_constant_override("separation", 6)
 
-	_tier_option = OptionButton.new()
-	_tier_option.add_item("0 \u2014 Observe only", 0)
-	_tier_option.add_item("1 \u2014 Playtester (recommended)", 1)
-	_tier_option.add_item("2 \u2014 Advanced control", 2)
-	var popup := _tier_option.get_popup()
-	popup.set_item_tooltip(0, TIER_TOOLTIPS[0])
-	popup.set_item_tooltip(1, TIER_TOOLTIPS[1])
-	popup.set_item_tooltip(2, TIER_TOOLTIPS[2])
-	_tier_option.select(1)
-	_tier_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_tier_option.tooltip_text = "Controls what your AI tool is allowed to do. Tier 1 is enough for automated playtests and bug reports."
-	_tier_option.item_selected.connect(_on_config_changed)
-	step1.add_child(_tier_option)
-	_content.add_child(step1)
+	var prompt_box := TextEdit.new()
+	prompt_box.text = CURSOR_SETUP_PROMPT
+	prompt_box.editable = false
+	prompt_box.custom_minimum_size = Vector2(0, 52)
+	prompt_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	prompt_box.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	prompt_row.add_child(prompt_box)
 
-	_tier_detail = Label.new()
-	_tier_detail.add_theme_font_size_override("font_size", 11)
-	_tier_detail.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
-	_tier_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_content.add_child(_tier_detail)
+	var copy_btn := Button.new()
+	copy_btn.text = "Copy"
+	copy_btn.tooltip_text = "Copy prompt to clipboard"
+	copy_btn.pressed.connect(func() -> void:
+		DisplayServer.clipboard_set(CURSOR_SETUP_PROMPT)
+		copy_btn.text = "Copied!"
+		get_tree().create_timer(1.5).timeout.connect(func() -> void:
+			if is_instance_valid(copy_btn):
+				copy_btn.text = "Copy"
+		)
+	)
+	prompt_row.add_child(copy_btn)
 
-	# Advanced options row
-	var opts := HBoxContainer.new()
-	opts.add_theme_constant_override("separation", 12)
+	_content.add_child(prompt_row)
 
-	var port_lbl := Label.new()
-	port_lbl.text = "    Port:"
-	opts.add_child(port_lbl)
+	var already := Label.new()
+	already.text = "If you have connected before: ensure godot-runtime-bridge is enabled in Cursor Settings > Tools & MCP > Installed MCP Servers, then open your project folder in Cursor and tell Cursor to connect to Godot via GRB to begin."
+	already.add_theme_font_size_override("font_size", 11)
+	already.add_theme_color_override("font_color", Color(0.65, 0.65, 0.65))
+	already.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_content.add_child(already)
 
-	_port_spin = SpinBox.new()
-	_port_spin.min_value = 0
-	_port_spin.max_value = 65535
-	_port_spin.value = 0
-	_port_spin.tooltip_text = "0 = random port assigned by your OS (recommended for security)"
-	_port_spin.custom_minimum_size.x = 80
-	_port_spin.value_changed.connect(func(_v: float) -> void: _update_command())
-	opts.add_child(_port_spin)
-
-	var input_lbl := Label.new()
-	input_lbl.text = "Input:"
-	opts.add_child(input_lbl)
-
-	_input_option = OptionButton.new()
-	_input_option.add_item("synthetic", 0)
-	_input_option.add_item("os", 1)
-	var input_popup := _input_option.get_popup()
-	input_popup.set_item_tooltip(0, "Injects input inside Godot without moving your real mouse cursor. Use for background testing while you work.")
-	input_popup.set_item_tooltip(1, "Moves the real OS cursor. Only needed for rare edge cases when the game requires it.")
-	_input_option.select(0)
-	_input_option.tooltip_text = "Synthetic: injects input inside Godot without moving your real mouse cursor. Use this for background testing.\nOS: moves the real cursor (only needed for rare edge cases)."
-	_input_option.item_selected.connect(_on_config_changed)
-	opts.add_child(_input_option)
-
-	_content.add_child(opts)
-
-	# Step 2: Launch command
-	var step2_lbl := Label.new()
-	step2_lbl.text = "2. Open PowerShell in your game directory, click Copy, then paste this line into the terminal and press Enter:"
-	_content.add_child(step2_lbl)
-
-	var cmd_row := HBoxContainer.new()
-	cmd_row.add_theme_constant_override("separation", 6)
-
-	_command_label = RichTextLabel.new()
-	_command_label.bbcode_enabled = true
-	_command_label.fit_content = true
-	_command_label.scroll_active = false
-	_command_label.selection_enabled = true
-	_command_label.custom_minimum_size = Vector2(0, 26)
-	_command_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cmd_row.add_child(_command_label)
-
-	_copy_btn = Button.new()
-	_copy_btn.text = "Copy"
-	_copy_btn.tooltip_text = "Copy launch command to clipboard"
-	_copy_btn.pressed.connect(_on_copy_pressed)
-	cmd_row.add_child(_copy_btn)
-
-	_content.add_child(cmd_row)
-
-	# Step 3: Connect AI tool
-	var step3_lbl := Label.new()
-	step3_lbl.text = "3. Connect your AI tool:"
-	_content.add_child(step3_lbl)
-
-	var agent_row := HBoxContainer.new()
-	agent_row.add_theme_constant_override("separation", 6)
-
-	var agent_cmd := Label.new()
-	agent_cmd.text = "    Any MCP-capable AI tool can drive the game. See companion package for setup."
-	agent_cmd.add_theme_font_size_override("font_size", 11)
-	agent_cmd.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
-	agent_cmd.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	agent_row.add_child(agent_cmd)
-
-	var readme_btn := Button.new()
-	readme_btn.text = "Open README"
-	readme_btn.tooltip_text = "Open README.md for setup instructions"
-	readme_btn.pressed.connect(_on_docs_pressed.bind("README.md"))
-	agent_row.add_child(readme_btn)
-
-	_content.add_child(agent_row)
 	_content.add_child(HSeparator.new())
 
 
-func _build_technical_toggle() -> void:
-	_technical_toggle = CheckButton.new()
-	_technical_toggle.text = "Show technical command names"
-	_technical_toggle.button_pressed = false
-	_technical_toggle.toggled.connect(_on_technical_toggled)
-	_content.add_child(_technical_toggle)
-
-	_technical_container = VBoxContainer.new()
-	_technical_container.visible = false
-
-	var ref := RichTextLabel.new()
-	ref.bbcode_enabled = true
-	ref.fit_content = true
-	ref.scroll_active = false
-	ref.selection_enabled = true
-
-	var tier_labels := {
-		_Commands.Tier.OBSERVE: "Observe",
-		_Commands.Tier.INPUT: "Playtester",
-		_Commands.Tier.CONTROL: "Advanced control",
-		_Commands.Tier.DANGER: "Restricted",
-	}
-
-	var text := ""
-	for tier_val: int in [_Commands.Tier.OBSERVE, _Commands.Tier.INPUT, _Commands.Tier.CONTROL, _Commands.Tier.DANGER]:
-		var cmds: Array[String] = []
-		for cmd_name: String in _Commands.COMMAND_TIERS:
-			if _Commands.COMMAND_TIERS[cmd_name] == tier_val:
-				cmds.append(cmd_name)
-		cmds.sort()
-		var label: String = tier_labels[tier_val]
-		text += "[b]Tier %d (%s):[/b]  %s\n" % [tier_val, label, ", ".join(cmds)]
-
-	ref.text = text
-	_technical_container.add_child(ref)
-	_content.add_child(_technical_container)
-
-
-func _on_technical_toggled(pressed: bool) -> void:
-	_technical_container.visible = pressed
-
-
-func _on_config_changed(_idx: int) -> void:
-	_update_command()
-	_update_tier_detail()
-
-
-func _update_tier_detail() -> void:
-	if not is_instance_valid(_tier_option) or not is_instance_valid(_tier_detail):
-		return
-	var tier := _tier_option.get_selected_id()
-	_tier_detail.text = "    " + TIER_TOOLTIPS.get(tier, "")
-
-
-func _update_command() -> void:
-	if not is_instance_valid(_tier_option):
-		return
-	var tier := _tier_option.get_selected_id()
-	var port := int(_port_spin.value)
-	var input_mode: String = _input_option.get_item_text(_input_option.selected)
-
-	var parts: PackedStringArray = []
-	parts.append("GDRB_TOKEN=auto")
-	if tier != 1:
-		parts.append("GDRB_TIER=%d" % tier)
-	if port != 0:
-		parts.append("GDRB_PORT=%d" % port)
-	if input_mode != "synthetic":
-		parts.append("GDRB_INPUT_MODE=%s" % input_mode)
-	parts.append("godot --path <your_project>")
-
-	var cmd := " ".join(parts)
-	_command_label.text = "[code]%s[/code]" % cmd
-
-
-func _on_copy_pressed() -> void:
-	if not is_instance_valid(_command_label):
-		return
-	var cmd := _command_label.get_parsed_text()
-	DisplayServer.clipboard_set(cmd)
-	_copy_btn.text = "Copied!"
-	get_tree().create_timer(1.5).timeout.connect(func() -> void:
-		if is_instance_valid(_copy_btn):
-			_copy_btn.text = "Copy"
-	)
 
 
 func _on_docs_pressed(filename: String) -> void:
@@ -307,51 +130,50 @@ func _build_agent_settings() -> void:
 	_content.add_child(HSeparator.new())
 
 	var heading := Label.new()
-	heading.text = "Agent Settings"
+	heading.text = "Testing guidance for Cursor"
 	heading.add_theme_font_size_override("font_size", 13)
 	_content.add_child(heading)
 
-	var settings_row := HBoxContainer.new()
-	settings_row.add_theme_constant_override("separation", 16)
+	var guide := Label.new()
+	guide.text = "Add this to your .cursor/rules so Cursor knows how to test: after visual changes, take a screenshot and verify before reporting done; if a fix fails 3 times, ask the user for guidance."
+	guide.add_theme_font_size_override("font_size", 11)
+	guide.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	guide.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_content.add_child(guide)
 
-	_verify_toggle = CheckButton.new()
-	_verify_toggle.text = "Screenshot verification"
-	_verify_toggle.tooltip_text = "When enabled, the AI agent must take a screenshot after visual changes and confirm the result before reporting done."
-	_verify_toggle.button_pressed = FileAccess.file_exists(VERIFY_MARKER)
-	_verify_toggle.toggled.connect(_on_verify_toggled)
-	settings_row.add_child(_verify_toggle)
+	var rule_row := HBoxContainer.new()
+	rule_row.add_theme_constant_override("separation", 6)
 
-	_loop_toggle = CheckButton.new()
-	_loop_toggle.text = "Loop prevention"
-	_loop_toggle.tooltip_text = "When enabled, the agent stops retrying after 3 failed screenshot checks and asks for guidance instead of looping indefinitely."
-	_loop_toggle.button_pressed = FileAccess.file_exists(LOOP_MARKER)
-	if not FileAccess.file_exists(LOOP_MARKER) and not FileAccess.file_exists(VERIFY_MARKER):
-		_loop_toggle.button_pressed = true
-		_write_marker(LOOP_MARKER)
-	_loop_toggle.toggled.connect(_on_loop_prevention_toggled)
-	settings_row.add_child(_loop_toggle)
+	var rule_box := TextEdit.new()
+	rule_box.text = GRB_TESTING_RULE
+	rule_box.editable = false
+	rule_box.custom_minimum_size = Vector2(0, 48)
+	rule_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rule_box.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	rule_row.add_child(rule_box)
 
+	var copy_rule_btn := Button.new()
+	copy_rule_btn.text = "Copy rule"
+	copy_rule_btn.tooltip_text = "Copy to paste into .cursor/rules/grb.mdc"
+	copy_rule_btn.pressed.connect(func() -> void:
+		DisplayServer.clipboard_set("# GRB Testing\n\n" + GRB_TESTING_RULE)
+		copy_rule_btn.text = "Copied!"
+		get_tree().create_timer(1.5).timeout.connect(func() -> void:
+			if is_instance_valid(copy_rule_btn):
+				copy_rule_btn.text = "Copy rule"
+		)
+	)
+	rule_row.add_child(copy_rule_btn)
+
+	_content.add_child(rule_row)
+
+	var clear_row := HBoxContainer.new()
 	_clear_btn = Button.new()
 	_clear_btn.text = "Clear Screenshots"
 	_clear_btn.tooltip_text = "Delete all screenshot files from debug/screenshots/"
 	_clear_btn.pressed.connect(_on_clear_screenshots)
-	settings_row.add_child(_clear_btn)
-
-	_content.add_child(settings_row)
-
-
-func _on_verify_toggled(pressed: bool) -> void:
-	if pressed:
-		_write_marker(VERIFY_MARKER)
-	else:
-		_remove_marker(VERIFY_MARKER)
-
-
-func _on_loop_prevention_toggled(pressed: bool) -> void:
-	if pressed:
-		_write_marker(LOOP_MARKER)
-	else:
-		_remove_marker(LOOP_MARKER)
+	clear_row.add_child(_clear_btn)
+	_content.add_child(clear_row)
 
 
 func _on_clear_screenshots() -> void:
@@ -374,123 +196,47 @@ func _on_clear_screenshots() -> void:
 	)
 
 
-func _write_marker(path: String) -> void:
-	DirAccess.make_dir_recursive_absolute(SCREENSHOTS_DIR)
-	var f := FileAccess.open(path, FileAccess.WRITE)
-	if f:
-		f.store_string("")
-		f.close()
-
-
-func _remove_marker(path: String) -> void:
-	if FileAccess.file_exists(path):
-		DirAccess.remove_absolute(path)
-
-
 # ── Mission Dashboard ──
 
 const MISSIONS_REL := "packages/godot-runtime-bridge-mcp/missions"
+
+
+func _resolve_missions_dir() -> String:
+	var project_root := ProjectSettings.globalize_path("res://")
+	var parent := path_join(project_root, "..")
+	var json_candidates: PackedStringArray = [
+		path_join(project_root, MISSIONS_REL, "missions.json"),
+		path_join(parent, MISSIONS_REL, "missions.json"),
+		path_join(project_root, "missions", "missions.json"),
+		path_join(path_join(parent, "grb-main"), "missions", "missions.json"),
+	]
+	for p in json_candidates:
+		if FileAccess.file_exists(p):
+			return p.get_base_dir()
+	return ""
+
 
 func _build_mission_dashboard() -> void:
 	_content.add_child(HSeparator.new())
 
 	var heading := Label.new()
-	heading.text = "Mission Dashboard"
+	heading.text = "Missions — click to copy prompt, paste into Cursor"
 	heading.add_theme_font_size_override("font_size", 13)
 	_content.add_child(heading)
 
+	var desc := Label.new()
+	desc.text = "Click to copy prompt for Cursor, then paste into Cursor Agent chat."
+	desc.add_theme_font_size_override("font_size", 11)
+	desc.add_theme_color_override("font_color", Color(0.65, 0.65, 0.65))
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_content.add_child(desc)
+
 	_mission_section = VBoxContainer.new()
-	_mission_section.add_theme_constant_override("separation", 4)
+	_mission_section.add_theme_constant_override("separation", 2)
 	_mission_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-	var btn_row := HBoxContainer.new()
-	btn_row.add_theme_constant_override("separation", 6)
-
-	_run_btn = Button.new()
-	_run_btn.text = "Run Selected"
-	_run_btn.tooltip_text = "Run selected missions via mission runner (requires Node.js, launches game)"
-	_run_btn.pressed.connect(_on_run_missions)
-	btn_row.add_child(_run_btn)
-
-	_progress = ProgressBar.new()
-	_progress.custom_minimum_size.x = 100
-	_progress.show_percentage = false
-	_progress.visible = false
-	btn_row.add_child(_progress)
-
-	_progress_label = Label.new()
-	_progress_label.text = ""
-	_progress_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_row.add_child(_progress_label)
-
-	_mission_section.add_child(btn_row)
-
-	_mission_list = VBoxContainer.new()
-	_mission_list.add_theme_constant_override("separation", 2)
-	_mission_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_mission_section.add_child(_mission_list)
-
-	var prompt_row := HBoxContainer.new()
-	prompt_row.add_theme_constant_override("separation", 6)
-	var prompt_lbl := Label.new()
-	prompt_lbl.text = "After running a mission, copy this prompt and paste into Cursor chat:"
-	prompt_lbl.add_theme_font_size_override("font_size", 11)
-	prompt_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
-	prompt_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	prompt_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	prompt_row.add_child(prompt_lbl)
-	_copy_prompt_btn = Button.new()
-	_copy_prompt_btn.text = "Copy prompt for Cursor"
-	_copy_prompt_btn.tooltip_text = "Copy ready-to-paste prompt for Cursor (uses latest report)"
-	_copy_prompt_btn.pressed.connect(_on_copy_prompt_pressed)
-	prompt_row.add_child(_copy_prompt_btn)
-	_mission_section.add_child(prompt_row)
-
-	var thumb_label := Label.new()
-	thumb_label.text = "Last run thumbnails:"
-	thumb_label.add_theme_font_size_override("font_size", 11)
-	_mission_section.add_child(thumb_label)
-
-	_thumbnails = HBoxContainer.new()
-	_thumbnails.add_theme_constant_override("separation", 4)
-	_thumbnails.custom_minimum_size.y = 50
-	_mission_section.add_child(_thumbnails)
-
 	_content.add_child(_mission_section)
+
 	_load_missions()
-	_refresh_thumbnails()
-
-
-func _load_missions() -> void:
-	var project_root := ProjectSettings.globalize_path("res://")
-	var missions_path := path_join(project_root, MISSIONS_REL, "missions.json")
-	var f := FileAccess.open(missions_path, FileAccess.READ)
-	if f == null:
-		var fallback := path_join(path_join(project_root, ".."), MISSIONS_REL, "missions.json")
-		f = FileAccess.open(fallback, FileAccess.READ)
-	if f == null:
-		var lbl := Label.new()
-		lbl.text = "missions.json not found"
-		lbl.add_theme_color_override("font_color", Color(0.7, 0.5, 0.5))
-		_mission_list.add_child(lbl)
-		return
-
-	var json := JSON.new()
-	var err := json.parse(f.get_as_text())
-	f.close()
-	if err != OK:
-		_mission_list.add_child(Label.new())
-		return
-
-	var missions: Array = json.data
-	for m in missions:
-		var id_val: String = str(m.get("id", ""))
-		var name_val: String = str(m.get("name", id_val))
-		var cb := CheckBox.new()
-		cb.text = "%s — %s" % [id_val, name_val]
-		cb.set_meta("mission_id", id_val)
-		_mission_checkboxes[id_val] = cb
-		_mission_list.add_child(cb)
 
 
 func path_join(a: String, b: String, c: String = "") -> String:
@@ -500,171 +246,102 @@ func path_join(a: String, b: String, c: String = "") -> String:
 	return p
 
 
-func _on_run_missions() -> void:
-	var selected: Array[String] = []
-	for id_val: String in _mission_checkboxes:
-		var cb: CheckBox = _mission_checkboxes[id_val]
-		if cb.button_pressed:
-			selected.append(id_val)
-	if selected.is_empty():
-		_progress_label.text = "Select at least one mission"
+func _load_missions() -> void:
+	_autofix_toggle = CheckButton.new()
+	_autofix_toggle.text = "Fix bugs automatically"
+	_autofix_toggle.button_pressed = false
+	_autofix_toggle.tooltip_text = "ON: Cursor fixes bugs it finds. OFF: Cursor produces a report only."
+	_mission_section.add_child(_autofix_toggle)
+
+	var missions_dir := _resolve_missions_dir()
+	if missions_dir.is_empty():
+		var lbl := Label.new()
+		lbl.text = "missions.json not found"
+		lbl.add_theme_color_override("font_color", Color(0.7, 0.5, 0.5))
+		_mission_section.add_child(lbl)
 		return
 
-	var project_root := ProjectSettings.globalize_path("res://")
-	var missions_dir := path_join(project_root, MISSIONS_REL)
-	var script_path := path_join(missions_dir, "run_mission.mjs")
-	var godot_exe := OS.get_environment("GODOT_PATH")
-	if godot_exe == "":
-		godot_exe = "godot4"
-		if OS.get_name() == "Windows":
-			godot_exe = "godot4.exe"
-
-	_progress.visible = true
-	_progress.value = 0
-	_progress_label.text = "Running %s..." % ", ".join(selected)
-	_run_btn.disabled = true
-
-	_run_mutex = Mutex.new()
-	_run_done = false
-	_run_thread = Thread.new()
-	_run_thread.start(_run_missions_thread.bind({
-		"script": script_path,
-		"missions_dir": missions_dir,
-		"project": project_root,
-		"exe": godot_exe,
-		"missions": selected,
-	}))
-
-
-func _run_missions_thread(params: Dictionary) -> void:
-	var script_path: String = params["script"]
-	var missions_dir: String = params["missions_dir"]
-	var project: String = params["project"]
-	var exe: String = params["exe"]
-	var missions: Array = params["missions"]
-
-	for mid: String in missions:
-		var args: PackedStringArray = [
-			script_path, "--mission", mid,
-			"--exe", exe, "--project", project,
-			"--format", "qa-teammate"
-		]
-		OS.execute("node", args, [], false)
-
-	_run_mutex.lock()
-	_run_done = true
-	_run_mutex.unlock()
-
-
-func _process(_delta: float) -> void:
-	if _run_thread != null and _run_mutex != null:
-		_run_mutex.lock()
-		var done: bool = _run_done
-		_run_mutex.unlock()
-		if done:
-			_run_thread.wait_to_finish()
-			_run_thread = null
-			_progress.value = 100
-			_progress_label.text = "Done"
-			_run_btn.disabled = false
-			_refresh_thumbnails()
-			get_tree().create_timer(2.0).timeout.connect(func() -> void:
-				if is_instance_valid(_progress):
-					_progress.visible = false
-					_progress_label.text = ""
-			)
-
-
-func _on_copy_prompt_pressed() -> void:
-	var project_root := ProjectSettings.globalize_path("res://")
-	var reports_dir := path_join(project_root, MISSIONS_REL, "reports")
-	var dir := DirAccess.open(reports_dir)
-	if dir == null:
-		_copy_prompt_btn.text = "No reports yet"
-		get_tree().create_timer(2.0).timeout.connect(func() -> void:
-			if is_instance_valid(_copy_prompt_btn):
-				_copy_prompt_btn.text = "Copy prompt for Cursor"
-		)
+	var missions_path := path_join(missions_dir, "missions.json")
+	var f := FileAccess.open(missions_path, FileAccess.READ)
+	if f == null:
 		return
 
-	# Find most recent report (any mission)
-	var latest_mission := ""
-	var latest_ts := ""
-	dir.list_dir_begin()
-	var sub := dir.get_next()
-	while sub != "":
-		if dir.current_is_dir() and sub != "." and sub != "..":
-			var subdir := DirAccess.open(path_join(reports_dir, sub))
-			if subdir:
-				subdir.list_dir_begin()
-				var f := subdir.get_next()
-				while f != "":
-					if f.begins_with("report-") and f.ends_with(".md"):
-						var ts := f.trim_prefix("report-").trim_suffix(".md")
-						if latest_ts.is_empty() or ts > latest_ts:
-							latest_mission = sub
-							latest_ts = ts
-					f = subdir.get_next()
-				subdir.list_dir_end()
-		sub = dir.get_next()
-	dir.list_dir_end()
-
-	if latest_mission.is_empty():
-		_copy_prompt_btn.text = "No reports yet"
-		get_tree().create_timer(2.0).timeout.connect(func() -> void:
-			if is_instance_valid(_copy_prompt_btn):
-				_copy_prompt_btn.text = "Copy prompt for Cursor"
-		)
+	var json := JSON.new()
+	var err := json.parse(f.get_as_text())
+	f.close()
+	if err != OK:
 		return
 
-	var reports_base := path_join(path_join(project_root, MISSIONS_REL), "reports")
-	var full_path := path_join(path_join(reports_base, latest_mission), "report-" + latest_ts + ".md")
-	var prompt := "I ran the %s mission. Please read %s and fix each issue listed." % [latest_mission, full_path]
+	_mission_data = json.data
+	var grid: GridContainer = GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 4)
+	grid.add_theme_constant_override("v_separation", 4)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	for m in _mission_data:
+		var id_val: String = str(m.get("id", ""))
+		var name_val: String = str(m.get("name", id_val))
+		var goal_val: String = str(m.get("goal", ""))
+
+		var btn := Button.new()
+		btn.text = name_val
+		btn.tooltip_text = goal_val + "\n\nClick to copy prompt for Cursor, then paste into Cursor Agent chat."
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.clip_text = true
+		btn.pressed.connect(_on_mission_btn_pressed.bind(btn, id_val, goal_val))
+		grid.add_child(btn)
+
+	_mission_section.add_child(grid)
+
+	var run_all_row := HBoxContainer.new()
+	run_all_row.add_theme_constant_override("separation", 6)
+
+	var run_all_btn := Button.new()
+	run_all_btn.text = "Copy: Run ALL missions"
+	run_all_btn.tooltip_text = "Copy a prompt that tells Cursor to run every mission"
+	run_all_btn.pressed.connect(_on_run_all_btn_pressed.bind(run_all_btn))
+	run_all_row.add_child(run_all_btn)
+
+	_mission_section.add_child(run_all_row)
+
+
+func _build_mission_prompt(id_val: String, goal_val: String) -> String:
+	var base := "Run the '%s' mission against my game using GRB. %s. Launch the game via grb_launch, run the mission steps, take screenshots to verify, and report what you find." % [id_val, goal_val]
+	if _autofix_toggle.button_pressed:
+		return base + " Fix any bugs."
+	return base + " Do NOT fix anything. Produce a full report of all bugs found as a .md file in the project root and tell me where it is located."
+
+
+func _build_all_missions_prompt() -> String:
+	var ids: PackedStringArray = []
+	for m in _mission_data:
+		ids.append(str(m.get("id", "")))
+	var base := "Run ALL of the following GRB missions against my game, one by one. For each mission: launch the game via grb_launch, execute the mission steps, take screenshots to verify, report issues."
+	if _autofix_toggle.button_pressed:
+		base += " Fix any bugs you find along the way."
+	else:
+		base += " Do NOT fix anything. Produce a full report of all bugs found as a .md file in the project root and tell me where it is located."
+	return base + " Missions: " + ", ".join(ids) + "."
+
+
+func _on_mission_btn_pressed(btn: Button, id_val: String, goal_val: String) -> void:
+	var prompt := _build_mission_prompt(id_val, goal_val)
 	DisplayServer.clipboard_set(prompt)
-	_copy_prompt_btn.text = "Copied!"
+	var original_text := btn.text
+	btn.text = "Copied!"
 	get_tree().create_timer(1.5).timeout.connect(func() -> void:
-		if is_instance_valid(_copy_prompt_btn):
-			_copy_prompt_btn.text = "Copy prompt for Cursor"
+		if is_instance_valid(btn):
+			btn.text = original_text
 	)
 
 
-func _refresh_thumbnails() -> void:
-	for c in _thumbnails.get_children():
-		c.queue_free()
-
-	var project_root := ProjectSettings.globalize_path("res://")
-	var reports_dir := path_join(project_root, MISSIONS_REL, "reports")
-	var dir := DirAccess.open(reports_dir)
-	if dir == null:
-		return
-
-	dir.list_dir_begin()
-	var sub := dir.get_next()
-	var png_paths: Array[String] = []
-	while sub != "":
-		if dir.current_is_dir() and sub != "." and sub != "..":
-			var subdir := DirAccess.open(path_join(reports_dir, sub))
-			if subdir:
-				subdir.list_dir_begin()
-				var f := subdir.get_next()
-				while f != "":
-					if f.ends_with(".png"):
-						png_paths.append(path_join(reports_dir, sub, f))
-						if png_paths.size() >= 6:
-							break
-					f = subdir.get_next()
-				subdir.list_dir_end()
-		if png_paths.size() >= 6:
-			break
-		sub = dir.get_next()
-	dir.list_dir_end()
-
-	for i in range(mini(png_paths.size(), 6)):
-		var img := Image.new()
-		if img.load(png_paths[i]) == OK:
-			var tex := ImageTexture.create_from_image(img)
-			var rect := TextureRect.new()
-			rect.custom_minimum_size = Vector2(64, 36)
-			rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-			rect.texture = tex
-			_thumbnails.add_child(rect)
+func _on_run_all_btn_pressed(btn: Button) -> void:
+	var prompt := _build_all_missions_prompt()
+	DisplayServer.clipboard_set(prompt)
+	var original_text := btn.text
+	btn.text = "Copied!"
+	get_tree().create_timer(1.5).timeout.connect(func() -> void:
+		if is_instance_valid(btn):
+			btn.text = original_text
+	)

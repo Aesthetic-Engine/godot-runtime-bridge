@@ -13,6 +13,7 @@ Your AI agent can **build, test, and debug your game under your direction**:
 - **Run QA missions** — automated test loops that navigate rooms, capture screenshots, perform perceptual diffs, and produce ticket-ready reports
 - **Profile performance** — FPS, draw calls, memory usage for balancing and optimization
 - **Inspect state** — audio buses, network status, custom game commands (when registered)
+- **Editor dock with click-to-copy prompts** — every mission is a button; click to copy a ready-to-paste prompt for Cursor Agent chat. Toggle between auto-fix and report-only modes
 
 You direct; the agent executes. *"Add a pause menu"*, *"Fix the button that’s cut off on the right"*, *"Run a smoke test and fix each bug you find"* — the agent launches the game, sees the result, edits code, and verifies. No context switching, no editor required.
 
