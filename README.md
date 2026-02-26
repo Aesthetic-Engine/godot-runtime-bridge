@@ -2,7 +2,7 @@
 
 **Agentic game development and runtime automation for Godot 4.5+**
 
-GRB lets you **build, test, and debug your Godot game entirely via prompting.** A TCP debug server and MCP bridge connects Cursor (and Claude Code) to your running game — you describe what you want, the agent launches the game, observes it, edits code, and verifies. Full **develop → observe → verify** loops without ever opening the editor.
+GRB lets you **build, test, and debug your Godot game entirely via prompting — no need to work in the editor.** A TCP debug server and MCP bridge connects Cursor (and Claude Code) to your running game: you describe what you want, the agent launches the game, observes it, edits code, and verifies. Full **develop → observe → verify** loops.
 
 ## What GRB Enables
 
