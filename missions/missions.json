@@ -607,5 +607,89 @@
       {"action": "get_property", "node": "GameState", "property": "current_room_id", "label": "final_room"},
       {"action": "runtime_info"}
     ]
+  },
+  {
+    "id": "perf_profile",
+    "name": "Performance Profile Snapshot",
+    "goal": "Capture performance metrics at boot, during gameplay, and after stress to detect regressions",
+    "tier_required": 0,
+    "estimated_time_sec": 20,
+    "starter": true,
+    "steps": [
+      {"action": "grb_performance", "label": "perf_boot"},
+      {"action": "runtime_info"},
+      {"action": "screenshot", "label": "perf_boot_screen"},
+      {"action": "wait", "ms": 5000},
+      {"action": "grb_performance", "label": "perf_5s"},
+      {"action": "screenshot", "label": "perf_5s_screen"},
+      {"action": "wait", "ms": 5000},
+      {"action": "grb_performance", "label": "perf_10s"},
+      {"action": "screenshot", "label": "perf_10s_screen"},
+      {"action": "runtime_info"}
+    ]
+  },
+  {
+    "id": "button_inventory",
+    "name": "Button Inventory Scan",
+    "goal": "Find all Button-type nodes in the scene tree and screenshot the initial state",
+    "tier_required": 0,
+    "estimated_time_sec": 10,
+    "starter": true,
+    "steps": [
+      {"action": "screenshot", "label": "button_scan_screen"},
+      {"action": "find_nodes", "type": "BaseButton", "label": "all_buttons"},
+      {"action": "find_nodes", "type": "Label", "label": "all_labels"},
+      {"action": "scene_tree", "label": "button_tree", "max_depth": 8},
+      {"action": "runtime_info"}
+    ]
+  },
+  {
+    "id": "audio_check",
+    "name": "Audio Bus Health Check",
+    "goal": "Verify audio buses are configured and no bus is accidentally muted",
+    "tier_required": 0,
+    "estimated_time_sec": 5,
+    "starter": true,
+    "steps": [
+      {"action": "audio_state", "label": "audio_buses"},
+      {"action": "runtime_info"},
+      {"action": "screenshot", "label": "audio_check_screen"}
+    ]
+  },
+  {
+    "id": "rapid_screenshot_burst",
+    "name": "Rapid Screenshot Burst (Boot)",
+    "goal": "Take 5 screenshots 500ms apart at boot to catch loading artifacts or blank frames",
+    "tier_required": 0,
+    "estimated_time_sec": 10,
+    "steps": [
+      {"action": "screenshot", "label": "burst_1"},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "burst_2"},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "burst_3"},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "burst_4"},
+      {"action": "wait", "ms": 500},
+      {"action": "screenshot", "label": "burst_5"},
+      {"action": "screenshot_diff", "a": "burst_1", "b": "burst_5", "issue_title": "Boot screenshots identical — possible loading stall", "severity": "Minor"},
+      {"action": "runtime_info"}
+    ]
+  },
+  {
+    "id": "error_sweep",
+    "name": "Error Sweep (Boot + Idle)",
+    "goal": "Check for engine errors at boot and after 10s idle to catch silent failures",
+    "tier_required": 0,
+    "estimated_time_sec": 15,
+    "steps": [
+      {"action": "check_errors", "label": "boot_errors"},
+      {"action": "runtime_info"},
+      {"action": "screenshot", "label": "error_sweep_boot"},
+      {"action": "wait", "ms": 10000},
+      {"action": "check_errors", "label": "idle_errors"},
+      {"action": "screenshot", "label": "error_sweep_idle"},
+      {"action": "runtime_info"}
+    ]
   }
 ]

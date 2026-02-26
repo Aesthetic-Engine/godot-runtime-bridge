@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.0.0 — 2026-02-26
+
+**First stable release.** GRB is production-ready for agentic game development and runtime automation. AI agents can launch your game, observe it, control it, run QA missions, and iterate on fixes — all without opening the editor.
+
+### Highlights
+
+- **Full command set** — 25+ commands across 4 tiers (Observe, Input, Control, Danger). Screenshot capture, scene tree inspection, property get/set, synthetic input (mouse, keyboard, gamepad, gestures), custom commands, eval.
+- **MCP bridge** — Cursor and Claude Code connect via `godot-runtime-bridge` MCP server. `grb_launch` auto-discovers port and token. All commands exposed as tools.
+- **QA mission pack** — 25+ game-agnostic missions (smoke test, UI bounds, menu navigation, perf profiling, audio check, error sweep). Perceptual screenshot diff, baseline+compare workflow, ticket-ready markdown reports.
+- **Editor integration** — Mission dashboard, launch configuration, screenshot verification toggle, loop prevention, copy-prompt-for-Cursor panel.
+- **Security-first** — Localhost only, random port, bearer token auth, capability tiers, eval off by default.
+- **Zero overhead when inactive** — Safe to ship in production builds.
+
+### Added (1.0.0)
+
+- **`gesture` command (Tier 1)** — inject pinch or swipe gestures.
+- **`audio_state` command (Tier 0)** — bus volumes, mute, mix rate.
+- **`network_state` command (Tier 0)** — multiplayer/network state placeholder.
+- **`grb_performance` command (Tier 0)** — FPS, draw calls, memory, profiling.
+- **`run_custom_command` command (Tier 2)** — invoke game-registered commands via `GRBCommands` autoload.
+- **`GRBCommands.gd`** — optional autoload for custom command registration.
+- **`find_nodes` command (Tier 0)** — search scene tree by name, type, group.
+- **`gamepad` command (Tier 1)** — button, axis, vibration.
+- **Expanded mission library** — 5 new missions: `perf_profile`, `button_inventory`, `audio_check`, `rapid_screenshot_burst`, `error_sweep`.
+- **Visual regression workflow** — formalized in `missions/README.md`.
+- **GUT integration docs** — unit test runner integration documented.
+- **CI/CD documentation** — `docs/ci.md` with xvfb GitHub Actions examples.
+
 ## 0.1.5 — 2026-02-24
 
 ### Added

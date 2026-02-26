@@ -389,6 +389,52 @@ const TOOLS = [
     },
   },
   {
+    name: "grb_gesture",
+    description: "Inject pinch or swipe gesture. Uses InputEventMagnifyGesture and InputEventPanGesture.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        type: { type: "string", description: "'pinch' or 'swipe'" },
+        params: {
+          type: "object",
+          properties: {
+            center: { type: "array", items: { type: "number" }, description: "[x, y]" },
+            scale: { type: "number", description: "Pinch factor (default 1.1)" },
+            delta: { type: "array", items: { type: "number" }, description: "Swipe [dx, dy]" },
+          },
+        },
+      },
+      required: ["type"],
+    },
+  },
+  {
+    name: "grb_audio_state",
+    description: "Get audio bus volumes (dB), mute state, and mix rate. Tier 0.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "grb_network_state",
+    description: "Get multiplayer/network state. Tier 0.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "grb_run_custom_command",
+    description: "Run a game-registered custom command via GRBCommands. Requires GRBCommands autoload.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Command name" },
+        args: { type: "array", description: "Command arguments (default [])" },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "grb_performance",
+    description: "Get FPS, process times, draw calls, node count, video memory. Tier 0.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
     name: "grb_eval",
     description:
       "Execute arbitrary GDScript expression. Requires tier 3 + GDRB_ENABLE_DANGER=1.",
@@ -398,6 +444,38 @@ const TOOLS = [
         expr: { type: "string", description: "GDScript expression" },
       },
       required: ["expr"],
+    },
+  },
+  {
+    name: "grb_find_nodes",
+    description: "Search the live scene tree for nodes by name substring, type/class, and/or group. Returns matching node paths, types, and groups. Tier 0.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Name substring to match (case-insensitive). Use '*' for all." },
+        type: { type: "string", description: "Godot class name (e.g. 'Button', 'Label', 'Camera3D')" },
+        group: { type: "string", description: "Group name the node must belong to" },
+        limit: { type: "number", description: "Max results (default 50)" },
+      },
+    },
+  },
+  {
+    name: "grb_gamepad",
+    description: "Inject gamepad/controller input: button press, axis motion, or vibration. Tier 1.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action: { type: "string", description: "'button', 'axis', or 'vibrate'" },
+        button: { type: "number", description: "Joypad button index (for 'button' action)" },
+        pressed: { type: "boolean", description: "Whether button is pressed (default true)" },
+        axis: { type: "number", description: "Axis index (for 'axis' action)" },
+        value: { type: "number", description: "Axis value -1.0 to 1.0 (for 'axis' action)" },
+        device: { type: "number", description: "Device ID (default 0)" },
+        weak: { type: "number", description: "Weak vibration 0.0-1.0 (for 'vibrate')" },
+        strong: { type: "number", description: "Strong vibration 0.0-1.0 (for 'vibrate')" },
+        duration: { type: "number", description: "Vibration duration in seconds (for 'vibrate')" },
+      },
+      required: ["action"],
     },
   },
 ];
@@ -606,6 +684,58 @@ async function handleTool(name, args) {
       return { content: [{ type: "text", text: "Scroll sent" }] };
     }
 
+    case "grb_gesture": {
+      const r = await sendCommand("gesture", {
+        type: args.type || "",
+        params: args.params || {},
+      });
+      if (!r.ok) return errResult(r);
+      return { content: [{ type: "text", text: "Gesture sent" }] };
+    }
+
+    case "grb_audio_state": {
+      const r = await sendCommand("audio_state");
+      if (!r.ok) return errResult(r);
+      const { id: _id, ok: _ok, ...info } = r;
+      return {
+        content: [{ type: "text", text: JSON.stringify(info, null, 2) }],
+      };
+    }
+
+    case "grb_network_state": {
+      const r = await sendCommand("network_state");
+      if (!r.ok) return errResult(r);
+      const { id: _id2, ok: _ok2, ...info } = r;
+      return {
+        content: [{ type: "text", text: JSON.stringify(info, null, 2) }],
+      };
+    }
+
+    case "grb_run_custom_command": {
+      const r = await sendCommand("run_custom_command", {
+        name: args.name || "",
+        args: args.args ?? [],
+      });
+      if (!r.ok) return errResult(r);
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ result: r.result }, null, 2),
+          },
+        ],
+      };
+    }
+
+    case "grb_performance": {
+      const r = await sendCommand("grb_performance");
+      if (!r.ok) return errResult(r);
+      const { id: _id3, ok: _ok3, ...info } = r;
+      return {
+        content: [{ type: "text", text: JSON.stringify(info, null, 2) }],
+      };
+    }
+
     case "grb_get_property": {
       const r = await sendCommand("get_property", {
         node: args.node,
@@ -730,6 +860,35 @@ async function handleTool(name, args) {
       return await handleTool("grb_launch", args);
     }
 
+    case "grb_find_nodes": {
+      const r = await sendCommand("find_nodes", {
+        name: args.name || "",
+        type: args.type || "",
+        group: args.group || "",
+        limit: args.limit ?? 50,
+      });
+      if (!r.ok) return errResult(r);
+      return {
+        content: [{ type: "text", text: JSON.stringify({ matches: r.matches, count: r.count }, null, 2) }],
+      };
+    }
+
+    case "grb_gamepad": {
+      const r = await sendCommand("gamepad", {
+        action: args.action || "",
+        button: args.button ?? 0,
+        pressed: args.pressed ?? true,
+        axis: args.axis ?? 0,
+        value: args.value ?? 0.0,
+        device: args.device ?? 0,
+        weak: args.weak ?? 0.0,
+        strong: args.strong ?? 0.5,
+        duration: args.duration ?? 0.5,
+      });
+      if (!r.ok) return errResult(r);
+      return { content: [{ type: "text", text: "Gamepad input sent" }] };
+    }
+
     case "grb_eval": {
       const r = await sendCommand("eval", { expr: args.expr });
       if (!r.ok) return errResult(r);
@@ -756,7 +915,7 @@ function errResult(r) {
 // ── MCP server setup ──
 
 const mcpServer = new Server(
-  { name: "godot-runtime-bridge", version: "0.1.0" },
+  { name: "godot-runtime-bridge", version: "1.0.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -782,7 +941,7 @@ await mcpServer.connect(transport);
 // Startup notice — visible in Cursor's MCP output panel (Settings → Tools & MCP → godot-runtime-bridge → Logs)
 // If GRB tools are not appearing in Cursor, the most common cause is the server not being enabled.
 process.stderr.write(
-  "[GRB] MCP server started (godot-runtime-bridge v0.1.5)\n" +
+  "[GRB] MCP server started (godot-runtime-bridge v1.0.0)\n" +
   "[GRB] If tools are not appearing in Cursor:\n" +
   "[GRB]   1. Open Cursor → Settings → Tools & MCP\n" +
   "[GRB]   2. Find 'godot-runtime-bridge' under Installed MCP Servers\n" +

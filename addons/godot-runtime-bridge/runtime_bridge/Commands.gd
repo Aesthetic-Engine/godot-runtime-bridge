@@ -13,17 +13,26 @@ const COMMAND_TIERS: Dictionary = {
 	"runtime_info":  Tier.OBSERVE,
 	"get_errors":    Tier.OBSERVE,
 	"wait_for":      Tier.OBSERVE,
+	"audio_state":   Tier.OBSERVE,
+	"network_state": Tier.OBSERVE,
 
 	"click":         Tier.INPUT,
 	"key":           Tier.INPUT,
 	"press_button":  Tier.INPUT,
 	"drag":          Tier.INPUT,
 	"scroll":        Tier.INPUT,
+	"gesture":       Tier.INPUT,
 
 	"set_property":  Tier.CONTROL,
 	"call_method":   Tier.CONTROL,
+	"quit":          Tier.CONTROL,
 
 	"eval":          Tier.DANGER,
+
+	"run_custom_command": Tier.CONTROL,
+	"grb_performance":   Tier.OBSERVE,
+	"find_nodes":        Tier.OBSERVE,
+	"gamepad":           Tier.INPUT,
 }
 
 ## Commands allowed without token authentication.

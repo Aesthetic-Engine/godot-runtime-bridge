@@ -107,6 +107,16 @@ No args. Returns engine version, FPS, frame count, current scene, node count.
 
 Polls each frame until `node.property == value` or timeout. Returns `{"matched": true/false, "elapsed_ms": ...}`.
 
+#### find_nodes
+| Arg | Type | Default | Description |
+|-----|------|---------|-------------|
+| `name` | string | | Name substring to match (case-insensitive). Use `"*"` for all. |
+| `type` | string | | Godot class name (e.g. `"Button"`, `"Label"`, `"Camera3D"`) |
+| `group` | string | | Group name the node must belong to |
+| `limit` | int | 50 | Max results |
+
+At least one of `name`, `type`, or `group` is required. Returns `{"matches": [...], "count": N}` where each match has `name`, `type`, `path`, and `groups`.
+
 ### Tier 1 — Input
 
 All input commands respect `GDRB_INPUT_MODE`:
@@ -150,6 +160,21 @@ Press at `from`, move to `to`, release on next frame.
 | `x` | int | 0 | Scroll position X |
 | `y` | int | 0 | Scroll position Y |
 | `delta` | float | -3.0 | Scroll amount (negative = down, positive = up) |
+
+#### gamepad
+| Arg | Type | Default | Description |
+|-----|------|---------|-------------|
+| `action` | string | | `"button"`, `"axis"`, or `"vibrate"` |
+| `button` | int | 0 | Joypad button index (for `"button"` action) |
+| `pressed` | bool | true | Whether button is pressed |
+| `axis` | int | 0 | Axis index (for `"axis"` action) |
+| `value` | float | 0.0 | Axis value -1.0 to 1.0 (for `"axis"` action) |
+| `device` | int | 0 | Device ID |
+| `weak` | float | 0.0 | Weak vibration intensity (for `"vibrate"`) |
+| `strong` | float | 0.5 | Strong vibration intensity (for `"vibrate"`) |
+| `duration` | float | 0.5 | Vibration duration in seconds (for `"vibrate"`) |
+
+For `"button"`: injects press + auto-release after 100ms. For `"axis"`: injects axis motion. For `"vibrate"`: triggers controller vibration.
 
 ### Tier 2 — Control
 

@@ -385,10 +385,24 @@ func _execute(cmd: String, args: Dictionary, req_id: String) -> Dictionary:
 			return _cmd_drag(req_id, args)
 		"scroll":
 			return _cmd_scroll(req_id, args)
+		"gesture":
+			return _cmd_gesture(req_id, args)
+		"audio_state":
+			return _cmd_audio_state(req_id)
+		"network_state":
+			return _cmd_network_state(req_id)
 		"eval":
 			return _cmd_eval(req_id, str(args.get("expr", "")))
 		"quit":
 			return _cmd_quit(req_id)
+		"run_custom_command":
+			return _cmd_run_custom_command(req_id, args)
+		"grb_performance":
+			return _cmd_grb_performance(req_id)
+		"find_nodes":
+			return _cmd_find_nodes(req_id, args)
+		"gamepad":
+			return _cmd_gamepad(req_id, args)
 		_:
 			return _Protocol.error(req_id, "unknown_cmd", "Unhandled command: " + cmd)
 
@@ -680,6 +694,64 @@ func _cmd_scroll(req_id: String, args: Dictionary) -> Dictionary:
 	return _Protocol.ok(req_id)
 
 
+func _cmd_gesture(req_id: String, args: Dictionary) -> Dictionary:
+	var gtype: String = str(args.get("type", "")).to_lower()
+	var params: Variant = args.get("params", {})
+	var p: Dictionary = params if params is Dictionary else {}
+
+	var center_arr: Variant = p.get("center", [0, 0])
+	var center := Vector2(0, 0)
+	if center_arr is Array and center_arr.size() >= 2:
+		center = Vector2(float(center_arr[0]), float(center_arr[1]))
+
+	if gtype == "pinch":
+		var scale_val: float = float(p.get("scale", 1.1))
+		var ev := InputEventMagnifyGesture.new()
+		ev.position = center
+		ev.factor = scale_val
+		_inject_event(ev)
+		return _Protocol.ok(req_id)
+	elif gtype == "swipe":
+		var delta_arr: Variant = p.get("delta", [0, 0])
+		var delta := Vector2(0, 0)
+		if delta_arr is Array and delta_arr.size() >= 2:
+			delta = Vector2(float(delta_arr[0]), float(delta_arr[1]))
+		var ev := InputEventPanGesture.new()
+		ev.position = center
+		ev.delta = delta
+		_inject_event(ev)
+		return _Protocol.ok(req_id)
+	else:
+		return _Protocol.error(req_id, "bad_args", "gesture type must be 'pinch' or 'swipe'")
+
+
+func _cmd_audio_state(req_id: String) -> Dictionary:
+	var buses: Array = []
+	for i in range(AudioServer.bus_count):
+		var name_str: String = AudioServer.get_bus_name(i)
+		var vol_db: float = AudioServer.get_bus_volume_db(i)
+		var muted: bool = AudioServer.is_bus_mute(i)
+		buses.append({
+			"index": i,
+			"name": name_str,
+			"volume_db": vol_db,
+			"mute": muted,
+		})
+	return _Protocol.ok(req_id, {
+		"buses": buses,
+		"bus_count": buses.size(),
+		"mix_rate": AudioServer.get_mix_rate(),
+	})
+
+
+func _cmd_network_state(req_id: String) -> Dictionary:
+	# Placeholder: game has no multiplayer integration
+	return _Protocol.ok(req_id, {
+		"multiplayer": false,
+		"message": "no multiplayer",
+	})
+
+
 # ── Tier 2: Control ──
 
 func _cmd_set_property(req_id: String, args: Dictionary) -> Dictionary:
@@ -713,9 +785,131 @@ func _cmd_call_method(req_id: String, args: Dictionary) -> Dictionary:
 	return _Protocol.ok(req_id, {"result": _safe_serialize(result)})
 
 
+# ── find_nodes (Tier 0) ──
+
+func _cmd_find_nodes(req_id: String, args: Dictionary) -> Dictionary:
+	var name_pattern: String = str(args.get("name", ""))
+	var type_filter: String = str(args.get("type", ""))
+	var group_filter: String = str(args.get("group", ""))
+	var limit: int = int(args.get("limit", 50))
+	if name_pattern == "" and type_filter == "" and group_filter == "":
+		return _Protocol.error(req_id, "bad_args", "Requires at least one of: 'name', 'type', 'group'")
+	var results: Array = []
+	_find_nodes_recursive(get_tree().root, name_pattern, type_filter, group_filter, limit, results)
+	return _Protocol.ok(req_id, {"matches": results, "count": results.size()})
+
+
+func _find_nodes_recursive(node: Node, name_pattern: String, type_filter: String, group_filter: String, limit: int, results: Array) -> void:
+	if results.size() >= limit:
+		return
+	var hit := true
+	if name_pattern != "":
+		hit = hit and (name_pattern == "*" or str(node.name).containsn(name_pattern))
+	if type_filter != "":
+		hit = hit and node.is_class(type_filter)
+	if group_filter != "":
+		hit = hit and node.is_in_group(group_filter)
+	if hit and (name_pattern != "" or type_filter != "" or group_filter != ""):
+		results.append({
+			"name": str(node.name),
+			"type": node.get_class(),
+			"path": str(node.get_path()),
+			"groups": Array(node.get_groups()).map(func(g): return str(g)),
+		})
+	for i in range(node.get_child_count()):
+		if results.size() >= limit:
+			return
+		_find_nodes_recursive(node.get_child(i), name_pattern, type_filter, group_filter, limit, results)
+
+
+# ── gamepad (Tier 1) ──
+
+func _cmd_gamepad(req_id: String, args: Dictionary) -> Dictionary:
+	var action_type: String = str(args.get("action", "")).to_lower()
+	var device_id: int = int(args.get("device", 0))
+	if action_type == "button":
+		var button_index: int = int(args.get("button", 0))
+		var pressed: bool = bool(args.get("pressed", true))
+		var ev := InputEventJoypadButton.new()
+		ev.device = device_id
+		ev.button_index = button_index
+		ev.pressed = pressed
+		_inject_event(ev)
+		if pressed:
+			var release := InputEventJoypadButton.new()
+			release.device = device_id
+			release.button_index = button_index
+			release.pressed = false
+			get_tree().create_timer(0.1).timeout.connect(func(): _inject_event(release))
+		return _Protocol.ok(req_id)
+	elif action_type == "axis":
+		var axis_index: int = int(args.get("axis", 0))
+		var axis_value: float = float(args.get("value", 0.0))
+		var ev := InputEventJoypadMotion.new()
+		ev.device = device_id
+		ev.axis = axis_index
+		ev.axis_value = axis_value
+		_inject_event(ev)
+		return _Protocol.ok(req_id)
+	elif action_type == "vibrate":
+		var weak: float = float(args.get("weak", 0.0))
+		var strong: float = float(args.get("strong", 0.5))
+		var duration: float = float(args.get("duration", 0.5))
+		Input.start_joy_vibration(device_id, weak, strong, duration)
+		return _Protocol.ok(req_id)
+	else:
+		return _Protocol.error(req_id, "bad_args", "gamepad action must be 'button', 'axis', or 'vibrate'")
+
+
 func _cmd_quit(req_id: String) -> Dictionary:
 	get_tree().call_deferred("quit")
 	return _Protocol.ok(req_id, {"message": "Quitting game"})
+
+
+# ── run_custom_command (Tier 2) ──
+
+func _cmd_run_custom_command(req_id: String, args: Dictionary) -> Dictionary:
+	var name_arg: String = str(args.get("name", ""))
+	if name_arg.is_empty():
+		return _Protocol.error(req_id, "bad_args", "Requires 'name'")
+	var cmds: Node = get_node_or_null("/root/GRBCommands")
+	if cmds == null or not cmds.has_method("run"):
+		return _Protocol.error(req_id, "not_found", "GRBCommands not available")
+	if not cmds.has_command(name_arg):
+		return _Protocol.error(req_id, "not_found", "Custom command not registered: " + name_arg)
+	var cmd_args: Array = []
+	var raw_args: Variant = args.get("args", [])
+	if raw_args is Array:
+		cmd_args = raw_args
+	var result: Variant = cmds.run(name_arg, cmd_args)
+	return _Protocol.ok(req_id, {"result": _safe_serialize(result)})
+
+
+# ── grb_performance (Tier 0) ──
+
+func _cmd_grb_performance(req_id: String) -> Dictionary:
+	var perf := {
+		"fps": 0.0,
+		"time_process": 0.0,
+		"time_physics_process": 0.0,
+		"object_count": 0,
+		"object_node_count": 0,
+		"render_draw_calls": 0,
+		"render_total_objects": 0,
+		"render_total_primitives": 0,
+		"render_video_mem_used": 0,
+	}
+	# Performance singleton; some monitors return 0 in release builds
+	perf["fps"] = Performance.get_monitor(Performance.TIME_FPS)
+	perf["time_process"] = Performance.get_monitor(Performance.TIME_PROCESS)
+	perf["time_physics_process"] = Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)
+	perf["object_count"] = int(Performance.get_monitor(Performance.OBJECT_COUNT))
+	perf["object_node_count"] = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
+	perf["render_draw_calls"] = int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+	perf["render_total_objects"] = int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME))
+	perf["render_total_primitives"] = int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
+	perf["render_video_mem_used"] = int(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED))
+	return _Protocol.ok(req_id, perf)
 
 
 # ── Tier 3: Danger ──

@@ -3,7 +3,7 @@ extends VBoxContainer
 
 const _Commands := preload("res://addons/godot-runtime-bridge/runtime_bridge/Commands.gd")
 
-const VERSION := "0.1.4"
+const VERSION := "1.0.0"
 
 const SCREENSHOTS_DIR := "res://debug/screenshots"
 const VERIFY_MARKER := "res://debug/screenshots/.verify_enabled"
@@ -28,8 +28,24 @@ var _verify_toggle: CheckButton
 var _loop_toggle: CheckButton
 var _clear_btn: Button
 
+# Mission Dashboard (GRB Pro)
+var _mission_section: VBoxContainer
+var _mission_list: VBoxContainer
+var _mission_checkboxes: Dictionary = {}
+var _run_btn: Button
+var _progress: ProgressBar
+var _progress_label: Label
+var _thumbnails: HBoxContainer
+var _copy_prompt_btn: Button
+var _run_thread: Thread
+var _run_mutex: Mutex
+var _run_done: bool = false
+
 
 func _ready() -> void:
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_flags_vertical = Control.SIZE_EXPAND_FILL
+
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -44,6 +60,7 @@ func _ready() -> void:
 	_build_quickstart()
 	_build_technical_toggle()
 	_build_agent_settings()
+	_build_mission_dashboard()
 	_update_command()
 	_update_tier_detail()
 
@@ -294,12 +311,15 @@ func _build_agent_settings() -> void:
 	heading.add_theme_font_size_override("font_size", 13)
 	_content.add_child(heading)
 
+	var settings_row := HBoxContainer.new()
+	settings_row.add_theme_constant_override("separation", 16)
+
 	_verify_toggle = CheckButton.new()
 	_verify_toggle.text = "Screenshot verification"
 	_verify_toggle.tooltip_text = "When enabled, the AI agent must take a screenshot after visual changes and confirm the result before reporting done."
 	_verify_toggle.button_pressed = FileAccess.file_exists(VERIFY_MARKER)
 	_verify_toggle.toggled.connect(_on_verify_toggled)
-	_content.add_child(_verify_toggle)
+	settings_row.add_child(_verify_toggle)
 
 	_loop_toggle = CheckButton.new()
 	_loop_toggle.text = "Loop prevention"
@@ -309,18 +329,15 @@ func _build_agent_settings() -> void:
 		_loop_toggle.button_pressed = true
 		_write_marker(LOOP_MARKER)
 	_loop_toggle.toggled.connect(_on_loop_prevention_toggled)
-	_content.add_child(_loop_toggle)
-
-	var clear_row := HBoxContainer.new()
-	clear_row.add_theme_constant_override("separation", 6)
+	settings_row.add_child(_loop_toggle)
 
 	_clear_btn = Button.new()
 	_clear_btn.text = "Clear Screenshots"
 	_clear_btn.tooltip_text = "Delete all screenshot files from debug/screenshots/"
 	_clear_btn.pressed.connect(_on_clear_screenshots)
-	clear_row.add_child(_clear_btn)
+	settings_row.add_child(_clear_btn)
 
-	_content.add_child(clear_row)
+	_content.add_child(settings_row)
 
 
 func _on_verify_toggled(pressed: bool) -> void:
@@ -368,3 +385,286 @@ func _write_marker(path: String) -> void:
 func _remove_marker(path: String) -> void:
 	if FileAccess.file_exists(path):
 		DirAccess.remove_absolute(path)
+
+
+# ── Mission Dashboard ──
+
+const MISSIONS_REL := "packages/godot-runtime-bridge-mcp/missions"
+
+func _build_mission_dashboard() -> void:
+	_content.add_child(HSeparator.new())
+
+	var heading := Label.new()
+	heading.text = "Mission Dashboard"
+	heading.add_theme_font_size_override("font_size", 13)
+	_content.add_child(heading)
+
+	_mission_section = VBoxContainer.new()
+	_mission_section.add_theme_constant_override("separation", 4)
+	_mission_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var btn_row := HBoxContainer.new()
+	btn_row.add_theme_constant_override("separation", 6)
+
+	_run_btn = Button.new()
+	_run_btn.text = "Run Selected"
+	_run_btn.tooltip_text = "Run selected missions via mission runner (requires Node.js, launches game)"
+	_run_btn.pressed.connect(_on_run_missions)
+	btn_row.add_child(_run_btn)
+
+	_progress = ProgressBar.new()
+	_progress.custom_minimum_size.x = 100
+	_progress.show_percentage = false
+	_progress.visible = false
+	btn_row.add_child(_progress)
+
+	_progress_label = Label.new()
+	_progress_label.text = ""
+	_progress_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_row.add_child(_progress_label)
+
+	_mission_section.add_child(btn_row)
+
+	_mission_list = VBoxContainer.new()
+	_mission_list.add_theme_constant_override("separation", 2)
+	_mission_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_mission_section.add_child(_mission_list)
+
+	var prompt_row := HBoxContainer.new()
+	prompt_row.add_theme_constant_override("separation", 6)
+	var prompt_lbl := Label.new()
+	prompt_lbl.text = "After running a mission, copy this prompt and paste into Cursor chat:"
+	prompt_lbl.add_theme_font_size_override("font_size", 11)
+	prompt_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	prompt_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	prompt_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	prompt_row.add_child(prompt_lbl)
+	_copy_prompt_btn = Button.new()
+	_copy_prompt_btn.text = "Copy prompt for Cursor"
+	_copy_prompt_btn.tooltip_text = "Copy ready-to-paste prompt for Cursor (uses latest report)"
+	_copy_prompt_btn.pressed.connect(_on_copy_prompt_pressed)
+	prompt_row.add_child(_copy_prompt_btn)
+	_mission_section.add_child(prompt_row)
+
+	var thumb_label := Label.new()
+	thumb_label.text = "Last run thumbnails:"
+	thumb_label.add_theme_font_size_override("font_size", 11)
+	_mission_section.add_child(thumb_label)
+
+	_thumbnails = HBoxContainer.new()
+	_thumbnails.add_theme_constant_override("separation", 4)
+	_thumbnails.custom_minimum_size.y = 50
+	_mission_section.add_child(_thumbnails)
+
+	_content.add_child(_mission_section)
+	_load_missions()
+	_refresh_thumbnails()
+
+
+func _load_missions() -> void:
+	var project_root := ProjectSettings.globalize_path("res://")
+	var missions_path := path_join(project_root, MISSIONS_REL, "missions.json")
+	var f := FileAccess.open(missions_path, FileAccess.READ)
+	if f == null:
+		var fallback := path_join(path_join(project_root, ".."), MISSIONS_REL, "missions.json")
+		f = FileAccess.open(fallback, FileAccess.READ)
+	if f == null:
+		var lbl := Label.new()
+		lbl.text = "missions.json not found"
+		lbl.add_theme_color_override("font_color", Color(0.7, 0.5, 0.5))
+		_mission_list.add_child(lbl)
+		return
+
+	var json := JSON.new()
+	var err := json.parse(f.get_as_text())
+	f.close()
+	if err != OK:
+		_mission_list.add_child(Label.new())
+		return
+
+	var missions: Array = json.data
+	for m in missions:
+		var id_val: String = str(m.get("id", ""))
+		var name_val: String = str(m.get("name", id_val))
+		var cb := CheckBox.new()
+		cb.text = "%s — %s" % [id_val, name_val]
+		cb.set_meta("mission_id", id_val)
+		_mission_checkboxes[id_val] = cb
+		_mission_list.add_child(cb)
+
+
+func path_join(a: String, b: String, c: String = "") -> String:
+	var p := a.path_join(b)
+	if c != "":
+		p = p.path_join(c)
+	return p
+
+
+func _on_run_missions() -> void:
+	var selected: Array[String] = []
+	for id_val: String in _mission_checkboxes:
+		var cb: CheckBox = _mission_checkboxes[id_val]
+		if cb.button_pressed:
+			selected.append(id_val)
+	if selected.is_empty():
+		_progress_label.text = "Select at least one mission"
+		return
+
+	var project_root := ProjectSettings.globalize_path("res://")
+	var missions_dir := path_join(project_root, MISSIONS_REL)
+	var script_path := path_join(missions_dir, "run_mission.mjs")
+	var godot_exe := OS.get_environment("GODOT_PATH")
+	if godot_exe == "":
+		godot_exe = "godot4"
+		if OS.get_name() == "Windows":
+			godot_exe = "godot4.exe"
+
+	_progress.visible = true
+	_progress.value = 0
+	_progress_label.text = "Running %s..." % ", ".join(selected)
+	_run_btn.disabled = true
+
+	_run_mutex = Mutex.new()
+	_run_done = false
+	_run_thread = Thread.new()
+	_run_thread.start(_run_missions_thread.bind({
+		"script": script_path,
+		"missions_dir": missions_dir,
+		"project": project_root,
+		"exe": godot_exe,
+		"missions": selected,
+	}))
+
+
+func _run_missions_thread(params: Dictionary) -> void:
+	var script_path: String = params["script"]
+	var missions_dir: String = params["missions_dir"]
+	var project: String = params["project"]
+	var exe: String = params["exe"]
+	var missions: Array = params["missions"]
+
+	for mid: String in missions:
+		var args: PackedStringArray = [
+			script_path, "--mission", mid,
+			"--exe", exe, "--project", project,
+			"--format", "qa-teammate"
+		]
+		OS.execute("node", args, [], false)
+
+	_run_mutex.lock()
+	_run_done = true
+	_run_mutex.unlock()
+
+
+func _process(_delta: float) -> void:
+	if _run_thread != null and _run_mutex != null:
+		_run_mutex.lock()
+		var done: bool = _run_done
+		_run_mutex.unlock()
+		if done:
+			_run_thread.wait_to_finish()
+			_run_thread = null
+			_progress.value = 100
+			_progress_label.text = "Done"
+			_run_btn.disabled = false
+			_refresh_thumbnails()
+			get_tree().create_timer(2.0).timeout.connect(func() -> void:
+				if is_instance_valid(_progress):
+					_progress.visible = false
+					_progress_label.text = ""
+			)
+
+
+func _on_copy_prompt_pressed() -> void:
+	var project_root := ProjectSettings.globalize_path("res://")
+	var reports_dir := path_join(project_root, MISSIONS_REL, "reports")
+	var dir := DirAccess.open(reports_dir)
+	if dir == null:
+		_copy_prompt_btn.text = "No reports yet"
+		get_tree().create_timer(2.0).timeout.connect(func() -> void:
+			if is_instance_valid(_copy_prompt_btn):
+				_copy_prompt_btn.text = "Copy prompt for Cursor"
+		)
+		return
+
+	# Find most recent report (any mission)
+	var latest_mission := ""
+	var latest_ts := ""
+	dir.list_dir_begin()
+	var sub := dir.get_next()
+	while sub != "":
+		if dir.current_is_dir() and sub != "." and sub != "..":
+			var subdir := DirAccess.open(path_join(reports_dir, sub))
+			if subdir:
+				subdir.list_dir_begin()
+				var f := subdir.get_next()
+				while f != "":
+					if f.begins_with("report-") and f.ends_with(".md"):
+						var ts := f.trim_prefix("report-").trim_suffix(".md")
+						if latest_ts.is_empty() or ts > latest_ts:
+							latest_mission = sub
+							latest_ts = ts
+					f = subdir.get_next()
+				subdir.list_dir_end()
+		sub = dir.get_next()
+	dir.list_dir_end()
+
+	if latest_mission.is_empty():
+		_copy_prompt_btn.text = "No reports yet"
+		get_tree().create_timer(2.0).timeout.connect(func() -> void:
+			if is_instance_valid(_copy_prompt_btn):
+				_copy_prompt_btn.text = "Copy prompt for Cursor"
+		)
+		return
+
+	var reports_base := path_join(path_join(project_root, MISSIONS_REL), "reports")
+	var full_path := path_join(path_join(reports_base, latest_mission), "report-" + latest_ts + ".md")
+	var prompt := "I ran the %s mission. Please read %s and fix each issue listed." % [latest_mission, full_path]
+	DisplayServer.clipboard_set(prompt)
+	_copy_prompt_btn.text = "Copied!"
+	get_tree().create_timer(1.5).timeout.connect(func() -> void:
+		if is_instance_valid(_copy_prompt_btn):
+			_copy_prompt_btn.text = "Copy prompt for Cursor"
+	)
+
+
+func _refresh_thumbnails() -> void:
+	for c in _thumbnails.get_children():
+		c.queue_free()
+
+	var project_root := ProjectSettings.globalize_path("res://")
+	var reports_dir := path_join(project_root, MISSIONS_REL, "reports")
+	var dir := DirAccess.open(reports_dir)
+	if dir == null:
+		return
+
+	dir.list_dir_begin()
+	var sub := dir.get_next()
+	var png_paths: Array[String] = []
+	while sub != "":
+		if dir.current_is_dir() and sub != "." and sub != "..":
+			var subdir := DirAccess.open(path_join(reports_dir, sub))
+			if subdir:
+				subdir.list_dir_begin()
+				var f := subdir.get_next()
+				while f != "":
+					if f.ends_with(".png"):
+						png_paths.append(path_join(reports_dir, sub, f))
+						if png_paths.size() >= 6:
+							break
+					f = subdir.get_next()
+				subdir.list_dir_end()
+		if png_paths.size() >= 6:
+			break
+		sub = dir.get_next()
+	dir.list_dir_end()
+
+	for i in range(mini(png_paths.size(), 6)):
+		var img := Image.new()
+		if img.load(png_paths[i]) == OK:
+			var tex := ImageTexture.create_from_image(img)
+			var rect := TextureRect.new()
+			rect.custom_minimum_size = Vector2(64, 36)
+			rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			rect.texture = tex
+			_thumbnails.add_child(rect)

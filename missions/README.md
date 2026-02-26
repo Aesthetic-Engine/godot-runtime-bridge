@@ -120,9 +120,106 @@ Add entries to `missions.json` following the existing format. Available step act
 | `set_property` | Write a node property | 2 |
 | `call_method` | Call a node method | 2 |
 
+## Visual Regression Workflow
+
+GRB provides a "baseline + compare" visual regression workflow using three mission step types:
+
+### 1. Save a Reference Screenshot
+
+Use `save_reference` to capture a baseline screenshot and save it to `missions/references/`:
+
+```json
+{"action": "save_reference", "label": "title_screen_ref"}
+```
+
+Run your mission with `--capture-refs` on the first run to populate baselines:
+```bash
+node run_mission.mjs --mission my_mission --exe godot --project . --capture-refs
+```
+
+### 2. Assert Against a Reference
+
+Use `assert_screen` to compare the current screen against a saved reference:
+
+```json
+{"action": "assert_screen", "reference": "title_screen_ref", "issue_title": "Title screen changed", "severity": "Major"}
+```
+
+This uses the perceptual diff engine (`perceptual_diff.mjs`) with configurable thresholds.
+
+### 3. Compare Two Live Screenshots
+
+Use `screenshot_diff` to compare two screenshots taken during the same run:
+
+```json
+{"action": "screenshot", "label": "before"},
+{"action": "wait", "ms": 1000},
+{"action": "screenshot", "label": "after"},
+{"action": "screenshot_diff", "a": "before", "b": "after", "issue_title": "No visual change", "severity": "Minor"}
+```
+
+### Per-Step Thresholds
+
+Override default diff sensitivity per step:
+
+```json
+{"action": "screenshot_diff", "a": "a", "b": "b", "block_thresh": 5, "change_thresh": 0.02, "issue_title": "..."}
+```
+
+- `block_thresh` (0-255): per-block channel diff threshold (default: 3)
+- `change_thresh` (0.0-1.0): fraction of blocks that must differ (default: 0.01)
+
+### Example Mission
+
+```json
+{
+  "id": "visual_regression_example",
+  "name": "Visual Regression Example",
+  "goal": "Demonstrate baseline capture and comparison",
+  "tier_required": 0,
+  "steps": [
+    {"action": "screenshot", "label": "boot_screen"},
+    {"action": "save_reference", "label": "boot_baseline"},
+    {"action": "wait", "ms": 2000},
+    {"action": "assert_screen", "reference": "boot_baseline", "issue_title": "Boot screen changed from baseline", "severity": "Major"},
+    {"action": "runtime_info"}
+  ]
+}
+```
+
+First run: `--capture-refs` saves the baseline. Subsequent runs: `assert_screen` compares against it.
+
 ## Requirements
 
 - **Godot Runtime Bridge addon** installed in your project
 - **Node.js** 18+
 - The game must be launchable via console Godot exe
 - Missions use Tier 0-1 by default (no state manipulation)
+
+## GUT (Godot Unit Test) Integration
+
+GRB missions can work alongside GUT for unit/integration tests. While GRB handles runtime QA (screenshots, input, state verification), GUT handles GDScript unit tests.
+
+### Running GUT Tests via GRB
+
+If your project uses [GUT](https://github.com/bitwes/Gut), you can run GUT tests as part of your GRB workflow:
+
+```bash
+# Run GUT tests headlessly (Godot built-in)
+godot --path <project> --headless -s addons/gut/gut_cmdln.gd
+
+# Run GRB missions after GUT passes
+node run_mission.mjs --mission starters --exe godot --project <project>
+```
+
+### CI Pipeline Example
+
+```bash
+# Step 1: Unit tests
+godot --path . --headless -s addons/gut/gut_cmdln.gd || exit 1
+
+# Step 2: Runtime QA missions
+node missions/run_mission.mjs --mission starters --exe godot --project . || exit 1
+```
+
+GUT handles assertions about code correctness; GRB handles assertions about visual output, input response, and runtime behavior.
