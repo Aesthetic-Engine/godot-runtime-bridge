@@ -308,7 +308,7 @@ func _load_missions() -> void:
 
 
 func _build_mission_prompt(id_val: String, goal_val: String) -> String:
-	var base := "Run the '%s' mission against my game using GRB. %s. Launch the game via grb_launch, run the mission steps, take screenshots to verify, and report what you find." % [id_val, goal_val]
+	var base := "Using the installed MCP server godot-runtime-bridge to interact with Godot, run the '%s' mission against my game. %s. Launch the game via grb_launch, run the mission steps, take screenshots to verify, and report what you find." % [id_val, goal_val]
 	if _autofix_toggle.button_pressed:
 		return base + " Fix any bugs."
 	return base + " Do NOT fix anything. Produce a full report of all bugs found as a .md file in the project root and tell me where it is located."
@@ -318,7 +318,7 @@ func _build_all_missions_prompt() -> String:
 	var ids: PackedStringArray = []
 	for m in _mission_data:
 		ids.append(str(m.get("id", "")))
-	var base := "Run ALL of the following GRB missions against my game, one by one. For each mission: launch the game via grb_launch, execute the mission steps, take screenshots to verify, report issues."
+	var base := "Using the installed MCP server godot-runtime-bridge to interact with Godot, run ALL of the following missions against my game, one by one. For each mission: launch the game via grb_launch, execute the mission steps, take screenshots to verify, report issues."
 	if _autofix_toggle.button_pressed:
 		base += " Fix any bugs you find along the way."
 	else:
