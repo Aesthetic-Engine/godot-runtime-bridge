@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.3 — 2026-03-01
+
+### Fixed
+- **stderr buffer overflow crash** — `stderrBuf` grew unboundedly during long Godot sessions, eventually hitting Node.js's max string length (~512MB) and crashing with `RangeError: Invalid string length`. Buffer is now capped at 10KB.
+
+### Changed
+- **Version banner** updated from v1.0.1 to match actual version.
+- **Version bumped** to 1.0.3 across `plugin.cfg`, `package.json`, banner, and CHANGELOG.
+
 ## 1.0.2 — 2026-03-01
 
 ### Fixed
