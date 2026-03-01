@@ -3,16 +3,13 @@ extends VBoxContainer
 
 const _Commands := preload("res://addons/godot-runtime-bridge/runtime_bridge/Commands.gd")
 
-const VERSION := "1.0.0"
-
-const SCREENSHOTS_DIR := "res://debug/screenshots"
+const VERSION := "1.0.1"
 
 const GRB_TESTING_RULE := """When testing with GRB:
 - After any visual change, take a screenshot (grb_screenshot) and verify the result before reporting done.
 - If a fix fails 3 times in a row, stop and ask the user for guidance instead of retrying."""
 
 var _content: VBoxContainer
-var _clear_btn: Button
 
 # Mission prompt buttons
 var _mission_section: VBoxContainer
@@ -168,33 +165,30 @@ func _build_agent_settings() -> void:
 
 	_content.add_child(rule_row)
 
-	var clear_row := HBoxContainer.new()
-	_clear_btn = Button.new()
-	_clear_btn.text = "Clear Screenshots"
-	_clear_btn.tooltip_text = "Delete all screenshot files from debug/screenshots/"
-	_clear_btn.pressed.connect(_on_clear_screenshots)
-	clear_row.add_child(_clear_btn)
-	_content.add_child(clear_row)
+	var ss_label := Label.new()
+	ss_label.text = "Screenshots saved to: debug/screenshots/"
+	ss_label.add_theme_font_size_override("font_size", 11)
+	ss_label.add_theme_color_override("font_color", Color(0.65, 0.65, 0.65))
+	_content.add_child(ss_label)
+
+	var open_btn := Button.new()
+	open_btn.text = "Open Screenshot Folder"
+	open_btn.tooltip_text = "Open debug/screenshots/ in your file manager"
+	open_btn.pressed.connect(_on_open_screenshots_folder)
+	_content.add_child(open_btn)
 
 
-func _on_clear_screenshots() -> void:
-	var dir := DirAccess.open(SCREENSHOTS_DIR)
-	if dir == null:
-		return
-	var count := 0
-	dir.list_dir_begin()
-	var fname := dir.get_next()
-	while fname != "":
-		if not dir.current_is_dir() and fname.ends_with(".png"):
-			dir.remove(fname)
-			count += 1
-		fname = dir.get_next()
-	dir.list_dir_end()
-	_clear_btn.text = "Cleared %d!" % count
-	get_tree().create_timer(1.5).timeout.connect(func() -> void:
-		if is_instance_valid(_clear_btn):
-			_clear_btn.text = "Clear Screenshots"
-	)
+func _on_open_screenshots_folder() -> void:
+	var ss_dir := "res://debug/screenshots"
+	var abs_path := ProjectSettings.globalize_path(ss_dir)
+	if not DirAccess.dir_exists_absolute(ss_dir):
+		DirAccess.make_dir_recursive_absolute(ss_dir)
+	var gdignore_path := ss_dir.path_join(".gdignore")
+	if not FileAccess.file_exists(gdignore_path):
+		var f := FileAccess.open(gdignore_path, FileAccess.WRITE)
+		if f:
+			f.close()
+	OS.shell_open(abs_path)
 
 
 # ── Mission Dashboard ──
@@ -308,7 +302,7 @@ func _load_missions() -> void:
 
 
 func _build_mission_prompt(id_val: String, goal_val: String) -> String:
-	var base := "Using the installed MCP server godot-runtime-bridge to interact with Godot, run the '%s' mission against my game. %s. Launch the game via grb_launch, run the mission steps, take screenshots to verify, and report what you find." % [id_val, goal_val]
+	var base := "Using the installed MCP server godot-runtime-bridge to interact with Godot, run the '%s' mission against my game. %s. Run the GRB verification loop after each step." % [id_val, goal_val]
 	if _autofix_toggle.button_pressed:
 		return base + " Fix any bugs."
 	return base + " Do NOT fix anything. Produce a full report of all bugs found as a .md file in the project root and tell me where it is located."
@@ -318,7 +312,7 @@ func _build_all_missions_prompt() -> String:
 	var ids: PackedStringArray = []
 	for m in _mission_data:
 		ids.append(str(m.get("id", "")))
-	var base := "Using the installed MCP server godot-runtime-bridge to interact with Godot, run ALL of the following missions against my game, one by one. For each mission: launch the game via grb_launch, execute the mission steps, take screenshots to verify, report issues."
+	var base := "Using the installed MCP server godot-runtime-bridge to interact with Godot, run ALL of the following missions against my game, one by one. For each mission: run the GRB verification loop after each step."
 	if _autofix_toggle.button_pressed:
 		base += " Fix any bugs you find along the way."
 	else:

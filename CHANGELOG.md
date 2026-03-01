@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.1 — 2026-02-28
+
+### Added
+- **Screenshot saving to disk** — `grb_screenshot` now saves each captured PNG to `<project>/debug/screenshots/` with an ISO timestamp filename. The directory is created automatically with a `.gdignore` file to prevent Godot from importing screenshot PNGs. This completes the "Clear Screenshots" button in the EditorDock, which already pointed at this directory but had nothing to clear.
+- **Auto-generated Cursor rules** — the editor plugin writes `.cursor/rules/grb.mdc` on first load, giving AI agents the GRB verification loop, tool inventory, and anti-drift directives out of the box.
+
+### Changed
+- **Mission prompt wording** — EditorDock prompts now reference "Run the GRB verification loop" instead of verbose launch/screenshot instructions, matching the auto-generated rule.
+- **EditorDock screenshots** — shows `debug/screenshots/` path with "Open Screenshot Folder" button; removed Clear Screenshots button.
+- **Version bumped** to 1.0.1 across `plugin.cfg`, `package.json`, and MCP server banner.
+
 ## 1.0.0 — 2026-02-25
 
 **First stable release.** GRB is production-ready for agentic game development and runtime automation. AI agents can launch your game, observe it, control it, run QA missions, and iterate on fixes — all without opening the editor.

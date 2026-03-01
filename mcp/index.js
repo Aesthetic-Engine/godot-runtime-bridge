@@ -27,6 +27,7 @@ const COMMAND_TIMEOUT_MS = 15000;
 let grbPort = null;
 let grbToken = null;
 let grbProcess = null;
+let grbProjectPath = null;
 let requestCounter = 0;
 
 function nextId() {
@@ -493,6 +494,7 @@ async function handleTool(name, args) {
       }
 
       const projectPath = args.project_path;
+      grbProjectPath = projectPath;
       const godotExe = args.godot_exe || process.env.GODOT_PATH || "godot";
       const tier = args.tier != null ? String(args.tier) : "1";
       const token = crypto.randomBytes(24).toString("hex");
@@ -620,6 +622,17 @@ async function handleTool(name, args) {
     case "grb_screenshot": {
       const r = await sendCommand("screenshot");
       if (!r.ok) return errResult(r);
+      if (grbProjectPath) {
+        const dir = path.join(grbProjectPath, "debug", "screenshots");
+        fs.mkdirSync(dir, { recursive: true });
+        const gdignore = path.join(dir, ".gdignore");
+        if (!fs.existsSync(gdignore)) fs.writeFileSync(gdignore, "");
+        const ts = new Date().toISOString().replace(/[:.]/g, "-");
+        fs.writeFileSync(
+          path.join(dir, `screenshot-${ts}.png`),
+          Buffer.from(r.png_base64, "base64")
+        );
+      }
       return {
         content: [
           { type: "text", text: `Viewport ${r.width}x${r.height}` },
@@ -915,7 +928,7 @@ function errResult(r) {
 // ── MCP server setup ──
 
 const mcpServer = new Server(
-  { name: "godot-runtime-bridge", version: "1.0.0" },
+  { name: "godot-runtime-bridge", version: "1.0.1" },
   { capabilities: { tools: {} } }
 );
 
@@ -941,7 +954,7 @@ await mcpServer.connect(transport);
 // Startup notice — visible in Cursor's MCP output panel (Settings → Tools & MCP → godot-runtime-bridge → Logs)
 // If GRB tools are not appearing in Cursor, the most common cause is the server not being enabled.
 process.stderr.write(
-  "[GRB] MCP server started (godot-runtime-bridge v1.0.0)\n" +
+  "[GRB] MCP server started (godot-runtime-bridge v1.0.1)\n" +
   "[GRB] If tools are not appearing in Cursor:\n" +
   "[GRB]   1. Open Cursor → Settings → Tools & MCP\n" +
   "[GRB]   2. Find 'godot-runtime-bridge' under Installed MCP Servers\n" +
