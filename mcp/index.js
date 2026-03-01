@@ -111,7 +111,7 @@ function sendPing() {
   });
 }
 
-function waitForReady(proc) {
+function waitForReady(proc, getStderr) {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + LAUNCH_TIMEOUT_MS;
     let stdoutBuf = "";
@@ -137,7 +137,11 @@ function waitForReady(proc) {
     });
 
     proc.on("exit", (code) => {
-      if (!grbPort) reject(new Error("Godot exited (code " + code + ") before GDRB_READY"));
+      if (!grbPort) {
+        const stderr = getStderr ? getStderr() : "";
+        const detail = stderr.trim() ? "\nStderr:\n" + stderr.trim() : "";
+        reject(new Error("Godot exited (code " + code + ") before GDRB_READY" + detail));
+      }
     });
 
     setTimeout(() => {
@@ -574,7 +578,8 @@ async function handleTool(name, args) {
       }
 
       grbProcess = child;
-      child.stderr.on("data", () => {});
+      let stderrBuf = "";
+      child.stderr.on("data", (chunk) => { stderrBuf += chunk.toString(); });
 
       // Clean up override.cfg when Godot exits
       child.on("exit", () => {
@@ -585,7 +590,7 @@ async function handleTool(name, args) {
         }
       });
 
-      const ready = await waitForReady(child);
+      const ready = await waitForReady(child, () => stderrBuf);
 
       return {
         content: [

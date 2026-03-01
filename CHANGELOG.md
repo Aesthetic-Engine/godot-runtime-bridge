@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.2 — 2026-03-01
+
+### Fixed
+- **stderr capture in `grb_launch`** — Godot's stderr was silently discarded (`child.stderr.on("data", () => {})`), hiding GDScript parse errors that caused blank screens with zero diagnostics. stderr is now buffered and included in the error message when Godot exits before the bridge is ready.
+
+### Changed
+- **EditorDock layout fix** — "Fix bugs automatically" toggle moved from inside the mission list section to the heading row, preventing it from rendering below the mission grid where it could be missed.
+- **Version bumped** to 1.0.2 across `plugin.cfg`, `package.json`, and CHANGELOG.
+
 ## 1.0.1 — 2026-02-28
 
 ### Added

@@ -214,10 +214,22 @@ func _resolve_missions_dir() -> String:
 func _build_mission_dashboard() -> void:
 	_content.add_child(HSeparator.new())
 
+	var heading_row := HBoxContainer.new()
+	heading_row.add_theme_constant_override("separation", 8)
+
 	var heading := Label.new()
 	heading.text = "Missions — click to copy prompt, paste into Cursor"
 	heading.add_theme_font_size_override("font_size", 13)
-	_content.add_child(heading)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading_row.add_child(heading)
+
+	_autofix_toggle = CheckButton.new()
+	_autofix_toggle.text = "Fix bugs automatically"
+	_autofix_toggle.button_pressed = false
+	_autofix_toggle.tooltip_text = "ON: Cursor fixes bugs it finds. OFF: Cursor produces a report only."
+	heading_row.add_child(_autofix_toggle)
+
+	_content.add_child(heading_row)
 
 	var desc := Label.new()
 	desc.text = "Click to copy prompt for Cursor, then paste into Cursor Agent chat."
@@ -242,12 +254,6 @@ func path_join(a: String, b: String, c: String = "") -> String:
 
 
 func _load_missions() -> void:
-	_autofix_toggle = CheckButton.new()
-	_autofix_toggle.text = "Fix bugs automatically"
-	_autofix_toggle.button_pressed = false
-	_autofix_toggle.tooltip_text = "ON: Cursor fixes bugs it finds. OFF: Cursor produces a report only."
-	_mission_section.add_child(_autofix_toggle)
-
 	var missions_dir := _resolve_missions_dir()
 	if missions_dir.is_empty():
 		var lbl := Label.new()
