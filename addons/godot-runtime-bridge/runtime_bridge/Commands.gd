@@ -35,8 +35,8 @@ const COMMAND_TIERS: Dictionary = {
 	"gamepad":           Tier.INPUT,
 }
 
-## Commands allowed without token authentication.
-const TOKEN_EXEMPT: Array[String] = ["ping", "auth_info"]
+## Commands allowed without token authentication (empty = all require token).
+const TOKEN_EXEMPT: Array[String] = []
 
 
 static func get_tier(cmd: String) -> int:

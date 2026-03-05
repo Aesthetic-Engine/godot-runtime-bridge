@@ -44,6 +44,17 @@ The server requires one of these Godot feature tags to be present at runtime:
 4. Export with this preset for internal testing
 5. Your retail preset (without `grb`) will have no bridge — guaranteed
 
+## Additional Protections (v1.0.4+)
+
+| Protection | Detail |
+|------------|--------|
+| **call_method denylist** | Blocks dangerous method names (execute, load, save, shell, create_process, etc.) to prevent arbitrary code execution via node proxies |
+| **set_property denylist** | Blocks dangerous properties (e.g. `script`) to prevent script injection |
+| **eval pattern filter** | Rejects expressions containing `OS.`, `Engine.`, `FileAccess.`, `load(`, `save(`, etc. |
+| **Read buffer limits** | Total buffer capped at 1 MB, max line 64 KB to prevent memory exhaustion |
+| **Connection hijacking prevention** | Only one client at a time; new connections are rejected when a client is already connected |
+| **Screenshot rate limit** | Max 10 screenshots per second to prevent DoS via screenshot spam |
+
 ## Capability Tiers
 
 Commands are grouped by risk level. The server rejects any command above the session tier.
@@ -60,7 +71,7 @@ Commands are grouped by risk level. The server rejects any command above the ses
 1. The MCP launcher generates a random token and passes it to Godot via `GDRB_TOKEN` environment variable.
 2. Godot prints `GDRB_READY:{"port":XXXXX,"token":"..."}` to stdout on startup.
 3. The launcher parses this line to discover the port and confirm the token.
-4. Every command (except `ping` and `auth_info`) must include the token in the request JSON.
+4. Every command must include the token in the request JSON (including `ping` and `auth_info`).
 5. Requests with missing or invalid tokens are rejected with `bad_token` error.
 
 ## The Two-Key Rule for eval

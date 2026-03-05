@@ -965,7 +965,7 @@ await mcpServer.connect(transport);
 // Startup notice — visible in Cursor's MCP output panel (Settings → Tools & MCP → godot-runtime-bridge → Logs)
 // If GRB tools are not appearing in Cursor, the most common cause is the server not being enabled.
 process.stderr.write(
-  "[GRB] MCP server started (godot-runtime-bridge v1.0.3)\n" +
+  "[GRB] MCP server started (godot-runtime-bridge v1.0.4)\n" +
   "[GRB] If tools are not appearing in Cursor:\n" +
   "[GRB]   1. Open Cursor → Settings → Tools & MCP\n" +
   "[GRB]   2. Find 'godot-runtime-bridge' under Installed MCP Servers\n" +

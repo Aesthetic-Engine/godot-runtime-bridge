@@ -4,6 +4,35 @@ const _Protocol := preload("res://addons/godot-runtime-bridge/runtime_bridge/Pro
 const _Commands := preload("res://addons/godot-runtime-bridge/runtime_bridge/Commands.gd")
 const _GRBLoggerClass := preload("res://addons/godot-runtime-bridge/runtime_bridge/GRBLogger.gd")
 
+## Security: blocked method names for call_method (prevents OS.execute, load, etc.)
+const _BLOCKED_METHODS: Array[String] = [
+	"execute", "create_process", "shell", "spawn", "create_thread",
+	"load", "load_file", "load_buffer", "load_script", "load_extensions",
+	"save", "save_file", "store_buffer", "open", "open_encrypted",
+	"write", "write_buffer", "write_file",
+	"eval", "compile", "compile_file", "compile_expression",
+	"system", "exec", "request_permissions",
+]
+
+## Security: blocked property names for set_property (prevents script injection)
+const _BLOCKED_PROPERTIES: Array[String] = ["script"]
+
+## Security: eval expression patterns that indicate dangerous access
+const _EVAL_FORBIDDEN_PATTERNS: Array[String] = [
+	"OS.", "Engine.", "FileAccess.", "DirAccess.", "Directory.",
+	"create_process", "execute", "shell", "load(", "save(", "open(",
+	"write_file", "load_file", "save_file", "store_buffer",
+]
+
+## Read buffer limits
+const _READ_BUFFER_MAX: int = 1 << 20  ## 1 MB total
+const _READ_LINE_MAX: int = 65536      ## 64 KB per line
+
+## Screenshot rate limit
+const _SCREENSHOT_RATE_MAX: int = 10
+const _SCREENSHOT_RATE_WINDOW_MS: int = 1000
+var _screenshot_timestamps: Array = []
+
 ## Godot Runtime Bridge — TCP debug server for automation and AI-driven testing.
 ##
 ## Activation requires BOTH:
@@ -22,6 +51,15 @@ const _GRBLoggerClass := preload("res://addons/godot-runtime-bridge/runtime_brid
 ##   GDRB_FORCE_WINDOWED — Set to "1" to enforce windowed mode for ~120 frames at startup.
 ##                         Uses non-screen-sized dimensions to work around Godot issue #80595.
 ##   GODOT_DEBUG_SERVER   — Legacy: set to "1" to enable (GDRB_TOKEN preferred)
+##
+## Security (v1.0.4+):
+##   call_method blocks dangerous method names (execute, load, save, etc.)
+##   set_property blocks dangerous property names (script, etc.)
+##   eval rejects expressions containing OS/Engine/FileAccess patterns
+##   Read buffer capped at 1MB, max line 64KB
+##   Only one client connection at a time; new connections rejected when busy
+##   Screenshot rate limited (max 10/sec)
+##   ping and auth_info require token
 ##
 ## Threading model:
 ##   Background thread handles TCP accept/read/write.
@@ -201,12 +239,14 @@ func _io_thread_func() -> void:
 	var read_buffer: String = ""
 
 	while not _should_stop:
-		# Accept new connections (drop stale)
+		# Accept new connections — reject if already connected (prevents hijacking)
 		if server.is_connection_available():
-			if stream != null:
-				stream.disconnect_from_host()
+			var incoming: StreamPeerTCP = server.take_connection()
+			if stream != null and stream.get_status() == StreamPeerTCP.STATUS_CONNECTED:
+				incoming.disconnect_from_host()
+			else:
+				stream = incoming
 				read_buffer = ""
-			stream = server.take_connection()
 
 		# Poll existing connection
 		if stream != null:
@@ -216,26 +256,35 @@ func _io_thread_func() -> void:
 				stream = null
 				read_buffer = ""
 
-		# Read incoming data
+		# Read incoming data (capped to prevent memory exhaustion)
 		if stream != null:
 			var available: int = stream.get_available_bytes()
 			if available > 0:
 				var bytes := stream.get_data(available)
 				if bytes[0] == OK:
 					read_buffer += bytes[1].get_string_from_utf8()
-					# Parse complete lines into requests
-					while true:
-						var idx: int = read_buffer.find("\n")
-						if idx < 0:
-							break
-						var line: String = read_buffer.substr(0, idx)
-						read_buffer = read_buffer.substr(idx + 1)
-						if line.strip_edges() == "":
-							continue
-						var parsed := _Protocol.parse_request(line)
-						_incoming_mutex.lock()
-						_incoming_queue.append(parsed)
-						_incoming_mutex.unlock()
+					if read_buffer.length() > _READ_BUFFER_MAX:
+						stream.disconnect_from_host()
+						stream = null
+						read_buffer = ""
+					else:
+						while true:
+							var idx: int = read_buffer.find("\n")
+							if idx < 0:
+								break
+							var line: String = read_buffer.substr(0, idx)
+							read_buffer = read_buffer.substr(idx + 1)
+							if line.length() > _READ_LINE_MAX:
+								stream.disconnect_from_host()
+								stream = null
+								read_buffer = ""
+								break
+							if line.strip_edges() == "":
+								continue
+							var parsed := _Protocol.parse_request(line)
+							_incoming_mutex.lock()
+							_incoming_queue.append(parsed)
+							_incoming_mutex.unlock()
 				else:
 					stream.disconnect_from_host()
 					stream = null
@@ -410,6 +459,16 @@ func _execute(cmd: String, args: Dictionary, req_id: String) -> Dictionary:
 # ── Tier 0: Observe ──
 
 func _cmd_screenshot(req_id: String) -> Dictionary:
+	var now_ms: int = Time.get_ticks_msec()
+	var cutoff: int = now_ms - _SCREENSHOT_RATE_WINDOW_MS
+	var kept: Array = []
+	for t in _screenshot_timestamps:
+		if t > cutoff:
+			kept.append(t)
+	_screenshot_timestamps = kept
+	if _screenshot_timestamps.size() >= _SCREENSHOT_RATE_MAX:
+		return _Protocol.error(req_id, "rate_limit", "Screenshot rate limit exceeded (max %d per second)" % _SCREENSHOT_RATE_MAX)
+	_screenshot_timestamps.append(now_ms)
 	var viewport: Viewport = get_tree().root.get_viewport()
 	if viewport == null:
 		return _Protocol.error(req_id, "internal_error", "No viewport")
@@ -760,6 +819,10 @@ func _cmd_set_property(req_id: String, args: Dictionary) -> Dictionary:
 	var value: Variant = args.get("value")
 	if node_path == "" or property == "":
 		return _Protocol.error(req_id, "bad_args", "Requires 'node', 'property', and 'value'")
+	var prop_lower: String = property.to_lower()
+	for blocked: String in _BLOCKED_PROPERTIES:
+		if prop_lower == blocked.to_lower():
+			return _Protocol.error(req_id, "forbidden", "Property not allowed: " + property)
 	var node: Node = get_tree().root.get_node_or_null(NodePath(node_path))
 	if node == null:
 		return _Protocol.error(req_id, "not_found", "Node not found: " + node_path)
@@ -776,6 +839,10 @@ func _cmd_call_method(req_id: String, args: Dictionary) -> Dictionary:
 		method_args = raw_args
 	if node_path == "" or method_name == "":
 		return _Protocol.error(req_id, "bad_args", "Requires 'node' and 'method'")
+	var method_lower: String = method_name.to_lower()
+	for blocked: String in _BLOCKED_METHODS:
+		if method_lower == blocked.to_lower():
+			return _Protocol.error(req_id, "forbidden", "Method not allowed: " + method_name)
 	var node: Node = get_tree().root.get_node_or_null(NodePath(node_path))
 	if node == null:
 		return _Protocol.error(req_id, "not_found", "Node not found: " + node_path)
@@ -917,6 +984,10 @@ func _cmd_grb_performance(req_id: String) -> Dictionary:
 func _cmd_eval(req_id: String, expr_str: String) -> Dictionary:
 	if expr_str == "":
 		return _Protocol.error(req_id, "bad_args", "Missing 'expr'")
+	var expr_lower: String = expr_str.to_lower()
+	for pat: String in _EVAL_FORBIDDEN_PATTERNS:
+		if expr_lower.contains(pat.to_lower()):
+			return _Protocol.error(req_id, "forbidden", "Expression contains disallowed pattern: " + pat)
 	var expr := Expression.new()
 	var err := expr.parse(expr_str)
 	if err != OK:

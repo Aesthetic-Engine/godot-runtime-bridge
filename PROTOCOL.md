@@ -14,7 +14,7 @@ Newline-delimited JSON over TCP. One request per line, one response per line.
 | `proto` | string | Optional | Protocol version (`grb/1`). Omit to skip version check |
 | `cmd` | string | **Required** | Command name |
 | `args` | object | Optional | Command-specific arguments (defaults to `{}`) |
-| `token` | string | Conditional | Auth token. Required for all commands except `ping` and `auth_info` |
+| `token` | string | **Required** | Auth token. Required for all commands. |
 
 ## Response Format
 
@@ -43,6 +43,8 @@ Newline-delimited JSON over TCP. One request per line, one response per line.
 | `bad_args` | Missing or invalid command arguments |
 | `not_found` | Node, property, or method not found |
 | `internal_error` | Unexpected server-side error |
+| `forbidden` | Command blocked by security policy (method/property/expr allowlist) |
+| `rate_limit` | Request rate exceeded (e.g. screenshot limit) |
 
 ## Startup
 
@@ -59,10 +61,10 @@ The MCP launcher parses this line to discover the port and token.
 ### Tier 0 — Observe
 
 #### ping
-No args. Returns `{"pong": true}`. Does not require token.
+No args. Returns `{"pong": true}`. Requires token.
 
 #### auth_info
-No args. Returns session info. Does not require token.
+No args. Returns session info. Requires token.
 ```json
 {"proto":"grb/1","tier":1,"danger_enabled":false}
 ```

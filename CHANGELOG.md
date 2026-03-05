@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.4 — 2026-03-01
+
+### Security
+
+- **call_method denylist** — Block dangerous method names (execute, load, save, shell, create_process, etc.) to prevent arbitrary code execution via node proxies. Returns `forbidden` for blocked methods.
+- **set_property denylist** — Block dangerous properties (`script`) to prevent script injection.
+- **eval pattern filter** — Reject expressions containing `OS.`, `Engine.`, `FileAccess.`, `load(`, `save(`, etc. Returns `forbidden` for disallowed patterns.
+- **Read buffer limits** — Cap total read buffer at 1 MB and max line length at 64 KB to prevent memory exhaustion. Disconnects client on violation.
+- **Connection hijacking prevention** — Reject new connections when a client is already connected; no longer drop the existing client.
+- **Screenshot rate limit** — Max 10 screenshots per second to prevent DoS.
+- **Token required for ping/auth_info** — All commands now require valid token; removed token exemption for ping and auth_info.
+
+### Changed
+
+- Version bumped to 1.0.4 across plugin.cfg, package.json, and MCP banner.
+- PROTOCOL.md, SECURITY.md updated to document new protections and error codes.
+
 ## 1.0.3 — 2026-03-01
 
 ### Fixed
