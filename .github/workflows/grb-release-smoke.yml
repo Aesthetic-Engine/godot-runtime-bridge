@@ -1,0 +1,85 @@
+name: GRB Release Smoke
+
+on:
+  push:
+    paths:
+      - ".github/workflows/grb-release-smoke.yml"
+      - "addons/godot-runtime-bridge/**"
+      - "mcp/**"
+      - "missions/**"
+      - "README.md"
+      - "CHANGELOG.md"
+  pull_request:
+    paths:
+      - ".github/workflows/grb-release-smoke.yml"
+      - "addons/godot-runtime-bridge/**"
+      - "mcp/**"
+      - "missions/**"
+      - "README.md"
+      - "CHANGELOG.md"
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb unzip
+
+      - name: Install MCP dependencies
+        working-directory: mcp
+        run: npm ci
+
+      - name: Download Godot
+        run: |
+          mkdir -p "$RUNNER_TEMP/godot"
+          curl -L "https://downloads.godotengine.org/?version=4.6&flavor=stable&slug=linux.x86_64.zip&platform=linux.64" -o "$RUNNER_TEMP/godot/godot.zip"
+          unzip -q "$RUNNER_TEMP/godot/godot.zip" -d "$RUNNER_TEMP/godot"
+          GODOT_BIN=$(ls "$RUNNER_TEMP/godot"/Godot_*_linux.x86_64 | head -n 1)
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+
+      - name: Create smoke project
+        run: |
+          mkdir -p "$RUNNER_TEMP/grb-smoke-project/addons"
+          cp -R "$GITHUB_WORKSPACE/addons/godot-runtime-bridge" "$RUNNER_TEMP/grb-smoke-project/addons/"
+          cat > "$RUNNER_TEMP/grb-smoke-project/project.godot" <<'EOF'
+          config_version=5
+
+          [application]
+
+          config/name="GRB Smoke Project"
+          run/main_scene="res://Main.tscn"
+
+          [autoload]
+
+          GRBServer="*res://addons/godot-runtime-bridge/runtime_bridge/DebugServer.gd"
+          EOF
+          cat > "$RUNNER_TEMP/grb-smoke-project/Main.tscn" <<'EOF'
+          [gd_scene format=3]
+
+          [node name="Main" type="Node"]
+          EOF
+
+      - name: Run GRB release verification
+        working-directory: mcp
+        run: xvfb-run -a npm run verify:release -- --godot-exe "$GODOT_BIN" --project "$RUNNER_TEMP/grb-smoke-project"
+
+      - name: Upload smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grb-release-smoke
+          path: mcp/reports/release-smoke

@@ -140,7 +140,6 @@ func _ready() -> void:
 		var h_env := OS.get_environment("GDRB_WINDOW_HEIGHT")
 		if w_env != "" and h_env != "":
 			_force_windowed_size = Vector2i(int(w_env), int(h_env))
-		push_warning("GRB: FORCE_WINDOWED active. target=%dx%d, DisplayServer mode=%d" % [_force_windowed_size.x, _force_windowed_size.y, DisplayServer.window_get_mode()])
 		_enforce_windowed()
 		_force_windowed_frames = 10
 
@@ -186,7 +185,6 @@ func _restore_input_isolation() -> void:
 func _enforce_windowed() -> void:
 	var mode := DisplayServer.window_get_mode()
 	if mode != DisplayServer.WINDOW_MODE_WINDOWED:
-		push_warning("GRB: enforcing windowed (current mode=%d, frame=%d)" % [mode, Engine.get_process_frames()])
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 	var cur_size := DisplayServer.window_get_size()
 	if cur_size != _force_windowed_size:
@@ -239,6 +237,14 @@ func _io_thread_func() -> void:
 	var read_buffer: String = ""
 
 	while not _should_stop:
+		# Poll existing connection
+		if stream != null:
+			stream.poll()
+			if stream.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+				stream.disconnect_from_host()
+				stream = null
+				read_buffer = ""
+
 		# Accept new connections — reject if already connected (prevents hijacking)
 		if server.is_connection_available():
 			var incoming: StreamPeerTCP = server.take_connection()
@@ -246,14 +252,6 @@ func _io_thread_func() -> void:
 				incoming.disconnect_from_host()
 			else:
 				stream = incoming
-				read_buffer = ""
-
-		# Poll existing connection
-		if stream != null:
-			stream.poll()
-			if stream.get_status() != StreamPeerTCP.STATUS_CONNECTED:
-				stream.disconnect_from_host()
-				stream = null
 				read_buffer = ""
 
 		# Read incoming data (capped to prevent memory exhaustion)

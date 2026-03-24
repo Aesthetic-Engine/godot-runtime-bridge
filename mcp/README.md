@@ -99,12 +99,26 @@ Once configured, your AI assistant can use these tools:
 |------|-------------|
 | `grb_set_property` | Set a property on a node |
 | `grb_call_method` | Call a method on a node |
+| `grb_quit` / `grb_reset` | Stop or cleanly relaunch the game |
+| `grb_run_custom_command` | Call project-registered hooks via `GRBCommands` |
 
 ### Danger (Tier 3)
 
 | Tool | Description |
 |------|-------------|
 | `grb_eval` | Execute a GDScript expression (requires `enable_danger: true` on launch) |
+
+## Release Verification
+
+From `mcp/`:
+
+```bash
+npm run verify:versions
+npm run verify:grb -- --godot-exe "/path/to/godot" --project "/path/to/project"
+npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"
+```
+
+`verify:release` runs the version sync gate and a live GRB smoke test in sequence.
 
 ## Example Conversation
 

@@ -27,15 +27,21 @@ You are forbidden from assuming your code works without verification. After impl
 ## 3. Available MCP Tools
 You have these tools via the godot-runtime-bridge MCP server:
 - `grb_launch` — start the game
-- `grb_stop` — stop the game
+- `grb_connect` — connect to an already-running GRB session
 - `grb_screenshot` — capture viewport screenshot
 - `grb_scene_tree` — inspect node hierarchy
 - `grb_call_method` — call methods on nodes
 - `grb_get_property` / `grb_set_property` — read/write node properties
-- `grb_click` / `grb_key` — simulate input
+- `grb_click` / `grb_key` / `grb_drag` / `grb_scroll` / `grb_gesture` / `grb_gamepad` — simulate input
 - `grb_runtime_info` — get FPS, frame count, engine version
-- `grb_find_nodes` — search for nodes by type
+- `grb_get_errors` — inspect engine/runtime errors
+- `grb_wait_for` — wait for property/state changes
+- `grb_capabilities` — inspect available commands at the current tier
+- `grb_quit` / `grb_reset` — stop or cleanly relaunch the game
+- `grb_audio_state` / `grb_network_state` — inspect runtime subsystems
+- `grb_find_nodes` — search for nodes by name, type, or group
 - `grb_performance` — capture performance metrics
+- `grb_run_custom_command` — call project-registered hooks via `GRBCommands`
 
 ## 4. When the User Says "Run the GRB verification loop"
 This means: launch the game, take a screenshot, verify visually, report what you see. Always do this.
@@ -47,6 +53,7 @@ After launching the game with `grb_launch`, immediately check the console output
 - Do NOT forget you have MCP tools. They are always available.
 - Do NOT skip verification because "the code looks right."
 - Do NOT ask the user where Godot is. Read `.cursor/mcp.json`.
+- Prefer `grb_reset` over ad-hoc relaunch logic when the session looks stale.
 - If a fix fails 3 times, stop and ask the user for guidance.
 """
 
@@ -59,6 +66,7 @@ func _enter_tree() -> void:
 	_dock.name = "GRB"
 	add_control_to_bottom_panel(_dock, "Runtime Bridge")
 	_ensure_cursor_rules()
+	_warn_if_rules_stale()
 
 
 func _exit_tree() -> void:
@@ -80,3 +88,15 @@ func _ensure_cursor_rules() -> void:
 		f.store_string(GRB_RULES_CONTENT)
 		f.close()
 		print("[GRB] Created Cursor rules at %s" % GRB_RULES_PATH)
+
+
+func _warn_if_rules_stale() -> void:
+	if not FileAccess.file_exists(GRB_RULES_PATH):
+		return
+	var f := FileAccess.open(GRB_RULES_PATH, FileAccess.READ)
+	if f == null:
+		return
+	var existing := f.get_as_text()
+	f.close()
+	if existing.contains("grb_stop"):
+		push_warning("[GRB] Existing Cursor rules mention deprecated tool 'grb_stop'. Refresh your GRB rules to match the current MCP toolset.")

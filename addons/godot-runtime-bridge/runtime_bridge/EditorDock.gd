@@ -3,13 +3,29 @@ extends VBoxContainer
 
 const _Commands := preload("res://addons/godot-runtime-bridge/runtime_bridge/Commands.gd")
 
-const VERSION := "1.0.1"
+const VERSION := "1.0.5"
+const SCREENSHOTS_DIR := "res://debug/screenshots"
+const GRB_COMMANDS_AUTOLOAD_PATH := "res://addons/godot-runtime-bridge/runtime_bridge/GRBCommands.gd"
 
 const GRB_TESTING_RULE := """When testing with GRB:
 - After any visual change, take a screenshot (grb_screenshot) and verify the result before reporting done.
+- After launch, check grb_get_errors before continuing.
+- Prefer grb_reset instead of ad-hoc relaunch logic when a session goes stale.
 - If a fix fails 3 times in a row, stop and ask the user for guidance instead of retrying."""
 
+const CUSTOM_COMMAND_SNIPPET := """# Add as an autoload or call from your game's bootstrap.
+func _ready() -> void:
+\tif has_node("/root/GRBCommands"):
+\t\tGRBCommands.register("smoke_test", func() -> Dictionary:
+\t\t\treturn {"ok": true, "scene": get_tree().current_scene.name}
+\t\t)
+"""
+
 var _content: VBoxContainer
+var _clear_btn: Button
+var _runtime_status_label: Label
+var _grb_commands_action_btn: Button
+var _grb_commands_help_label: Label
 
 # Mission prompt buttons
 var _mission_section: VBoxContainer
@@ -34,6 +50,7 @@ func _ready() -> void:
 
 	_build_header()
 	_build_quickstart()
+	_build_runtime_status()
 	_build_agent_settings()
 	_build_mission_dashboard()
 
@@ -124,6 +141,63 @@ func _on_docs_pressed(filename: String) -> void:
 	OS.shell_open(abs_path)
 
 
+func _build_runtime_status() -> void:
+	_content.add_child(HSeparator.new())
+
+	var heading := Label.new()
+	heading.text = "Install and hook status"
+	heading.add_theme_font_size_override("font_size", 13)
+	_content.add_child(heading)
+
+	_runtime_status_label = Label.new()
+	_runtime_status_label.add_theme_font_size_override("font_size", 11)
+	_runtime_status_label.add_theme_color_override("font_color", Color(0.72, 0.72, 0.72))
+	_runtime_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_content.add_child(_runtime_status_label)
+
+	var hook_heading := Label.new()
+	hook_heading.text = "Opt-in custom command hook"
+	hook_heading.add_theme_font_size_override("font_size", 12)
+	_content.add_child(hook_heading)
+
+	_grb_commands_help_label = Label.new()
+	_grb_commands_help_label.add_theme_font_size_override("font_size", 11)
+	_grb_commands_help_label.add_theme_color_override("font_color", Color(0.68, 0.68, 0.68))
+	_grb_commands_help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_content.add_child(_grb_commands_help_label)
+
+	var hook_row := HBoxContainer.new()
+	hook_row.add_theme_constant_override("separation", 6)
+
+	_grb_commands_action_btn = Button.new()
+	_grb_commands_action_btn.pressed.connect(_on_enable_grb_commands_pressed)
+	hook_row.add_child(_grb_commands_action_btn)
+
+	var hook_box := TextEdit.new()
+	hook_box.text = CUSTOM_COMMAND_SNIPPET
+	hook_box.editable = false
+	hook_box.custom_minimum_size = Vector2(0, 84)
+	hook_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hook_box.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	hook_row.add_child(hook_box)
+
+	var copy_hook_btn := Button.new()
+	copy_hook_btn.text = "Copy hook"
+	copy_hook_btn.tooltip_text = "Copy a GRBCommands registration snippet"
+	copy_hook_btn.pressed.connect(func() -> void:
+		DisplayServer.clipboard_set(CUSTOM_COMMAND_SNIPPET)
+		copy_hook_btn.text = "Copied!"
+		get_tree().create_timer(1.5).timeout.connect(func() -> void:
+			if is_instance_valid(copy_hook_btn):
+				copy_hook_btn.text = "Copy hook"
+		)
+	)
+	hook_row.add_child(copy_hook_btn)
+
+	_content.add_child(hook_row)
+	_refresh_runtime_status()
+
+
 func _build_agent_settings() -> void:
 	_content.add_child(HSeparator.new())
 
@@ -165,35 +239,111 @@ func _build_agent_settings() -> void:
 
 	_content.add_child(rule_row)
 
-	var ss_label := Label.new()
-	ss_label.text = "Screenshots saved to: debug/screenshots/"
-	ss_label.add_theme_font_size_override("font_size", 11)
-	ss_label.add_theme_color_override("font_color", Color(0.65, 0.65, 0.65))
-	_content.add_child(ss_label)
+	var clear_row := HBoxContainer.new()
+	clear_row.add_theme_constant_override("separation", 6)
 
 	var open_btn := Button.new()
 	open_btn.text = "Open Screenshot Folder"
 	open_btn.tooltip_text = "Open debug/screenshots/ in your file manager"
 	open_btn.pressed.connect(_on_open_screenshots_folder)
-	_content.add_child(open_btn)
+	clear_row.add_child(open_btn)
+
+	_clear_btn = Button.new()
+	_clear_btn.text = "Clear Screenshots"
+	_clear_btn.tooltip_text = "Delete all screenshot files from debug/screenshots/"
+	_clear_btn.pressed.connect(_on_clear_screenshots)
+	clear_row.add_child(_clear_btn)
+	_content.add_child(clear_row)
 
 
 func _on_open_screenshots_folder() -> void:
-	var ss_dir := "res://debug/screenshots"
-	var abs_path := ProjectSettings.globalize_path(ss_dir)
-	if not DirAccess.dir_exists_absolute(ss_dir):
-		DirAccess.make_dir_recursive_absolute(ss_dir)
-	var gdignore_path := ss_dir.path_join(".gdignore")
+	if not DirAccess.dir_exists_absolute(SCREENSHOTS_DIR):
+		DirAccess.make_dir_recursive_absolute(SCREENSHOTS_DIR)
+	var gdignore_path := SCREENSHOTS_DIR.path_join(".gdignore")
 	if not FileAccess.file_exists(gdignore_path):
 		var f := FileAccess.open(gdignore_path, FileAccess.WRITE)
 		if f:
 			f.close()
-	OS.shell_open(abs_path)
+	OS.shell_open(ProjectSettings.globalize_path(SCREENSHOTS_DIR))
+
+
+func _normalize_autoload_value(value: Variant) -> String:
+	return String(value).trim_prefix("*")
+
+
+func _has_grb_commands_autoload() -> bool:
+	return _normalize_autoload_value(ProjectSettings.get_setting("autoload/GRBCommands", "")) == GRB_COMMANDS_AUTOLOAD_PATH
+
+
+func _refresh_runtime_status() -> void:
+	if _runtime_status_label == null:
+		return
+	var grb_server_status := "managed by plugin"
+	var raw_grb_commands_value := String(ProjectSettings.get_setting("autoload/GRBCommands", ""))
+	var normalized_grb_commands_value := _normalize_autoload_value(raw_grb_commands_value)
+	var grb_commands_status := "missing"
+	if normalized_grb_commands_value == GRB_COMMANDS_AUTOLOAD_PATH:
+		grb_commands_status = "configured"
+	elif not normalized_grb_commands_value.is_empty():
+		grb_commands_status = "custom path: %s" % normalized_grb_commands_value
+	_runtime_status_label.text = "GRBServer autoload: %s\nGRBCommands autoload: %s" % [grb_server_status, grb_commands_status]
+	if _grb_commands_action_btn:
+		var configured := normalized_grb_commands_value == GRB_COMMANDS_AUTOLOAD_PATH
+		var has_custom_path := not normalized_grb_commands_value.is_empty() and not configured
+		if configured:
+			_grb_commands_action_btn.text = "GRBCommands Enabled"
+			_grb_commands_action_btn.disabled = true
+			_grb_commands_action_btn.tooltip_text = "The recommended GRBCommands autoload is already enabled."
+		elif has_custom_path:
+			_grb_commands_action_btn.text = "Custom GRBCommands Configured"
+			_grb_commands_action_btn.disabled = true
+			_grb_commands_action_btn.tooltip_text = "A custom GRBCommands autoload already exists. GRB will use that path."
+		else:
+			_grb_commands_action_btn.text = "Enable GRBCommands"
+			_grb_commands_action_btn.disabled = false
+			_grb_commands_action_btn.tooltip_text = "Adds the optional GRBCommands autoload used by grb_run_custom_command."
+	if _grb_commands_help_label:
+		if _has_grb_commands_autoload():
+			_grb_commands_help_label.text = "GRBCommands is enabled. Register project-specific helpers, then call them with grb_run_custom_command."
+		else:
+			_grb_commands_help_label.text = "Enable GRBCommands to expose project-specific helpers through grb_run_custom_command."
+
+
+func _on_enable_grb_commands_pressed() -> void:
+	if _has_grb_commands_autoload():
+		_refresh_runtime_status()
+		return
+	ProjectSettings.set_setting("autoload/GRBCommands", "*" + GRB_COMMANDS_AUTOLOAD_PATH)
+	var save_err := ProjectSettings.save()
+	if save_err != OK:
+		push_warning("GRB: failed to save GRBCommands autoload (%s)" % error_string(save_err))
+		return
+	_refresh_runtime_status()
+
+
+func _on_clear_screenshots() -> void:
+	var dir := DirAccess.open(SCREENSHOTS_DIR)
+	if dir == null:
+		return
+	var count := 0
+	dir.list_dir_begin()
+	var fname := dir.get_next()
+	while fname != "":
+		if not dir.current_is_dir() and fname.ends_with(".png"):
+			dir.remove(fname)
+			count += 1
+		fname = dir.get_next()
+	dir.list_dir_end()
+	_clear_btn.text = "Cleared %d!" % count
+	get_tree().create_timer(1.5).timeout.connect(func() -> void:
+		if is_instance_valid(_clear_btn):
+			_clear_btn.text = "Clear Screenshots"
+	)
 
 
 # ── Mission Dashboard ──
 
-const MISSIONS_REL := "packages/godot-runtime-bridge-mcp/missions"
+const MISSIONS_REL := "missions"
 
 
 func _resolve_missions_dir() -> String:

@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.0.5 — 2026-03-24
+
+### Added
+
+- **Release verification scripts** — Added `mcp/check_versions.mjs`, `mcp/verify_grb_release.mjs`, and `mcp/verify_release.mjs` plus matching npm scripts for release hardening.
+- **Smoke CI workflow** — Added `.github/workflows/grb-release-smoke.yml` to verify version sync and run a minimal live GRB smoke test on GitHub Actions.
+- **Editor dock opt-in GRBCommands setup** — The dock now shows GRBCommands status, offers one-click enablement, and includes a copyable custom-command snippet.
+- **Screenshot cleanup control** — The dock now includes a `Clear Screenshots` action alongside the screenshot folder opener.
+
+### Changed
+
+- **Version bumped** to `1.0.5` across `plugin.cfg`, `mcp/package.json`, `mcp/index.js`, and the editor dock banner.
+- **MCP launcher hardening** — Clearer stale-session errors, shared shutdown handling for `grb_launch` / `grb_quit` / `grb_reset`, and launch-failure artifact capture.
+- **Quiet force-windowed behavior** — Removed routine warning spam for normal `GDRB_FORCE_WINDOWED` launches.
+- **Rules/docs refresh** — Runtime bridge rules now describe the current MCP tool surface and recommend `grb_reset` for stale sessions.
+
+### Fixed
+
+- **Single-client reconnect bug** — `DebugServer.gd` now polls the active TCP stream before deciding whether a new connection should be rejected, preventing false connection resets during fast sequential GRB commands.
+
 ## 1.0.4 — 2026-03-01
 
 ### Security

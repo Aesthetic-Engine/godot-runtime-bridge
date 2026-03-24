@@ -2,7 +2,7 @@
 
 **Agentic game development and runtime automation for Godot 4.5+**
 
-GRB lets you **build, test, and debug your Godot game entirely via prompting — no need to work in the editor.** A TCP debug server and MCP bridge connects Cursor (and Claude Code) to your running game: you describe what you want, the agent launches the game, observes it, edits code, and verifies. Full **develop → observe → verify** loops.
+GRB lets you **build, test, and debug your Godot game through prompting after a short one-time setup in Godot and Cursor.** A TCP debug server and MCP bridge connect Cursor (and Claude Code) to your running game: you describe what you want, the agent launches the game, observes it, edits code, and verifies. Full **develop -> observe -> verify** loops.
 
 ## What GRB Enables
 
@@ -15,13 +15,14 @@ Your AI agent can **build, test, and debug your game under your direction**:
 - **Inspect state** — audio buses, network status, custom game commands (when registered)
 - **Editor dock with click-to-copy prompts** — every mission is a button; click to copy a ready-to-paste prompt for Cursor Agent chat. Toggle between auto-fix and report-only modes
 
-You direct; the agent executes. *"Add a pause menu"*, *"Fix the button that’s cut off on the right"*, *"Run a smoke test and fix each bug you find"* — the agent launches the game, sees the result, edits code, and verifies. No context switching, no editor required.
+You direct; the agent executes. *"Add a pause menu"*, *"Fix the button that’s cut off on the right"*, *"Run a smoke test and fix each bug you find"* — the agent launches the game, sees the result, edits code, and verifies. After setup, most iteration can happen from chat instead of bouncing back and forth between tools.
 
 ## Initial Setup (Critical)
 
-1. **Create a new project in Godot** (or use an existing one). Save it in a folder you can open in Cursor.
-2. **Open Cursor** → **File → Open Folder** and select the folder containing your Godot project (the one with `project.godot`).
-3. **Tell Cursor where Godot is.** Cursor needs your Godot executable path to launch your game and project. Set `GODOT_PATH` in your MCP config (see Step 4), or provide it when the agent asks. Without this, GRB cannot launch Godot.
+1. **Install Godot 4.5 or later.** GRB relies on Godot's `Logger` API, which was added in Godot 4.5.
+2. **Create a Godot project** (or open one you already have) and save it somewhere easy to find.
+3. **Open that project folder in Cursor.** It should be the folder that contains `project.godot`.
+4. **Know where your Godot executable is.** GRB needs that path later as `GODOT_PATH` so Cursor can launch your game.
 
 ## Quick Start: Connect Cursor to Your Game
 
@@ -31,7 +32,7 @@ You direct; the agent executes. *"Add a pause menu"*, *"Fix the button that’s 
 
 ### Step 1 — Install the Addon in Godot
 
-**Requires Godot 4.5 or later.** GRB uses the `Logger` API (`OS.add_logger`) introduced in 4.5 for engine error capture. Earlier versions of Godot 4 are not supported.
+This addon supports **Godot 4.5 and later**.
 
 **From the Asset Library (recommended):**
 Open your project in the Godot editor, click the **AssetLib** tab at the top, search for **"Godot Runtime Bridge"**, and install it.
@@ -39,7 +40,9 @@ Open your project in the Godot editor, click the **AssetLib** tab at the top, se
 **Manual:**
 Download this repo and copy the `addons/godot-runtime-bridge/` folder into your project's `addons/` folder.
 
-Then go to **Project → Project Settings → Plugins** and enable **Godot Runtime Bridge**.
+Then go to **Project -> Project Settings -> Plugins** and enable **Godot Runtime Bridge**.
+
+When the plugin is enabled, GRB adds its runtime server automatically. You do **not** need to wire `GRBServer` by hand for a normal setup.
 
 ---
 
@@ -87,6 +90,8 @@ Create a file called **`mcp.json`** inside the `.cursor` folder in your project 
 
 **`GODOT_PATH`** is the path to your Godot executable. Cursor uses this to launch Godot and your project. Required for `grb_launch` to work.
 
+On Windows, forward slashes are the easiest option in JSON paths, like `C:/Tools/Godot/Godot_v4.6-stable_win64.exe`.
+
 For exported builds only: add `GDRB_EXE` to `env` with the path to your exported game (`.exe`, `.app`, or binary). When present, missions and some flows use the export instead of the editor run.
 
 > If you're having trouble, copy this block into Cursor and ask the agent to create `.cursor/mcp.json` for you, or use Option 2 below.
@@ -95,14 +100,14 @@ For exported builds only: add `GDRB_EXE` to `env` with the path to your exported
 
 ### Step 5 — Enable the Server in Cursor ⚠️
 
-**This step is easy to miss — nothing will work without it.**
+**This step is easy to miss — nothing will work until you do it.**
 
 1. Open Cursor
 2. Go to **Settings → Tools & MCP**
 3. Under **Installed MCP Servers**, find **godot-runtime-bridge**
 4. Click the toggle to turn it **ON**
 
-Once the toggle is on, Cursor will show a green indicator next to the server name. You're connected.
+Once the toggle is on, Cursor can see the GRB MCP server and use its tools.
 
 ---
 
@@ -112,7 +117,7 @@ Once the toggle is on, Cursor will show a green indicator next to the server nam
 
    > Set up the Godot Runtime Bridge (GRB) for this project. Install the addon if missing, create .cursor/mcp.json with the GRB MCP server (args: path to godot-runtime-bridge/mcp/index.js), add GODOT_PATH to env with the path to my Godot executable — search common locations or ask me. Run npm install in the mcp folder if needed. Tell me when done.
 
-2. Go to **Cursor Settings → Tools & MCP** and verify **godot-runtime-bridge** is enabled under Installed MCP Servers.
+2. Go to **Cursor Settings -> Tools & MCP** and verify **godot-runtime-bridge** is enabled under Installed MCP Servers.
 3. Ask Cursor: *"Connect to Godot via the GRB bridge and confirm once connected."*
 
 ---
@@ -127,12 +132,12 @@ You're ready. In Cursor's chat, you can now say things like:
 - *"The composure bar is missing — add it to the HUD."*
 - *"Play through the first room and tell me what’s broken; then fix the issues."*
 
-Cursor will launch your game, interact with it, capture screenshots, edit your code, and verify fixes — no manual playtesting or editor switching required.
+Cursor will launch your game, interact with it, capture screenshots, edit your code, and verify fixes.
 
 ---
 
-**Having trouble?** If the GRB tools aren't showing up in Cursor, check **Settings → Tools & MCP → godot-runtime-bridge → Logs** for a startup message with troubleshooting hints.
-**Still having trouble?** Feed this entire readme into Cursor and it'll likely help you troubleshoot until you're set.
+**Having trouble?** If the GRB tools are not showing up in Cursor, check **Settings -> Tools & MCP -> godot-runtime-bridge -> Logs** for a startup message with troubleshooting hints.
+**Still having trouble?** Paste the setup steps above into Cursor Agent mode and ask it to help you troubleshoot your config.
 
 See [`mcp/README.md`](mcp/README.md) for Claude Code setup, advanced configuration, and the full list of available AI tools.
 
@@ -151,7 +156,7 @@ See [SECURITY.md](SECURITY.md) for the full threat model and recommendations.
 
 ## Commands
 
-See [PROTOCOL.md](PROTOCOL.md) for the complete command reference. To use `run_custom_command`, add the `GRBCommands` autoload in Project Settings (path: `res://addons/godot-runtime-bridge/runtime_bridge/GRBCommands.gd`) and register callables in your game.
+See [PROTOCOL.md](PROTOCOL.md) for the complete command reference.
 
 | Tier | Commands |
 |------|----------|
@@ -159,6 +164,8 @@ See [PROTOCOL.md](PROTOCOL.md) for the complete command reference. To use `run_c
 | 1 (input) | click, key, press_button, drag, scroll, gesture, gamepad |
 | 2 (control) | set_property, call_method, quit, run_custom_command |
 | 3 (danger) | eval |
+
+`run_custom_command` is optional. If you want project-specific helper commands, open the GRB dock in the Godot editor and use the **Enable GRBCommands** button. Then register callables in your game and invoke them through `grb_run_custom_command`.
 
 ## Environment Variables
 
@@ -185,6 +192,18 @@ For projects configured with fullscreen display settings, set `GDRB_FORCE_WINDOW
 ## Production Builds
 
 The server is completely inert without activation environment variables. No TCP server, no port, no overhead. Safe to ship in production builds without removing the addon.
+
+## Release Verification
+
+From the `mcp/` folder:
+
+```bash
+npm run verify:versions
+npm run verify:grb -- --godot-exe "/path/to/godot" --project "/path/to/project"
+npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"
+```
+
+`verify:grb` performs a release-grade smoke run: launch, `ping`, `auth_info`, `capabilities`, `runtime_info`, `get_errors`, `screenshot`, and clean `quit`. Artifacts are written to `mcp/reports/release-smoke/`.
 
 ## License
 

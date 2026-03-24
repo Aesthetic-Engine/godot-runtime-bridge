@@ -34,6 +34,93 @@ function nextId() {
   return `mcp_${++requestCounter}`;
 }
 
+function clearConnectionState({ clearProjectPath = false } = {}) {
+  grbPort = null;
+  grbToken = null;
+  if (clearProjectPath) grbProjectPath = null;
+}
+
+function wrapSessionError(message) {
+  return `${message}. The GRB session may be stale or the game may have exited. Use grb_reset to relaunch or grb_launch to start a fresh session.`;
+}
+
+async function shutdownRunningSession() {
+  if (!grbProcess && !grbPort) {
+    clearConnectionState();
+    return;
+  }
+
+  try {
+    if (grbPort && grbToken) {
+      await sendCommand("quit");
+    }
+  } catch {}
+
+  if (grbProcess) {
+    try { grbProcess.kill(); } catch {}
+    grbProcess = null;
+  }
+  clearConnectionState();
+}
+
+function makeLaunchCapture() {
+  return {
+    stdout: "",
+    stderr: "",
+    stdoutTruncated: false,
+    stderrTruncated: false,
+  };
+}
+
+function appendLaunchOutput(capture, streamName, chunk) {
+  const MAX_CAPTURE_CHARS = 12000;
+  const text = chunk.toString();
+  const current = capture[streamName];
+  if (current.length >= MAX_CAPTURE_CHARS) return;
+  const remaining = MAX_CAPTURE_CHARS - current.length;
+  capture[streamName] += text.slice(0, remaining);
+  if (text.length > remaining) {
+    capture[`${streamName}Truncated`] = true;
+  }
+}
+
+function writeLaunchArtifact(projectPath, capture, failureMessage) {
+  try {
+    const dir = path.join(projectPath, "debug", "grb-launch");
+    fs.mkdirSync(dir, { recursive: true });
+    const ts = new Date().toISOString().replace(/[:.]/g, "-");
+    const artifactPath = path.join(dir, `launch-failure-${ts}.log`);
+    const parts = [
+      `Failure: ${failureMessage}`,
+      "",
+      "=== STDOUT ===",
+      capture.stdout || "(empty)",
+      capture.stdoutTruncated ? "\n[stdout truncated]" : "",
+      "",
+      "=== STDERR ===",
+      capture.stderr || "(empty)",
+      capture.stderrTruncated ? "\n[stderr truncated]" : "",
+      "",
+    ];
+    fs.writeFileSync(artifactPath, parts.join("\n"), "utf8");
+    return artifactPath;
+  } catch {
+    return null;
+  }
+}
+
+function formatLaunchFailure(message, capture, artifactPath) {
+  const details = [message];
+  if (capture.stdout.trim()) {
+    details.push(`STDOUT:\n${capture.stdout.trim()}${capture.stdoutTruncated ? "\n[stdout truncated]" : ""}`);
+  }
+  if (capture.stderr.trim()) {
+    details.push(`STDERR:\n${capture.stderr.trim()}${capture.stderrTruncated ? "\n[stderr truncated]" : ""}`);
+  }
+  if (artifactPath) details.push(`Launch log: ${artifactPath}`);
+  return details.join("\n\n");
+}
+
 function sendCommand(cmd, args = {}) {
   return new Promise((resolve, reject) => {
     if (!grbPort || !grbToken) {
@@ -55,9 +142,17 @@ function sendCommand(cmd, args = {}) {
     sock.setTimeout(COMMAND_TIMEOUT_MS);
     sock.on("timeout", () => {
       sock.destroy();
-      reject(new Error("Command timeout: " + cmd));
+      clearConnectionState();
+      reject(new Error(wrapSessionError("Command timeout: " + cmd)));
     });
-    sock.on("error", reject);
+    sock.on("error", (err) => {
+      if (["ECONNREFUSED", "ECONNRESET", "EPIPE"].includes(err.code || "")) {
+        clearConnectionState();
+        reject(new Error(wrapSessionError(`Connection error during ${cmd}: ${err.code}`)));
+        return;
+      }
+      reject(err);
+    });
     sock.on("data", (data) => {
       buffer += data.toString();
       const idx = buffer.indexOf("\n");
@@ -71,8 +166,10 @@ function sendCommand(cmd, args = {}) {
       }
     });
     sock.on("close", () => {
-      if (buffer.length > 0 && buffer.indexOf("\n") < 0)
-        reject(new Error("Connection closed before full response"));
+      if (buffer.length > 0 && buffer.indexOf("\n") < 0) {
+        clearConnectionState();
+        reject(new Error(wrapSessionError("Connection closed before full response")));
+      }
     });
     sock.connect(grbPort, HOST, () => sock.write(req));
   });
@@ -80,20 +177,28 @@ function sendCommand(cmd, args = {}) {
 
 function sendPing() {
   return new Promise((resolve, reject) => {
-    if (!grbPort) {
-      reject(new Error("No port"));
+    if (!grbPort || !grbToken) {
+      reject(new Error("No active GRB session"));
       return;
     }
     const sock = new net.Socket();
     const req =
-      JSON.stringify({ id: nextId(), proto: "grb/1", cmd: "ping" }) + "\n";
+      JSON.stringify({ id: nextId(), proto: "grb/1", cmd: "ping", token: grbToken }) + "\n";
     let buffer = "";
     sock.setTimeout(3000);
     sock.on("timeout", () => {
       sock.destroy();
-      reject(new Error("Ping timeout"));
+      clearConnectionState();
+      reject(new Error(wrapSessionError("Ping timeout")));
     });
-    sock.on("error", reject);
+    sock.on("error", (err) => {
+      if (["ECONNREFUSED", "ECONNRESET", "EPIPE"].includes(err.code || "")) {
+        clearConnectionState();
+        reject(new Error(wrapSessionError(`Ping failed: ${err.code}`)));
+        return;
+      }
+      reject(err);
+    });
     sock.on("data", (data) => {
       buffer += data.toString();
       const idx = buffer.indexOf("\n");
@@ -111,12 +216,12 @@ function sendPing() {
   });
 }
 
-function waitForReady(proc, getStderr) {
+function waitForReady(proc, capture) {
   return new Promise((resolve, reject) => {
-    const deadline = Date.now() + LAUNCH_TIMEOUT_MS;
     let stdoutBuf = "";
 
     proc.stdout.on("data", (chunk) => {
+      appendLaunchOutput(capture, "stdout", chunk);
       stdoutBuf += chunk.toString();
       const lines = stdoutBuf.split("\n");
       for (const line of lines) {
@@ -138,14 +243,18 @@ function waitForReady(proc, getStderr) {
 
     proc.on("exit", (code) => {
       if (!grbPort) {
-        const stderr = getStderr ? getStderr() : "";
-        const detail = stderr.trim() ? "\nStderr:\n" + stderr.trim() : "";
-        reject(new Error("Godot exited (code " + code + ") before GDRB_READY" + detail));
+        const message = "Godot exited (code " + code + ") before GDRB_READY";
+        const artifactPath = grbProjectPath ? writeLaunchArtifact(grbProjectPath, capture, message) : null;
+        reject(new Error(formatLaunchFailure(message, capture, artifactPath)));
       }
     });
 
     setTimeout(() => {
-      if (!grbPort) reject(new Error("Timeout waiting for GDRB_READY"));
+      if (!grbPort) {
+        const message = "Timeout waiting for GDRB_READY";
+        const artifactPath = grbProjectPath ? writeLaunchArtifact(grbProjectPath, capture, message) : null;
+        reject(new Error(formatLaunchFailure(message, capture, artifactPath)));
+      }
     }, LAUNCH_TIMEOUT_MS);
   });
 }
@@ -490,12 +599,7 @@ const TOOLS = [
 async function handleTool(name, args) {
   switch (name) {
     case "grb_launch": {
-      if (grbProcess) {
-        try { grbProcess.kill(); } catch {}
-        grbProcess = null;
-        grbPort = null;
-        grbToken = null;
-      }
+      await shutdownRunningSession();
 
       const projectPath = args.project_path;
       grbProjectPath = projectPath;
@@ -539,6 +643,7 @@ async function handleTool(name, args) {
       ];
       fs.writeFileSync(overridePath, overrideLines.join("\n"), "utf8");
 
+      const launchCapture = makeLaunchCapture();
       let child;
       try {
         child = spawn(godotExe, ["--path", projectPath, "--windowed"], {
@@ -578,17 +683,16 @@ async function handleTool(name, args) {
       }
 
       grbProcess = child;
-      let stderrBuf = "";
-      const STDERR_MAX = 10000;
       child.stderr.on("data", (chunk) => {
-        if (stderrBuf.length < STDERR_MAX) {
-          stderrBuf += chunk.toString();
-          if (stderrBuf.length > STDERR_MAX) stderrBuf = stderrBuf.slice(0, STDERR_MAX);
-        }
+        appendLaunchOutput(launchCapture, "stderr", chunk);
       });
 
       // Clean up override.cfg when Godot exits
       child.on("exit", () => {
+        if (grbProcess === child) {
+          grbProcess = null;
+          clearConnectionState();
+        }
         if (prevOverride != null) {
           try { fs.writeFileSync(overridePath, prevOverride, "utf8"); } catch {}
         } else {
@@ -596,7 +700,24 @@ async function handleTool(name, args) {
         }
       });
 
-      const ready = await waitForReady(child, () => stderrBuf);
+      let ready;
+      try {
+        ready = await waitForReady(child, launchCapture);
+      } catch (e) {
+        try { child.kill(); } catch {}
+        grbProcess = null;
+        clearConnectionState();
+        if (prevOverride != null) {
+          try { fs.writeFileSync(overridePath, prevOverride, "utf8"); } catch {}
+        } else {
+          try { fs.unlinkSync(overridePath); } catch {}
+        }
+        return errResult({
+          ok: false,
+          error_code: "launch_failed",
+          error_msg: e.message,
+        });
+      }
 
       return {
         content: [
@@ -856,30 +977,14 @@ async function handleTool(name, args) {
     }
 
     case "grb_quit": {
-      try {
-        await sendCommand("quit");
-      } catch {}
-      if (grbProcess) {
-        try { grbProcess.kill(); } catch {}
-        grbProcess = null;
-      }
-      grbPort = null;
-      grbToken = null;
+      await shutdownRunningSession();
       return {
         content: [{ type: "text", text: "Game quit successfully." }],
       };
     }
 
     case "grb_reset": {
-      try {
-        await sendCommand("quit");
-      } catch {}
-      if (grbProcess) {
-        try { grbProcess.kill(); } catch {}
-        grbProcess = null;
-      }
-      grbPort = null;
-      grbToken = null;
+      await shutdownRunningSession();
       await new Promise((r) => setTimeout(r, 800));
       return await handleTool("grb_launch", args);
     }
@@ -939,7 +1044,7 @@ function errResult(r) {
 // ── MCP server setup ──
 
 const mcpServer = new Server(
-  { name: "godot-runtime-bridge", version: "1.0.1" },
+  { name: "godot-runtime-bridge", version: "1.0.5" },
   { capabilities: { tools: {} } }
 );
 
@@ -965,10 +1070,10 @@ await mcpServer.connect(transport);
 // Startup notice — visible in Cursor's MCP output panel (Settings → Tools & MCP → godot-runtime-bridge → Logs)
 // If GRB tools are not appearing in Cursor, the most common cause is the server not being enabled.
 process.stderr.write(
-  "[GRB] MCP server started (godot-runtime-bridge v1.0.4)\n" +
+  "[GRB] MCP server started (godot-runtime-bridge v1.0.5)\n" +
   "[GRB] If tools are not appearing in Cursor:\n" +
   "[GRB]   1. Open Cursor → Settings → Tools & MCP\n" +
   "[GRB]   2. Find 'godot-runtime-bridge' under Installed MCP Servers\n" +
   "[GRB]   3. Toggle it ON — this step is required\n" +
-  "[GRB] Docs: https://github.com/your-repo/godot-runtime-bridge\n"
+  "[GRB] Docs: https://github.com/Aesthetic-Engine/godot-runtime-bridge\n"
 );

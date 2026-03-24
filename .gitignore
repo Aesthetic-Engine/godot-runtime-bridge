@@ -9,3 +9,6 @@ override.cfg
 
 # Mission runner output
 missions/reports/
+
+# MCP verification output
+mcp/reports/
