@@ -121,6 +121,51 @@ function formatLaunchFailure(message, capture, artifactPath) {
   return details.join("\n\n");
 }
 
+function isWindowsExePath(candidate) {
+  return process.platform === "win32" && typeof candidate === "string" && candidate.toLowerCase().endsWith(".exe");
+}
+
+function companionConsoleExecutable(candidate) {
+  if (!isWindowsExePath(candidate)) return null;
+  if (candidate.toLowerCase().endsWith("_console.exe")) return candidate;
+  const parsed = path.parse(candidate);
+  return path.join(parsed.dir, `${parsed.name}_console${parsed.ext}`);
+}
+
+function preferConsoleExecutable(candidate, source) {
+  if (!candidate) return null;
+  const consoleCandidate = companionConsoleExecutable(candidate);
+  if (consoleCandidate && consoleCandidate !== candidate && fs.existsSync(consoleCandidate)) {
+    return {
+      godotExe: consoleCandidate,
+      source: `${source} companion console executable`,
+      requestedExe: candidate,
+      usedConsole: true,
+    };
+  }
+
+  return {
+    godotExe: candidate,
+    source,
+    requestedExe: candidate,
+    usedConsole: candidate.toLowerCase().endsWith("_console.exe"),
+  };
+}
+
+function resolveGodotExecutable(explicitExe) {
+  if (explicitExe) return preferConsoleExecutable(explicitExe, "godot_exe");
+  if (process.env.GODOT_CONSOLE_PATH) {
+    return preferConsoleExecutable(process.env.GODOT_CONSOLE_PATH, "GODOT_CONSOLE_PATH");
+  }
+  if (process.env.GODOT_PATH) return preferConsoleExecutable(process.env.GODOT_PATH, "GODOT_PATH");
+  return {
+    godotExe: "godot",
+    source: "PATH",
+    requestedExe: "godot",
+    usedConsole: false,
+  };
+}
+
 function sendCommand(cmd, args = {}) {
   return new Promise((resolve, reject) => {
     if (!grbPort || !grbToken) {
@@ -603,7 +648,8 @@ async function handleTool(name, args) {
 
       const projectPath = args.project_path;
       grbProjectPath = projectPath;
-      const godotExe = args.godot_exe || process.env.GODOT_PATH || "godot";
+      const launchTarget = resolveGodotExecutable(args.godot_exe);
+      const godotExe = launchTarget.godotExe;
       const tier = args.tier != null ? String(args.tier) : "1";
       const token = crypto.randomBytes(24).toString("hex");
 
@@ -678,7 +724,7 @@ async function handleTool(name, args) {
         return errResult({
           ok: false,
           error_code: "launch_failed",
-          error_msg: `Godot executable not found: "${godotExe}". Pass godot_exe or set GODOT_PATH env var.`,
+          error_msg: `Godot executable not found: "${godotExe}". Pass godot_exe, set GODOT_PATH, or set GODOT_CONSOLE_PATH.`,
         });
       }
 
@@ -725,7 +771,7 @@ async function handleTool(name, args) {
             type: "text",
             text: `Launched Godot. Bridge ready on port ${ready.port}, tier ${ready.tier_default}. ${
               args.enable_danger ? "DANGER MODE ENABLED." : ""
-            }`,
+            } ${launchTarget.usedConsole ? `Using console executable (${launchTarget.source}).` : `Using ${path.basename(godotExe)} (${launchTarget.source}).`}`,
           },
         ],
       };
@@ -1044,7 +1090,7 @@ function errResult(r) {
 // ── MCP server setup ──
 
 const mcpServer = new Server(
-  { name: "godot-runtime-bridge", version: "1.0.5" },
+  { name: "godot-runtime-bridge", version: "1.0.6" },
   { capabilities: { tools: {} } }
 );
 
@@ -1070,7 +1116,7 @@ await mcpServer.connect(transport);
 // Startup notice — visible in Cursor's MCP output panel (Settings → Tools & MCP → godot-runtime-bridge → Logs)
 // If GRB tools are not appearing in Cursor, the most common cause is the server not being enabled.
 process.stderr.write(
-  "[GRB] MCP server started (godot-runtime-bridge v1.0.5)\n" +
+  "[GRB] MCP server started (godot-runtime-bridge v1.0.6)\n" +
   "[GRB] If tools are not appearing in Cursor:\n" +
   "[GRB]   1. Open Cursor → Settings → Tools & MCP\n" +
   "[GRB]   2. Find 'godot-runtime-bridge' under Installed MCP Servers\n" +

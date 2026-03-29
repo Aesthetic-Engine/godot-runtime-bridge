@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.6 - 2026-03-28
+
+### Changed
+
+- **Windows console executable preference** - `grb_launch` and `grb_reset` now prefer a companion `*_console.exe` when you pass a Windows Godot editor executable or set `GODOT_PATH`, improving launch diagnostics without changing project setup.
+- **Launcher env support** - Added documented support for `GODOT_CONSOLE_PATH` as an explicit MCP-side override for Windows console builds.
+- **Launch messaging/docs refresh** - Launch results now report which executable source was used, and the README / MCP README now explain the Windows console-exe behavior.
+
 ## 1.0.5 — 2026-03-24
 
 ### Added

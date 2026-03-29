@@ -92,6 +92,8 @@ Create a file called **`mcp.json`** inside the `.cursor` folder in your project 
 
 On Windows, forward slashes are the easiest option in JSON paths, like `C:/Tools/Godot/Godot_v4.6-stable_win64.exe`.
 
+If you are on Windows and have both `Godot_v4.x-stable_win64.exe` and `Godot_v4.x-stable_win64_console.exe`, GRB now prefers the companion console executable automatically when it can find it. This keeps stdout and stderr visible for launch diagnostics without changing your normal project setup.
+
 For exported builds only: add `GDRB_EXE` to `env` with the path to your exported game (`.exe`, `.app`, or binary). When present, missions and some flows use the export instead of the editor run.
 
 > If you're having trouble, copy this block into Cursor and ask the agent to create `.cursor/mcp.json` for you, or use Option 2 below.
@@ -178,6 +180,8 @@ See [PROTOCOL.md](PROTOCOL.md) for the complete command reference.
 | `GDRB_FORCE_WINDOWED` | (none) | Set to `1` to enforce windowed mode at startup (overrides project fullscreen settings) |
 | `GDRB_ENABLE_DANGER` | (none) | Set to `1` to allow eval. Also requires tier 3 |
 | `GODOT_DEBUG_SERVER` | (none) | Legacy activation. Set to `1` to enable |
+| `GODOT_PATH` | (none) | Preferred Godot executable path for the MCP launcher |
+| `GODOT_CONSOLE_PATH` | (none) | Optional Windows console executable path. If set, the MCP launcher prefers it for richer launch logs |
 
 ## Background Testing
 

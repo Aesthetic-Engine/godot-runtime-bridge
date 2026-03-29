@@ -60,6 +60,8 @@ Restart your AI client after adding the config.
 2. **Node.js 18+**
 3. **Godot 4.x** executable accessible (set `GODOT_PATH` env var or pass the path when launching)
 
+On Windows, if a companion `*_console.exe` sits next to the normal Godot executable, the MCP launcher now prefers it automatically so launch diagnostics and parse errors stay visible in stdout/stderr.
+
 ## Usage
 
 Once configured, your AI assistant can use these tools:
@@ -135,6 +137,7 @@ npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/proje
 | Variable | Description |
 |----------|-------------|
 | `GODOT_PATH` | Default Godot executable path (used if `godot_exe` not passed to `grb_launch`) |
+| `GODOT_CONSOLE_PATH` | Optional Windows console executable path. Preferred over `GODOT_PATH` when present |
 
 ## License
 
