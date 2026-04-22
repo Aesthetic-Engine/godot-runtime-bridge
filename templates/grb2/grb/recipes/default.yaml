@@ -1,0 +1,5 @@
+id: default
+name: Default Godot Launch
+godot_exe_env: GODOT_EXE
+project_dir: "."
+notes: Set GODOT_EXE or pass --exe when running missions.

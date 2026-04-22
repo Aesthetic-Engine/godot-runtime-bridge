@@ -17,6 +17,22 @@ Your AI agent can **build, test, and debug your game under your direction**:
 
 You direct; the agent executes. *"Add a pause menu"*, *"Fix the button that’s cut off on the right"*, *"Run a smoke test and fix each bug you find"* — the agent launches the game, sees the result, edits code, and verifies. After setup, most iteration can happen from chat instead of bouncing back and forth between tools.
 
+## GRB 2.0 Sprint 1 Proof Flow
+
+This branch includes the first minimal GRB 2.0 proof workflow. From a Godot project folder, initialize the agent contract scaffold:
+
+```bash
+node C:\path\to\grb-main\cli\grb.mjs init
+```
+
+Then run the starter proof mission:
+
+```bash
+node C:\path\to\grb-main\cli\grb.mjs mission run smoke_boot --exe C:\path\to\Godot_v4.5_or_later_console.exe
+```
+
+The mission reuses `missions/run_mission.mjs`, writes artifacts under `grb_reports/<run-id>/`, and generates `summary.md` plus `run.json` with explicit W/R/E proof status and human handoff fields.
+
 ## Initial Setup (Critical)
 
 1. **Install Godot 4.5 or later.** GRB relies on Godot's `Logger` API, which was added in Godot 4.5.

@@ -1,0 +1,10 @@
+name: Godot Project
+grb_version: "2.0-sprint1"
+default_recipe: default
+missions:
+  - smoke_boot
+read_first:
+  - AGENTS.md
+  - grb/proof_policy.yaml
+  - grb/missions/smoke_boot.yaml
+  - grb/gotchas.md
