@@ -19,7 +19,15 @@ You direct; the agent executes. *"Add a pause menu"*, *"Fix the button that’s 
 
 ## GRB 2.0 Sprint 1 Proof Flow
 
-This branch includes the first minimal GRB 2.0 proof workflow. From a Godot project folder, initialize the agent contract scaffold:
+This branch includes the first minimal GRB 2.0 proof workflow. It is intentionally run with Node directly; no global `grb` install is required for Sprint 1.
+
+From the GRB repo, initialize a Godot project:
+
+```bash
+node cli/grb.mjs init --project C:\path\to\YourGodotProject
+```
+
+Or, from inside the Godot project folder:
 
 ```bash
 node C:\path\to\grb-main\cli\grb.mjs init
@@ -28,10 +36,10 @@ node C:\path\to\grb-main\cli\grb.mjs init
 Then run the starter proof mission:
 
 ```bash
-node C:\path\to\grb-main\cli\grb.mjs mission run smoke_boot --exe C:\path\to\Godot_v4.5_or_later_console.exe
+node C:\path\to\grb-main\cli\grb.mjs mission run smoke_boot --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
 ```
 
-The mission reuses `missions/run_mission.mjs`, writes artifacts under `grb_reports/<run-id>/`, and generates `summary.md` plus `run.json` with explicit W/R/E proof status and human handoff fields.
+You may also set `GODOT_EXE` instead of passing `--exe`. Use a project that already opens normally in Godot with the GRB addon enabled; for a newly copied project, open it once in Godot first so import/plugin metadata is ready. The mission reuses `missions/run_mission.mjs`, writes artifacts under `grb_reports/<run-id>/`, and generates `summary.md` plus `run.json` with explicit W/R/E proof status and human handoff fields.
 
 ## Initial Setup (Critical)
 

@@ -55,6 +55,9 @@ async function main() {
     for (const entry of result.entries) {
       console.log(`  ${entry.status.padEnd(7)} ${entry.path}`);
     }
+    console.log("");
+    console.log("Next:");
+    console.log(`  node ${process.argv[1]} mission run smoke_boot --project "${result.projectDir}" --exe <godot_exe>`);
     return;
   }
 
