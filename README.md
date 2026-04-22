@@ -112,21 +112,48 @@ Use `run.json` when another tool needs the same information in machine-readable 
 
 ### Natural Second Step: Compare Runs
 
-After one trustworthy baseline exists, compare proof bundles directly:
+After a first proof run passes and its `summary.md` looks trustworthy, that run becomes a **baseline candidate**. A baseline is not magic truth; it is a prior passing proof bundle that you intentionally use as the reference for the next run.
 
-```bash
-node cli/grb.mjs compare C:\path\to\baseline-run C:\path\to\candidate-run
-```
+Use comparison when you want to answer: "Did this new run change versus the baseline, and does that change look like a possible regression?"
 
-Or compare a new `smoke_boot` run against the latest previous passing run of the same mission:
+There are two compare flows.
+
+**Run-and-compare** creates a fresh candidate run and compares it to the latest previous passing run of the same mission:
 
 ```bash
 node cli/grb.mjs mission run smoke_boot --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe --compare-to latest
 ```
 
-`--compare-to latest` currently resolves to the newest previous passing run with the same `mission_id`. You can also pass an explicit baseline run directory. The candidate run is never eligible as its own baseline, and blocked/corrupt/mismatched automatic candidates are rejected with reasons in the comparison report.
+Use this after you already have at least one passing run for that mission.
 
-Comparison output is written into the candidate bundle under `comparison/`. It currently compares paired screenshots, mission runtime summary fields, and issue/log surfaces. It reports differences honestly as matched, difference detected, suspected regression, blocked, or human review required.
+**Bundle-to-bundle compare** compares two known proof bundles directly:
+
+```bash
+node cli/grb.mjs compare C:\path\to\baseline-run C:\path\to\candidate-run
+```
+
+Use this when you want to choose the baseline explicitly.
+
+If no trustworthy baseline exists, comparison is blocked rather than guessed. Create a passing baseline run first, or pass an explicit baseline bundle.
+
+Common outcomes:
+
+- `matched`: compared artifacts matched; still inspect the summary before claiming user-facing correctness.
+- `difference_detected`: something changed; decide whether it was intended.
+- `regression_suspected`: the change conflicts with the mission expectation and should be treated as a suspected regression until reviewed.
+- `blocked`: comparison did not run because baseline selection or bundle loading was not trustworthy.
+- `human_review_required`: automation found evidence that needs judgment.
+
+Comparison output is written into the candidate bundle under `comparison/`, and the candidate `summary.md` gets a comparison section.
+
+With the proving ground, a simple compare practice run is:
+
+```bash
+node cli/grb.mjs mission run scene_transition --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+node cli/grb.mjs mission run scene_transition --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
+```
+
+`--compare-to latest` resolves to the newest previous passing run with the same `mission_id`. The candidate run is never eligible as its own baseline, and blocked/corrupt/mismatched automatic candidates are rejected with reasons in `comparison/comparison.md`.
 
 ### GRB 2.0 Proving Ground
 

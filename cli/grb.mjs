@@ -2,7 +2,7 @@
 
 import { initProject } from "./lib/init.mjs";
 import { runProjectMission } from "./lib/smoke_boot.mjs";
-import { compareRuns } from "./lib/compare_runs.mjs";
+import { compareRuns, printComparisonCloseout } from "./lib/compare_runs.mjs";
 
 function parseArgs(argv) {
   const positional = [];
@@ -107,9 +107,7 @@ async function main() {
       process.exit(1);
     }
     const result = compareRuns(baseline, candidate);
-    console.log(`Comparison result: ${result.comparison.result}`);
-    console.log(`Comparison summary: ${result.comparisonMdPath}`);
-    console.log(`Comparison JSON: ${result.comparisonJsonPath}`);
+    printComparisonCloseout(result.comparison, result.comparisonMdPath, result.comparisonJsonPath);
     process.exit(["blocked", "regression_suspected"].includes(result.comparison.result) ? 1 : 0);
   }
 

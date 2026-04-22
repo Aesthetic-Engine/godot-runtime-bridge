@@ -5,7 +5,7 @@ import { parseSimpleYaml } from "./simple_yaml.mjs";
 import { missionRunnerPath, resolveProjectDir, toPosixRelative } from "./paths.mjs";
 import { writeProofBundle } from "./proof_bundle.mjs";
 import { BaselineSelectionError, selectBaseline } from "./select_baseline.mjs";
-import { compareRuns, writeBlockedComparison } from "./compare_runs.mjs";
+import { compareRuns, printComparisonCloseout, writeBlockedComparison } from "./compare_runs.mjs";
 
 function makeRunId(missionId) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
@@ -351,9 +351,7 @@ export async function runProjectMission(options = {}) {
     try {
       const baselineDecision = selectBaseline(projectDir, runDir, options.compareTo);
       const comparison = compareRuns(baselineDecision.selected.path, runDir, { baselineSelection: baselineDecision });
-      console.log(`Comparison result: ${comparison.comparison.result}`);
-      console.log(`Comparison summary: ${comparison.comparisonMdPath}`);
-      console.log(`Comparison JSON: ${comparison.comparisonJsonPath}`);
+      printComparisonCloseout(comparison.comparison, comparison.comparisonMdPath, comparison.comparisonJsonPath);
       if (["blocked", "regression_suspected"].includes(comparison.comparison.result)) {
         exitCode = 1;
       }
@@ -361,8 +359,7 @@ export async function runProjectMission(options = {}) {
       if (err instanceof BaselineSelectionError) {
         const comparison = writeBlockedComparison(runDir, err.decision, err.message);
         console.error(`Comparison blocked: ${err.message}`);
-        console.error(`Comparison summary: ${comparison.comparisonMdPath}`);
-        console.error(`Comparison JSON: ${comparison.comparisonJsonPath}`);
+        printComparisonCloseout(comparison.comparison, comparison.comparisonMdPath, comparison.comparisonJsonPath, (line) => console.error(line));
         exitCode = 1;
       } else {
         console.error(`Comparison blocked: ${err.message}`);
