@@ -87,6 +87,24 @@ grb_reports/<run-id>/
 - Some copied projects need to be opened once in Godot before `smoke_boot` can reach `GDRB_READY`.
 - The CLI is still invoked as `node cli/grb.mjs`; packaging and PATH polish are intentionally out of scope for Sprint 1.
 
+### Sprint 2 Comparison Slice
+
+Sprint 2 adds a thin proof-layer comparison above the existing mission runner. Compare two proof bundles directly:
+
+```bash
+node cli/grb.mjs compare C:\path\to\baseline-run C:\path\to\candidate-run
+```
+
+Or compare a new `smoke_boot` run against the latest previous passing run of the same mission:
+
+```bash
+node cli/grb.mjs mission run smoke_boot --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe --compare-to latest
+```
+
+`--compare-to latest` currently resolves to the newest previous passing run with the same `mission_id`. You can also pass an explicit baseline run directory. The candidate run is never eligible as its own baseline, and blocked/corrupt/mismatched automatic candidates are rejected with reasons in the comparison report.
+
+Comparison output is written into the candidate bundle under `comparison/`. It currently compares paired screenshots, mission runtime summary fields, and issue/log surfaces. It reports differences honestly as matched, difference detected, suspected regression, blocked, or human review required.
+
 ## Initial Setup (Critical)
 
 1. **Install Godot 4.5 or later.** GRB relies on Godot's `Logger` API, which was added in Godot 4.5.

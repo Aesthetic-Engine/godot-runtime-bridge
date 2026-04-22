@@ -3,6 +3,7 @@ name: Smoke Boot
 goal: Launch the project, connect GRB, capture runtime state, and produce an honest proof bundle.
 recipe: default
 targeted_proof_tier: W
+compare_expectation: no_unintended_change
 tier_required: 1
 estimated_time_sec: 15
 

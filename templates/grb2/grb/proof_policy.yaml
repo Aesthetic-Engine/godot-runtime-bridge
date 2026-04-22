@@ -8,6 +8,7 @@ rules:
   - Agents may cite screenshots as R evidence, but must not claim visual correctness without project-specific expectations or a human review.
   - Agents must not claim E unless a human confirms feel, UX, or design intent.
   - Proof bundle summaries should link the run under grb_reports before claiming work is verified.
+  - Comparison can flag differences or suspected regressions, but humans decide whether visual changes are intended.
 
 blocked_proof_required_fields:
   - what_blocked_higher_proof

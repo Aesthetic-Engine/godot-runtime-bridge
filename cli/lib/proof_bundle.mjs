@@ -26,6 +26,46 @@ function artifactType(filePath) {
   return "file";
 }
 
+function artifactMetadata(filePath, runDir) {
+  const relPath = toPosixRelative(runDir, filePath);
+  const kind = artifactType(filePath);
+  const base = path.basename(relPath, path.extname(relPath));
+  const normalized = relPath.replace(/\\/g, "/");
+  let role = kind;
+  let captureSlot = null;
+  let id = `${kind}:${normalized}`;
+
+  if (kind === "screenshot") {
+    role = "primary_screenshot";
+    captureSlot = base;
+    id = `screenshot:${captureSlot}`;
+  } else if (normalized === "mission_runner/OVERALL.md") {
+    role = "mission_overall_report";
+    id = "report:mission_overall";
+  } else if (/mission_runner\/.+\/report-/.test(normalized)) {
+    role = "mission_report";
+    id = "report:mission_detail";
+  } else if (normalized === "runner.stdout.log") {
+    role = "runner_stdout";
+    id = "log:runner_stdout";
+  } else if (normalized === "runner.stderr.log") {
+    role = "runner_stderr";
+    id = "log:runner_stderr";
+  } else if (normalized === "smoke_boot.runner.json") {
+    role = "generated_mission";
+    id = "json:generated_mission";
+  }
+
+  return {
+    id,
+    role,
+    kind,
+    type: kind,
+    path: relPath,
+    capture_slot: captureSlot,
+  };
+}
+
 function selectInspectArtifact(artifacts, fallback) {
   return artifacts.find((a) => a.path.endsWith("boot_screen.png"))
     || artifacts.find((a) => a.type === "screenshot")
@@ -59,10 +99,7 @@ export function writeProofBundle(options) {
 
   const artifacts = findFiles(runDir)
     .filter((filePath) => !filePath.endsWith("run.json") && !filePath.endsWith("summary.md"))
-    .map((filePath) => ({
-      path: toPosixRelative(runDir, filePath),
-      type: artifactType(filePath),
-    }))
+    .map((filePath) => artifactMetadata(filePath, runDir))
     .sort((a, b) => a.path.localeCompare(b.path));
 
   const fallbackArtifact = { path: "summary.md", type: "report" };
@@ -129,6 +166,7 @@ export function writeProofBundle(options) {
 
   const runJson = {
     schema_version: 1,
+    bundle_version: 2,
     run_id: runId,
     mission_id: mission.id,
     mission_name: mission.name || mission.id,
@@ -137,6 +175,9 @@ export function writeProofBundle(options) {
     status,
     targeted_proof_tier: targetedTier,
     reached_proof_tier: reachedTier,
+    proof_target: targetedTier,
+    proof_achieved: reachedTier,
+    compare_expectation: mission.compare_expectation || "no_unintended_change",
     evidence,
     unproven,
     blocked_reason: blockedReason,

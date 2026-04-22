@@ -2,6 +2,7 @@
 
 import { initProject } from "./lib/init.mjs";
 import { runSmokeBoot } from "./lib/smoke_boot.mjs";
+import { compareRuns } from "./lib/compare_runs.mjs";
 
 function parseArgs(argv) {
   const positional = [];
@@ -33,11 +34,13 @@ function printHelp() {
 Usage:
   node cli/grb.mjs init [--project <path>]
   node cli/grb.mjs mission run smoke_boot [--project <path>] --exe <godot_exe>
+  node cli/grb.mjs compare <baseline-run-dir> <candidate-run-dir>
 
 Examples:
   # From the GRB repo
   node cli/grb.mjs init --project C:\\path\\to\\YourGodotProject
   node cli/grb.mjs mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
+  node cli/grb.mjs mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe --compare-to latest
 
   # From inside a Godot project
   node C:\\path\\to\\grb-main\\cli\\grb.mjs init
@@ -79,8 +82,23 @@ async function main() {
       exe: flags.exe || flags["godot-exe"] || process.env.GODOT_EXE,
       mode: flags.mode,
       allowBootErrors: Boolean(flags["allow-boot-errors"]),
+      compareTo: flags["compare-to"] || flags.compareTo,
     });
     process.exit(result.exitCode);
+  }
+
+  if (command === "compare") {
+    const baseline = subcommand;
+    const candidate = target;
+    if (!baseline || !candidate) {
+      console.error("Usage: node cli/grb.mjs compare <baseline-run-dir> <candidate-run-dir>");
+      process.exit(1);
+    }
+    const result = compareRuns(baseline, candidate);
+    console.log(`Comparison result: ${result.comparison.result}`);
+    console.log(`Comparison summary: ${result.comparisonMdPath}`);
+    console.log(`Comparison JSON: ${result.comparisonJsonPath}`);
+    process.exit(["blocked", "regression_suspected"].includes(result.comparison.result) ? 1 : 0);
   }
 
   console.error(`Unknown command: ${positional.join(" ")}`);
