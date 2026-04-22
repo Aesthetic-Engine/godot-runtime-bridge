@@ -226,6 +226,38 @@ grb_reports/<run-id>/
 
 Use `run.json` when another tool needs the same information in machine-readable form.
 
+### Create Your Second Mission
+
+After `smoke_boot` passes, the next normal step is to create one small project-specific mission for a real surface: a pause menu, inventory panel, title-to-gameplay transition, HUD state, or another feature you care about.
+
+Scaffold a starter mission:
+
+```bash
+node C:\path\to\grb-main\cli\grb.mjs mission scaffold pause_menu --project C:\path\to\YourGodotProject
+```
+
+This creates:
+
+```text
+grb/missions/pause_menu.yaml
+```
+
+The scaffold command does not overwrite an existing mission file.
+
+Customize these first:
+
+- `goal`: the exact behavior or surface the mission is meant to prove
+- the placeholder interaction step: for example `press_button`, `click`, or `key`
+- `human_handoff`: what screenshot/report a reviewer should inspect next
+
+Then run it:
+
+```bash
+node C:\path\to\grb-main\cli\grb.mjs mission run pause_menu --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
+```
+
+The scaffold gives you a bounded proof surface. It does not magically know whether your UI is correct; it captures before/after evidence and asks for the remaining human judgment explicitly.
+
 ### Current Limits (Honest)
 
 - R-tier screenshots are evidence, not automatic visual validation.

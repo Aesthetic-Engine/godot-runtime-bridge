@@ -37,6 +37,16 @@ After the run, inspect:
 - the primary screenshot listed in the summary
 - `grb_reports/<run-id>/run.json` when another tool needs machine-readable proof
 
+## Second Mission
+
+After `smoke_boot` passes, create one small project-specific mission for the next feature surface:
+
+```bash
+node <path-to-grb-main>/cli/grb.mjs mission scaffold todo_mission_id --project <project>
+```
+
+Customize the goal, one interaction step, and human handoff before claiming proof. Prefer one clear before/after surface over broad exploratory automation.
+
 ## Proof Language
 
 - W: wiring proof, launch/connect/runtime inspection/errors.

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { initProject } from "./lib/init.mjs";
+import { scaffoldMission } from "./lib/mission_scaffold.mjs";
 import { runProjectMission } from "./lib/smoke_boot.mjs";
 import { compareRuns, printComparisonCloseout } from "./lib/compare_runs.mjs";
 
@@ -33,18 +34,21 @@ function printHelp() {
 
 Usage:
   node cli/grb.mjs init [--project <path>]
+  node cli/grb.mjs mission scaffold <mission_id> [--project <path>] [--recipe <recipe_id>]
   node cli/grb.mjs mission run <mission_id> [--project <path>] --exe <godot_exe>
   node cli/grb.mjs compare <baseline-run-dir> <candidate-run-dir>
 
 Examples:
   # From the GRB repo
   node cli/grb.mjs init --project C:\\path\\to\\YourGodotProject
+  node cli/grb.mjs mission scaffold pause_menu --project C:\\path\\to\\YourGodotProject
   node cli/grb.mjs mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
   node cli/grb.mjs mission run scene_transition --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
   node cli/grb.mjs mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe --compare-to latest
 
   # From inside a Godot project
   node C:\\path\\to\\grb-main\\cli\\grb.mjs init
+  node C:\\path\\to\\grb-main\\cli\\grb.mjs mission scaffold pause_menu
   node C:\\path\\to\\grb-main\\cli\\grb.mjs mission run smoke_boot --exe C:\\path\\to\\Godot_console.exe
 
 Environment:
@@ -97,6 +101,28 @@ async function main() {
       compareTo: flags["compare-to"] || flags.compareTo,
     });
     process.exit(result.exitCode);
+  }
+
+  if (command === "mission" && subcommand === "scaffold" && target) {
+    const result = scaffoldMission({
+      missionId: target,
+      projectDir: flags.project || process.cwd(),
+      recipe: flags.recipe,
+    });
+    console.log(`GRB mission scaffold created: ${result.missionPath}`);
+    console.log(`Recipe: ${result.recipe} (${result.recipeSource})`);
+    console.log("");
+    console.log("Customize first:");
+    console.log("  - Replace the TODO goal with the exact project surface this mission proves.");
+    console.log("  - Replace the placeholder interaction with one small real action.");
+    console.log("  - Update human_handoff so a reviewer knows what to inspect.");
+    console.log("");
+    console.log("Then run:");
+    console.log(`  node ${process.argv[1]} mission run ${result.missionId} --project "${result.projectDir}" --exe <godot_exe>`);
+    console.log("");
+    console.log("Optional:");
+    console.log(`  Add ${result.missionId} to grb.project.yaml if you keep a mission list there.`);
+    return;
   }
 
   if (command === "compare") {
