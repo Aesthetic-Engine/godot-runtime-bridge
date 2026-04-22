@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **GRB 2.0 Sprint 1 proof CLI** - Added a minimal Node CLI for `init` and `mission run smoke_boot`, project scaffold templates, runtime YAML-to-mission translation, and project-local proof bundles under `grb_reports/<run-id>/`.
+
+### Changed
+
+- **Mission runner output directory** - `missions/run_mission.mjs` now accepts `--output-dir` while preserving the existing `missions/reports` default.
+- **Mission tier defaults** - Missing `tier_required` values now default to `1` before mission launch and reporting.
+
 ## 1.0.6 - 2026-03-28
 
 ### Changed

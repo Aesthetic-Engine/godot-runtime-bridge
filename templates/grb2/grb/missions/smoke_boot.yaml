@@ -1,0 +1,33 @@
+id: smoke_boot
+name: Smoke Boot
+goal: Launch the project, connect GRB, capture runtime state, and produce an honest proof bundle.
+recipe: default
+tier_required: 1
+estimated_time_sec: 15
+
+blocked_proof:
+  what_blocked_higher_proof: Automation can capture boot/runtime evidence, but cannot confirm visual intent or game feel.
+  artifact_to_inspect: mission_runner/smoke_boot/boot_screen.png
+  human_should_check_next: Inspect the boot screenshot and mission report, then play the opening moment if feel matters.
+  unresolved_question: Does the boot state look and feel correct for this project?
+
+human_handoff:
+  artifact_to_inspect: mission_runner/smoke_boot/boot_screen.png
+  check_next: Review the captured boot screenshot and engine error section.
+  unresolved_question: Is this the expected first visible state for the game?
+
+steps:
+  - action: runtime_info
+  - action: check_errors
+    label: boot_errors
+  - action: screenshot
+    label: boot_screen
+  - action: scene_tree
+    label: boot_tree
+    max_depth: 8
+  - action: wait
+    ms: 1000
+  - action: screenshot
+    label: after_wait
+  - action: check_errors
+    label: post_boot_errors

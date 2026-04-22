@@ -15,6 +15,7 @@
  *   --mode watch        Run in foreground: fullscreen, OS cursor, visible to user
  *   --reset             Reset to home screen before each mission (implied for --mission all)
  *   --no-reset          Disable auto-reset even for --mission all
+ *   --output-dir        Directory for reports/artifacts (default: missions/reports)
  *   --diff-block-thresh Per-block channel diff threshold, 0-255 (default: 8)
  *   --diff-change-thresh Fraction of blocks that must differ, 0.0-1.0 (default: 0.03)
  */
@@ -29,7 +30,7 @@ import { compareScreenshots, compareToReference } from "./perceptual_diff.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_MISSIONS_FILE = path.join(__dirname, "missions.json");
-const OUTPUT_DIR = path.join(__dirname, "reports");
+const DEFAULT_OUTPUT_DIR = path.join(__dirname, "reports");
 const REFS_DIR = path.join(__dirname, "references");
 
 // ── CLI args ──
@@ -52,7 +53,20 @@ const _mf = flags["missions-file"] || flags.missionsFile;
 const missionsFile = _mf
   ? (path.isAbsolute(_mf) ? _mf : path.join(__dirname, _mf))
   : DEFAULT_MISSIONS_FILE;
-const missions = JSON.parse(fs.readFileSync(missionsFile, "utf-8"));
+const _od = flags["output-dir"] || flags.outputDir;
+const outputDir = _od
+  ? (path.isAbsolute(_od) ? _od : path.resolve(process.cwd(), _od))
+  : DEFAULT_OUTPUT_DIR;
+
+function normalizeMission(mission) {
+  const tier = Number(mission.tier_required ?? 1);
+  return {
+    ...mission,
+    tier_required: Number.isFinite(tier) && tier > 0 ? tier : 1,
+  };
+}
+
+const missions = JSON.parse(fs.readFileSync(missionsFile, "utf-8")).map(normalizeMission);
 
 if (flags.list) {
   console.log("\nAvailable Missions:\n");
@@ -66,7 +80,7 @@ if (flags.list) {
 
 if (!flags.mission) {
   console.error("Usage: node run_mission.mjs --mission <id|all|starters> --exe <godot_exe> --project <path>");
-  console.error("Flags: --reset  --no-reset  --list");
+  console.error("Flags: --reset  --no-reset  --list  --output-dir <path>");
   process.exit(1);
 }
 if (!flags.exe || !flags.project) {
@@ -702,7 +716,7 @@ function generateReport(mission, context) {
 // ── Main ──
 
 async function runMission(mission, shouldReset, errorIndex = 0) {
-  const missionOutDir = path.join(OUTPUT_DIR, mission.id);
+  const missionOutDir = path.join(outputDir, mission.id);
   fs.mkdirSync(missionOutDir, { recursive: true });
 
   const context = {
@@ -814,7 +828,7 @@ async function main() {
   const isMulti = toRun.length > 1;
   const shouldReset = flags.noReset ? false : (flags.reset || isMulti);
 
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  fs.mkdirSync(outputDir, { recursive: true });
 
   const isWatch = (flags.mode === "watch");
   console.log("=== Godot Runtime Bridge — Mission Runner ===");
@@ -822,7 +836,7 @@ async function main() {
   console.log(`Mode: ${isWatch ? "WATCH (foreground, OS cursor)" : "BACKGROUND (windowed, synthetic input)"}`);
   if (shouldReset) console.log("Reset to home: ENABLED (before each mission)");
 
-  const maxTier = Math.max(...toRun.map(m => m.tier_required));
+  const maxTier = Math.max(...toRun.map(m => m.tier_required ?? 1));
   console.log(`Launching game (tier ${maxTier})...`);
 
   await launchGame(flags.exe, flags.project, maxTier);
@@ -880,7 +894,7 @@ async function main() {
 
   // Write overall report
   const runTimestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const overallPath = path.join(OUTPUT_DIR, "OVERALL.md");
+  const overallPath = path.join(outputDir, "OVERALL.md");
   const overallMd = [
     "# GRB Mission Run — Overall Report",
     "",
@@ -899,7 +913,7 @@ async function main() {
   ];
   for (const s of summaries) {
     const status = s.issues > 0 ? "FAIL" : "PASS";
-    const relReport = path.relative(OUTPUT_DIR, s.reportFile || "").replace(/\\/g, "/");
+    const relReport = path.relative(outputDir, s.reportFile || "").replace(/\\/g, "/");
     overallMd.push(`| ${status} | \`${s.id}\` | ${s.issues} | ${s.time}s | ${s.screenshots} | [report](${relReport}) |`);
   }
   overallMd.push("");
@@ -925,7 +939,7 @@ async function main() {
     console.log(`  ${icon} ${s.id.padEnd(35)} ${s.issues} issues  (${s.time}s)${reset}`);
   }
   console.log(`\n  Total issues: ${totalIssues}`);
-  console.log(`  Reports: ${OUTPUT_DIR}`);
+  console.log(`  Reports: ${outputDir}`);
   console.log(`  Overall: ${overallPath}\n`);
 
   process.exit(totalIssues > 0 ? 1 : 0);

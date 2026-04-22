@@ -1,0 +1,15 @@
+tiers:
+  W: wiring proof
+  R: runtime visual proof
+  E: experiential proof
+
+rules:
+  - Agents may claim W when the mission launches, connects, captures runtime info, and reports no engine errors.
+  - Agents may cite screenshots as R evidence, but should not claim full visual correctness without project-specific expectations.
+  - Agents must not claim E unless a human confirms feel, UX, or design intent.
+
+blocked_proof_required_fields:
+  - what_blocked_higher_proof
+  - artifact_to_inspect
+  - human_should_check_next
+  - unresolved_question
