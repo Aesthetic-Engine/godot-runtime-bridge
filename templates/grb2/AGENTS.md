@@ -1,6 +1,8 @@
 # Agent Operating Contract
 
-This project uses Godot Runtime Bridge 2.0 proof workflows. Treat this file as the first draft of the project's agent operating contract; customize it as the project becomes more specific.
+This project uses Godot Runtime Bridge 2.0 proof workflows. Treat this file as the first read for coding agents and as the starting point for project-specific operating truth.
+
+Customize the TODOs before relying on this contract for larger work.
 
 ## Read First
 
@@ -13,13 +15,27 @@ This project uses Godot Runtime Bridge 2.0 proof workflows. Treat this file as t
 
 - Keep implementation slices small enough to prove with one mission when possible.
 - Before claiming a change works, say which proof tier was reached and link the proof bundle.
+- Say what was not proven and what still needs human review.
 - Do not claim experiential proof unless a human has reviewed or played the slice.
 - Put proof bundles under `grb_reports/`.
 - Record recurring project-specific traps in `grb/gotchas.md`.
 
+## Customize First
+
+- Replace `TODO Project Name` in `grb.project.yaml`.
+- Add the real startup scene/state under `expected_first_run`.
+- Add project-specific visual or UX expectations to `grb/proof_policy.yaml`.
+- Add known launch/import/plugin traps to `grb/gotchas.md`.
+
 ## First Proof Run
 
 Run `grb/missions/smoke_boot.yaml` before making larger changes. A passing smoke boot targets W-tier wiring proof. It can provide R-tier screenshot evidence, but it does not prove visual correctness by itself. E-tier still needs human review.
+
+After the run, inspect:
+
+- `grb_reports/<run-id>/summary.md`
+- the primary screenshot listed in the summary
+- `grb_reports/<run-id>/run.json` when another tool needs machine-readable proof
 
 ## Proof Language
 

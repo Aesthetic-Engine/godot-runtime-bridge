@@ -18,6 +18,66 @@ function readExpectation(candidate) {
   return candidate.run.compare_expectation || "no_unintended_change";
 }
 
+function oneLine(text) {
+  return String(text || "").replace(/\s+/g, " ").trim();
+}
+
+function comparisonStats(comparison) {
+  const pairs = comparison.parts?.screenshots?.pairs || [];
+  const changedPairs = pairs.filter((pair) => pair.changed);
+  const missingPairs = comparison.parts?.screenshots?.missing || [];
+  const runtimeDiffs = comparison.parts?.runtime?.differences || [];
+  const issueDelta = comparison.parts?.errors?.issue_delta;
+  const stderrChanged = Boolean(comparison.parts?.errors?.stderr_changed);
+
+  return {
+    screenshot_pairs: pairs.length,
+    screenshot_matched: pairs.length - changedPairs.length,
+    screenshot_changed: changedPairs.length,
+    screenshot_missing: missingPairs.length,
+    runtime_differences: runtimeDiffs.length,
+    issue_delta: issueDelta ?? null,
+    stderr_changed: stderrChanged,
+  };
+}
+
+function resultMeaning(result) {
+  switch (result) {
+    case "matched":
+      return "Compared artifacts matched within the current GRB checks; this does not claim E-tier experience.";
+    case "difference_detected":
+      return "Differences were detected and need review; they may be intended changes or regressions.";
+    case "regression_suspected":
+      return "A difference conflicts with the comparison expectation and should be treated as a suspected regression until reviewed.";
+    case "blocked":
+      return "No trustworthy comparison was completed; fix baseline selection or choose an explicit baseline.";
+    case "human_review_required":
+      return "Automation found something that needs human judgment before the result can be trusted.";
+    default:
+      return "Review comparison.md before drawing a conclusion.";
+  }
+}
+
+export function printComparisonCloseout(comparison, comparisonMdPath, comparisonJsonPath, log = console.log) {
+  const stats = comparison.stats || comparisonStats(comparison);
+  const selected = comparison.baseline_selection?.selected;
+
+  log("");
+  log("Comparison closeout:");
+  log(`  Result: ${String(comparison.result || "unknown").toUpperCase()}`);
+  log(`  Meaning: ${resultMeaning(comparison.result)}`);
+  log(`  Baseline: ${comparison.baseline?.run_id || "none"}`);
+  log(`  Candidate: ${comparison.candidate?.run_id || "unknown"}`);
+  log(`  Baseline mode: ${comparison.baseline_selection?.requested_mode || "unknown"} -> ${comparison.baseline_selection?.effective_mode || "unknown"}`);
+  log(`  Baseline selected because: ${selected?.reason || comparison.baseline_selection?.blocked_reason || "not selected"}`);
+  log(`  Screenshot pairs: ${stats.screenshot_matched} matched, ${stats.screenshot_changed} changed, ${stats.screenshot_missing} missing`);
+  log(`  Runtime differences: ${stats.runtime_differences}`);
+  log(`  Issue delta: ${stats.issue_delta ?? "unknown"}; stderr changed: ${stats.stderr_changed ? "yes" : "no"}`);
+  log(`  Next: ${oneLine(comparison.human_next_step)}`);
+  log(`  Open: ${comparisonMdPath}`);
+  log(`  JSON: ${comparisonJsonPath}`);
+}
+
 function defaultBaselineSelection(baseline, candidate) {
   return {
     requested_mode: "explicit_path",
@@ -52,9 +112,11 @@ function updateCandidateSummary(candidateRunDir, comparison) {
     "## Comparison",
     "",
     `- Result: **${comparison.result}**`,
-    `- Baseline: \`${comparison.baseline.run_id}\``,
+    `- Baseline: \`${comparison.baseline.run_id || "none"}\``,
     `- Baseline mode: ${comparison.baseline_selection.requested_mode}`,
     `- Human review required: ${comparison.human_review_required ? "yes" : "no"}`,
+    `- Meaning: ${resultMeaning(comparison.result)}`,
+    `- Next step: ${comparison.human_next_step}`,
     `- Summary: \`comparison/comparison.md\``,
     `- JSON: \`comparison/comparison.json\``,
     SUMMARY_END,
@@ -82,6 +144,7 @@ export function writeBlockedComparison(candidatePath, decision, message) {
     result: "blocked",
     human_review_required: true,
     reason: message,
+    stats: null,
     baseline_selection: decision,
     baseline: decision?.selected ? {
       run_id: decision.selected.run_id,
@@ -105,6 +168,7 @@ export function writeBlockedComparison(candidatePath, decision, message) {
     human_next_step: "Select an explicit trustworthy baseline or create a passing baseline run, then compare again.",
     unresolved_question: "Which prior run is a trustworthy baseline for this candidate?",
   };
+  comparison.stats = comparisonStats(comparison);
 
   const comparisonJsonPath = path.join(comparisonDir, "comparison.json");
   const comparisonMdPath = path.join(comparisonDir, "comparison.md");
@@ -170,13 +234,15 @@ export function compareRuns(baselinePath, candidatePath, options = {}) {
       result: candidate.run.result || candidate.run.status || null,
     },
     parts,
+    stats: null,
     human_next_step: classification.human_review_required
       ? "Inspect comparison.md, then review the paired screenshots and mission reports."
-      : "No regression was suspected by the current Sprint 2 comparison checks.",
+      : "No regression was suspected by the current GRB comparison checks.",
     unresolved_question: classification.human_review_required
       ? "Are the detected differences intended, acceptable, or regressions?"
       : "Do the compared artifacts cover the behavior you care about?",
   };
+  comparison.stats = comparisonStats(comparison);
 
   for (const pair of parts.screenshots.pairs) {
     const pairPath = path.join(pairsDir, `${pair.key.replace(/[^a-z0-9_-]/gi, "_")}.json`);

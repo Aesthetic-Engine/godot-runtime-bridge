@@ -2,4 +2,10 @@ id: default
 name: Default Godot Launch
 godot_exe_env: GODOT_EXE
 project_dir: "."
-notes: Set GODOT_EXE or pass --exe when running missions.
+notes: Set GODOT_EXE or pass --exe when running missions. Start with smoke_boot, then inspect grb_reports/<run-id>/summary.md before claiming proof.
+first_run:
+  mission: smoke_boot
+  inspect:
+    - summary.md
+    - primary screenshot
+    - run.json

@@ -1,17 +1,37 @@
 export function renderComparisonSummary(comparison) {
+  const stats = comparison.stats || {};
+  const meaning = comparison.result === "matched"
+    ? "Compared artifacts matched within the current GRB checks; this does not claim E-tier experience."
+    : comparison.result === "blocked"
+      ? "No trustworthy comparison was completed; fix baseline selection or choose an explicit baseline."
+      : comparison.result === "regression_suspected"
+        ? "A difference conflicts with the comparison expectation and should be treated as a suspected regression until reviewed."
+        : comparison.result === "difference_detected"
+          ? "Differences were detected and need review; they may be intended changes or regressions."
+          : "Review this comparison before drawing a conclusion.";
+
   const lines = [
     `# GRB Run Comparison: ${comparison.mission_name}`,
     "",
     "| Field | Value |",
     "|-------|-------|",
     `| Result | **${comparison.result.toUpperCase()}** |`,
-    `| Baseline | \`${comparison.baseline.run_id}\` |`,
+    `| Baseline | \`${comparison.baseline.run_id || "none"}\` |`,
     `| Candidate | \`${comparison.candidate.run_id}\` |`,
     `| Baseline mode requested | ${comparison.baseline_selection?.requested_mode || "unknown"} |`,
     `| Baseline mode used | ${comparison.baseline_selection?.effective_mode || "unknown"} |`,
     `| Baseline fallback | ${comparison.baseline_selection?.fallback ? "yes" : "no"} |`,
     `| Expectation | ${comparison.expectation} |`,
     `| Human review required | ${comparison.human_review_required ? "yes" : "no"} |`,
+    "",
+    "## Comparison Verdict",
+    "",
+    `- Meaning: ${meaning}`,
+    `- Compared: \`${comparison.baseline.run_id || "none"}\` -> \`${comparison.candidate.run_id || "unknown"}\``,
+    `- Screenshot pairs: ${stats.screenshot_matched ?? "unknown"} matched, ${stats.screenshot_changed ?? "unknown"} changed, ${stats.screenshot_missing ?? "unknown"} missing`,
+    `- Runtime differences: ${stats.runtime_differences ?? "unknown"}`,
+    `- Issue delta: ${stats.issue_delta ?? "unknown"}`,
+    `- Next step: ${comparison.human_next_step}`,
     "",
     "## Baseline Selection",
     "",

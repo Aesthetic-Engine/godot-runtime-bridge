@@ -40,5 +40,9 @@ export function initProject(options = {}) {
   fs.mkdirSync(reportsDir, { recursive: true });
   entries.push({ status: "ready", path: "grb_reports/" });
 
-  return { projectDir, entries };
+  return {
+    projectDir,
+    entries,
+    projectGodotExists: fs.existsSync(path.join(projectDir, "project.godot")),
+  };
 }

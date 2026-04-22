@@ -2,7 +2,7 @@
 
 import { initProject } from "./lib/init.mjs";
 import { runProjectMission } from "./lib/smoke_boot.mjs";
-import { compareRuns } from "./lib/compare_runs.mjs";
+import { compareRuns, printComparisonCloseout } from "./lib/compare_runs.mjs";
 
 function parseArgs(argv) {
   const positional = [];
@@ -29,7 +29,7 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-  console.log(`Godot Runtime Bridge 2.0 Sprint 1 CLI
+  console.log(`Godot Runtime Bridge 2.0 CLI
 
 Usage:
   node cli/grb.mjs init [--project <path>]
@@ -69,7 +69,17 @@ async function main() {
       console.log(`  ${entry.status.padEnd(7)} ${entry.path}`);
     }
     console.log("");
-    console.log("Next:");
+    if (!result.projectGodotExists) {
+      console.log("Note: project.godot was not found in this folder.");
+      console.log("  Run init from a Godot project root, or pass --project <path-to-project>.");
+      console.log("");
+    }
+    console.log("Review first:");
+    console.log("  AGENTS.md");
+    console.log("  grb.project.yaml");
+    console.log("  grb/proof_policy.yaml");
+    console.log("");
+    console.log("Then run the first trustworthy proof mission:");
     console.log(`  node ${process.argv[1]} mission run smoke_boot --project "${result.projectDir}" --exe <godot_exe>`);
     console.log("");
     console.log("Proof bundles will be written to:");
@@ -97,9 +107,7 @@ async function main() {
       process.exit(1);
     }
     const result = compareRuns(baseline, candidate);
-    console.log(`Comparison result: ${result.comparison.result}`);
-    console.log(`Comparison summary: ${result.comparisonMdPath}`);
-    console.log(`Comparison JSON: ${result.comparisonJsonPath}`);
+    printComparisonCloseout(result.comparison, result.comparisonMdPath, result.comparisonJsonPath);
     process.exit(["blocked", "regression_suspected"].includes(result.comparison.result) ? 1 : 0);
   }
 

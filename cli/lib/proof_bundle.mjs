@@ -82,6 +82,29 @@ function reachedProofTier(status) {
   return status === "pass" ? "W" : "none";
 }
 
+function provenClaims(passed, screenshotCount) {
+  if (!passed) return ["No automated proof claim was reached because the mission did not pass."];
+
+  const claims = [
+    "W-tier wiring proof reached: Godot launched, GRB connected, runtime inspection ran, and the mission completed.",
+  ];
+  if (screenshotCount > 0) {
+    claims.push("R-tier evidence captured: screenshots are available for human inspection.");
+  }
+  return claims;
+}
+
+function humanReviewItems(screenshotCount) {
+  const items = [
+    "Confirm whether the captured state is the intended project state.",
+    "Confirm E-tier experience, feel, timing, UX, and design intent manually.",
+  ];
+  if (screenshotCount > 0) {
+    items.unshift("Inspect the primary screenshot and mission report before claiming visual correctness.");
+  }
+  return items;
+}
+
 export function writeProofBundle(options) {
   const {
     runDir,
@@ -179,9 +202,12 @@ export function writeProofBundle(options) {
     proof_achieved: reachedTier,
     compare_expectation: mission.compare_expectation || "no_unintended_change",
     evidence,
+    proven: provenClaims(passed, screenshotCount),
     unproven,
+    needs_human_review: humanReviewItems(screenshotCount),
     blocked_reason: blockedReason,
     human_next_step: humanNextStep,
+    next_step: humanNextStep,
     unresolved_question: unresolvedQuestion,
     started_at: startedAt,
     finished_at: finishedAt,
@@ -216,6 +242,22 @@ export function writeProofBundle(options) {
     `| Finished | ${finishedAt} |`,
     `| Screenshots | ${screenshotCount} |`,
     `| Reports | ${reportCount} |`,
+    "",
+    "## First-Run Verdict",
+    "",
+    "### Proven by automation",
+    "",
+    runJson.proven.map((item) => `- ${item}`).join("\n"),
+    "",
+    "### Not proven by automation",
+    "",
+    unproven.map((item) => `- ${item}`).join("\n"),
+    "",
+    "### Needs human review",
+    "",
+    runJson.needs_human_review.map((item) => `- ${item}`).join("\n"),
+    "",
+    `Next step: ${humanNextStep}`,
     "",
     "## Proof Tiers",
     "",

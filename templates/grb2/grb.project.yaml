@@ -1,5 +1,5 @@
 name: TODO Project Name
-grb_version: "2.0-sprint1"
+grb_version: "2.0"
 default_recipe: default
 missions:
   - smoke_boot
@@ -8,3 +8,10 @@ read_first:
   - grb/proof_policy.yaml
   - grb/missions/smoke_boot.yaml
   - grb/gotchas.md
+expected_first_run:
+  scene_or_state: TODO describe the first visible state after launch
+  primary_human_check: TODO describe what the boot screenshot should show
+proof_reports_dir: grb_reports
+first_trustworthy_proof_run:
+  command: node <path-to-grb-main>/cli/grb.mjs mission run smoke_boot --exe <godot_exe>
+  inspect: grb_reports/<run-id>/summary.md

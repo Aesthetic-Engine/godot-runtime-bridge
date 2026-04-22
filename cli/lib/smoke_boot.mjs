@@ -5,7 +5,7 @@ import { parseSimpleYaml } from "./simple_yaml.mjs";
 import { missionRunnerPath, resolveProjectDir, toPosixRelative } from "./paths.mjs";
 import { writeProofBundle } from "./proof_bundle.mjs";
 import { BaselineSelectionError, selectBaseline } from "./select_baseline.mjs";
-import { compareRuns, writeBlockedComparison } from "./compare_runs.mjs";
+import { compareRuns, printComparisonCloseout, writeBlockedComparison } from "./compare_runs.mjs";
 
 function makeRunId(missionId) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
@@ -83,7 +83,33 @@ function writeBlockedBundle({ runDir, runId, projectDir, mission, startedAt, run
   console.error(error);
   console.error(`Proof summary: ${bundle.summaryPath}`);
   console.error(`Proof JSON: ${bundle.runJsonPath}`);
+  printProofCloseout(bundle.runJson, bundle.summaryPath, (line) => console.error(line));
   return { exitCode: 2, runDir };
+}
+
+function oneLine(text) {
+  return String(text || "").replace(/\s+/g, " ").trim();
+}
+
+function printList(log, label, items) {
+  log(`  ${label}:`);
+  for (const item of items || []) {
+    log(`    - ${oneLine(item)}`);
+  }
+}
+
+function printProofCloseout(runJson, summaryPath, log = console.log) {
+  log("");
+  log("Proof closeout:");
+  log(`  Result: ${String(runJson.result || "unknown").toUpperCase()}`);
+  printList(log, "Proven", runJson.proven || []);
+  printList(log, "Not proven", runJson.unproven || []);
+  printList(log, "Needs human review", runJson.needs_human_review || []);
+  if (runJson.blocked_reason) {
+    log(`  Blocked: ${oneLine(runJson.blocked_reason)}`);
+  }
+  log(`  Next: ${oneLine(runJson.human_next_step || runJson.next_step || "Inspect the proof bundle.")}`);
+  log(`  Open: ${summaryPath}`);
 }
 
 function summarizeRunnerError(result) {
@@ -319,14 +345,13 @@ export async function runProjectMission(options = {}) {
 
   console.log(`Proof summary: ${bundle.summaryPath}`);
   console.log(`Proof JSON: ${bundle.runJsonPath}`);
+  printProofCloseout(bundle.runJson, bundle.summaryPath);
 
   if (result.code === 0 && options.compareTo) {
     try {
       const baselineDecision = selectBaseline(projectDir, runDir, options.compareTo);
       const comparison = compareRuns(baselineDecision.selected.path, runDir, { baselineSelection: baselineDecision });
-      console.log(`Comparison result: ${comparison.comparison.result}`);
-      console.log(`Comparison summary: ${comparison.comparisonMdPath}`);
-      console.log(`Comparison JSON: ${comparison.comparisonJsonPath}`);
+      printComparisonCloseout(comparison.comparison, comparison.comparisonMdPath, comparison.comparisonJsonPath);
       if (["blocked", "regression_suspected"].includes(comparison.comparison.result)) {
         exitCode = 1;
       }
@@ -334,8 +359,7 @@ export async function runProjectMission(options = {}) {
       if (err instanceof BaselineSelectionError) {
         const comparison = writeBlockedComparison(runDir, err.decision, err.message);
         console.error(`Comparison blocked: ${err.message}`);
-        console.error(`Comparison summary: ${comparison.comparisonMdPath}`);
-        console.error(`Comparison JSON: ${comparison.comparisonJsonPath}`);
+        printComparisonCloseout(comparison.comparison, comparison.comparisonMdPath, comparison.comparisonJsonPath, (line) => console.error(line));
         exitCode = 1;
       } else {
         console.error(`Comparison blocked: ${err.message}`);
