@@ -1,0 +1,46 @@
+id: scene_transition
+name: Proving Ground Scene Transition
+goal: Prove that GRB can trigger a deterministic title-to-lab transition and capture matching visual/runtime evidence.
+recipe: default
+targeted_proof_tier: R
+compare_expectation: change_expected
+tier_required: 2
+estimated_time_sec: 15
+
+blocked_proof:
+  what_blocked_higher_proof: The mission can show a state transition happened, but a human must decide whether the resulting UI is correct.
+  artifact_to_inspect: mission_runner/scene_transition/lab_after.png
+  human_should_check_next: Inspect before/after screenshots and captured runtime state.
+  unresolved_question: Did the title-to-lab transition produce the intended visible state?
+
+human_handoff:
+  artifact_to_inspect: mission_runner/scene_transition/lab_after.png
+  check_next: Confirm STATE is lab, COUNTER increased, and the compare banner is visible.
+  unresolved_question: Is this transition clear enough as a future regression surface?
+
+steps:
+  - action: runtime_info
+  - action: screenshot
+    label: title_before
+  - action: call_method
+    node: Main
+    method: grb_pg_state
+    label: state_before
+  - action: press_button
+    name: EnterLabButton
+  - action: wait
+    ms: 250
+  - action: call_method
+    node: Main
+    method: grb_pg_state
+    label: state_after
+  - action: screenshot
+    label: lab_after
+  - action: scene_tree
+    label: lab_tree
+    max_depth: 8
+  - action: screenshot_diff
+    a: title_before
+    b: lab_after
+  - action: check_errors
+    label: transition_errors

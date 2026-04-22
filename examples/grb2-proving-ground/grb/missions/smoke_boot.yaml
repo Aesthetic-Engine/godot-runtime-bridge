@@ -1,0 +1,35 @@
+id: smoke_boot
+name: Proving Ground Smoke Boot
+goal: Launch the proving ground, connect GRB, and capture the stable title/HUD boot surface without claiming visual correctness.
+recipe: default
+targeted_proof_tier: W
+compare_expectation: no_unintended_change
+tier_required: 2
+estimated_time_sec: 15
+
+blocked_proof:
+  what_blocked_higher_proof: Smoke boot proves launch and evidence capture, but not visual correctness or experience quality.
+  artifact_to_inspect: mission_runner/smoke_boot/boot_screen.png
+  human_should_check_next: Inspect the boot screenshot and confirm the title/HUD are the expected first state.
+  unresolved_question: Does the boot surface look like the intended GRB proving-ground title state?
+
+human_handoff:
+  artifact_to_inspect: mission_runner/smoke_boot/boot_screen.png
+  check_next: Confirm the screenshot shows the title, HUD labels, and closed panel state.
+  unresolved_question: Is the first visible state stable and readable enough for future GRB validation?
+
+steps:
+  - action: runtime_info
+  - action: check_errors
+    label: boot_errors
+  - action: screenshot
+    label: boot_screen
+  - action: scene_tree
+    label: boot_tree
+    max_depth: 8
+  - action: call_method
+    node: Main
+    method: grb_pg_state
+    label: boot_state
+  - action: check_errors
+    label: post_boot_errors

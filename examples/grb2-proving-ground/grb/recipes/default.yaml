@@ -1,0 +1,12 @@
+id: default
+name: Default Proving Ground Recipe
+intent: Keep proof runs deterministic, short, and easy for humans to inspect.
+
+before_run:
+  - Sync the canonical addon with node tools/sync_grb_addon.mjs.
+  - Open the project once in Godot if .godot metadata is missing.
+
+after_run:
+  - Inspect summary.md and run.json.
+  - Inspect the primary screenshot artifact for the mission.
+  - Treat E-tier as human-confirmed only.

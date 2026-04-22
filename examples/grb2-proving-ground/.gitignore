@@ -1,0 +1,8 @@
+.godot/
+addons/
+grb_reports/
+export_templates/
+feature_profiles/
+script_templates/
+text_editor_themes/
+*.uid

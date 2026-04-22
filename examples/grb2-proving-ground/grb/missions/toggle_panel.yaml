@@ -1,0 +1,43 @@
+id: toggle_panel
+name: Proving Ground Toggle Panel
+goal: Prove that GRB can trigger and capture a deterministic closed-to-open UI panel transition.
+recipe: default
+targeted_proof_tier: R
+compare_expectation: change_expected
+tier_required: 2
+estimated_time_sec: 15
+
+blocked_proof:
+  what_blocked_higher_proof: The mission captures evidence that the panel opened, but a human must inspect whether the panel is visually acceptable.
+  artifact_to_inspect: mission_runner/toggle_panel/panel_open.png
+  human_should_check_next: Inspect before/after screenshots and captured runtime state.
+  unresolved_question: Does the opened panel provide a clear enough before/after proof surface?
+
+human_handoff:
+  artifact_to_inspect: mission_runner/toggle_panel/panel_open.png
+  check_next: Confirm PANEL is open and the proof panel text is visible.
+  unresolved_question: Is this panel surface stable enough for future comparison work?
+
+steps:
+  - action: runtime_info
+  - action: call_method
+    node: Main
+    method: grb_pg_reset
+    label: reset_state
+  - action: screenshot
+    label: panel_closed
+  - action: press_button
+    name: TogglePanelButton
+  - action: wait
+    ms: 250
+  - action: call_method
+    node: Main
+    method: grb_pg_state
+    label: panel_state
+  - action: screenshot
+    label: panel_open
+  - action: screenshot_diff
+    a: panel_closed
+    b: panel_open
+  - action: check_errors
+    label: panel_errors
