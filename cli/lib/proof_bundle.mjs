@@ -34,6 +34,14 @@ function selectInspectArtifact(artifacts, fallback) {
     || fallback;
 }
 
+function targetedProofTier(mission) {
+  return mission.targeted_proof_tier || "W";
+}
+
+function reachedProofTier(status) {
+  return status === "pass" ? "W" : "none";
+}
+
 export function writeProofBundle(options) {
   const {
     runDir,
@@ -45,6 +53,8 @@ export function writeProofBundle(options) {
     finishedAt,
     runner,
     error,
+    humanNextStep: explicitHumanNextStep,
+    unresolvedQuestion: explicitUnresolvedQuestion,
   } = options;
 
   const artifacts = findFiles(runDir)
@@ -58,6 +68,8 @@ export function writeProofBundle(options) {
   const fallbackArtifact = { path: "summary.md", type: "report" };
   const inspectArtifact = selectInspectArtifact(artifacts, fallbackArtifact);
   const passed = status === "pass";
+  const targetedTier = targetedProofTier(mission);
+  const reachedTier = reachedProofTier(status);
   const screenshotCount = artifacts.filter((a) => a.type === "screenshot").length;
   const reportCount = artifacts.filter((a) => a.type === "report").length;
   const handoff = mission.human_handoff || {};
@@ -100,27 +112,51 @@ export function writeProofBundle(options) {
     },
   };
 
+  const evidence = artifacts.map((a) => ({ ...a }));
+  const unproven = [];
+  if (!passed) {
+    unproven.push("W-tier wiring proof was not reached because the mission did not complete successfully.");
+  }
+  unproven.push("R-tier visual correctness is not claimed; screenshots are evidence for inspection, not automatic visual validation.");
+  unproven.push("E-tier experience, feel, timing, and design intent require human confirmation.");
+
+  const blockedReason = passed ? null : (error || "The mission was blocked before meaningful proof could be completed.");
+  const higherProofReason = blockedProof.what_blocked_higher_proof || "Higher proof requires human review.";
+  const humanNextStep = explicitHumanNextStep || (passed
+    ? (handoffCheckNext || "Inspect the captured screenshot and mission report.")
+    : (blockedCheckNext || "Resolve the blockage, then rerun the mission."));
+  const unresolvedQuestion = explicitUnresolvedQuestion || blockedProof.unresolved_question || handoff.unresolved_question || "Does the captured state match the intended player experience?";
+
   const runJson = {
     schema_version: 1,
     run_id: runId,
     mission_id: mission.id,
+    mission_name: mission.name || mission.id,
     project_dir: projectDir,
+    result: status,
     status,
+    targeted_proof_tier: targetedTier,
+    reached_proof_tier: reachedTier,
+    evidence,
+    unproven,
+    blocked_reason: blockedReason,
+    human_next_step: humanNextStep,
+    unresolved_question: unresolvedQuestion,
     started_at: startedAt,
     finished_at: finishedAt,
     runner,
     error: error || null,
     proof_tiers: proofTiers,
     blocked_proof: {
-      what_blocked_higher_proof: blockedProof.what_blocked_higher_proof || "No human experiential review was performed.",
+      what_blocked_higher_proof: higherProofReason,
       artifact_to_inspect: blockedArtifactPath,
-      human_should_check_next: blockedCheckNext || "Review the captured screenshot and run the game manually if feel or intent matters.",
-      unresolved_question: blockedProof.unresolved_question || "Does the captured state match the intended player experience?",
+      human_should_check_next: humanNextStep,
+      unresolved_question: unresolvedQuestion,
     },
     human_handoff: {
       artifact_to_inspect: handoffArtifactPath,
-      check_next: handoffCheckNext || "Inspect the captured screenshot and mission report.",
-      unresolved_question: handoff.unresolved_question || "Does the boot state look and feel correct for this project?",
+      check_next: humanNextStep,
+      unresolved_question: unresolvedQuestion,
     },
     artifacts,
   };
@@ -131,8 +167,10 @@ export function writeProofBundle(options) {
     "| Field | Value |",
     "|-------|-------|",
     `| Run ID | \`${runId}\` |`,
-    `| Mission | \`${mission.id}\` |`,
-    `| Status | **${status.toUpperCase()}** |`,
+    `| Mission | ${mission.name || mission.id} (\`${mission.id}\`) |`,
+    `| Result | **${status.toUpperCase()}** |`,
+    `| Targeted proof tier | ${targetedTier} |`,
+    `| Reached proof tier | ${reachedTier} |`,
     `| Started | ${startedAt} |`,
     `| Finished | ${finishedAt} |`,
     `| Screenshots | ${screenshotCount} |`,
@@ -146,14 +184,18 @@ export function writeProofBundle(options) {
     "",
     "## Evidence",
     "",
-    artifacts.length > 0 ? artifacts.map((a) => `- ${a.type}: \`${a.path}\``).join("\n") : "- No artifacts were captured.",
+    evidence.length > 0 ? evidence.map((a) => `- ${a.type}: \`${a.path}\``).join("\n") : "- No artifacts were captured.",
+    "",
+    "## Still Unproven",
+    "",
+    unproven.map((item) => `- ${item}`).join("\n"),
     "",
     "## Human Handoff",
     "",
-    `- Higher proof not claimed because: ${runJson.blocked_proof.what_blocked_higher_proof}`,
+    blockedReason ? `- Blocked reason: ${blockedReason}` : `- Higher proof not claimed because: ${higherProofReason}`,
     `- Artifact to inspect: \`${runJson.blocked_proof.artifact_to_inspect}\``,
-    `- Human should check next: ${runJson.blocked_proof.human_should_check_next}`,
-    `- Unresolved question: ${runJson.blocked_proof.unresolved_question}`,
+    `- Human should check next: ${humanNextStep}`,
+    `- Unresolved question: ${unresolvedQuestion}`,
     "",
   ];
 
