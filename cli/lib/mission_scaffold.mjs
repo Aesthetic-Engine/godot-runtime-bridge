@@ -3,6 +3,8 @@ import path from "path";
 import { resolveProjectDir } from "./paths.mjs";
 import { parseSimpleYaml } from "./simple_yaml.mjs";
 
+export const VALID_MISSION_PATTERNS = ["default", "transition", "toggle"];
+
 function isDirectory(filePath) {
   try {
     return fs.statSync(filePath).isDirectory();
@@ -23,6 +25,14 @@ function validateMissionId(missionId) {
   if (!missionId || !/^[a-z][a-z0-9_]*$/.test(missionId)) {
     throw new Error("Mission id must use snake_case starting with a letter, e.g. pause_menu or inventory_panel.");
   }
+}
+
+function validatePattern(pattern) {
+  const patternId = pattern || "default";
+  if (!VALID_MISSION_PATTERNS.includes(patternId)) {
+    throw new Error(`Invalid mission scaffold pattern: ${patternId}. Valid patterns: ${VALID_MISSION_PATTERNS.join(", ")}.`);
+  }
+  return patternId;
 }
 
 function titleCaseFromId(missionId) {
@@ -49,7 +59,7 @@ function readDefaultRecipe(projectDir) {
   return { recipe: "default", source: "fallback" };
 }
 
-function renderMission({ missionId, recipe }) {
+function renderDefaultMission({ missionId, recipe }) {
   const title = titleCaseFromId(missionId);
   return `# GRB mission scaffold.
 # Customize the TODOs before relying on this as proof.
@@ -104,10 +114,127 @@ steps:
 `;
 }
 
+function renderTransitionMission({ missionId, recipe }) {
+  const title = titleCaseFromId(missionId);
+  return `# GRB mission scaffold pattern: transition.
+# Use for title -> gameplay, menu -> panel, screen/state change, or one bounded before/after transition.
+# Replace the TODO interaction with the smallest action that causes the transition.
+# This captures evidence; it does not prove product correctness by itself.
+
+id: ${missionId}
+name: ${title}
+goal: TODO prove one bounded transition, such as title to gameplay, menu to settings, or lobby to match.
+recipe: ${recipe}
+targeted_proof_tier: R
+compare_expectation: change_expected
+tier_required: 1
+estimated_time_sec: 20
+
+blocked_proof:
+  what_blocked_higher_proof: This mission can capture before/after transition evidence, but a human must decide whether the resulting state is correct.
+  artifact_to_inspect: mission_runner/${missionId}/after_transition.png
+  human_should_check_next: Inspect before/after screenshots and confirm the after state is the intended transition target.
+  unresolved_question: Did the transition reach the intended project state?
+
+human_handoff:
+  artifact_to_inspect: mission_runner/${missionId}/after_transition.png
+  check_next: Confirm the after screenshot shows the intended destination state, then add any project-specific expectations.
+  unresolved_question: What exact visual or runtime signal should prove this transition in future runs?
+
+steps:
+  - action: runtime_info
+  - action: screenshot
+    label: before_transition
+
+  # TODO transition action: replace this with one real step.
+  # Examples:
+  # - action: press_button
+  #   name: StartButton
+  # - action: press_button
+  #   name: EnterLabButton
+  # - action: key
+  #   args:
+  #     action: ui_accept
+  - action: wait
+    ms: 300
+
+  - action: screenshot
+    label: after_transition
+  - action: screenshot_diff
+    a: before_transition
+    b: after_transition
+    issue_title: TODO expected transition did not change the visible state
+  - action: check_errors
+    label: transition_errors
+`;
+}
+
+function renderToggleMission({ missionId, recipe }) {
+  const title = titleCaseFromId(missionId);
+  return `# GRB mission scaffold pattern: toggle.
+# Use for open/close or hidden/visible UI surfaces: pause menu, inventory, map, settings, debug panel.
+# Replace the TODO interaction with the smallest action that toggles the surface.
+# This captures evidence; it does not prove product correctness by itself.
+
+id: ${missionId}
+name: ${title}
+goal: TODO prove one toggleable UI surface, such as opening a pause menu, inventory panel, map, or settings overlay.
+recipe: ${recipe}
+targeted_proof_tier: R
+compare_expectation: change_expected
+tier_required: 1
+estimated_time_sec: 20
+
+blocked_proof:
+  what_blocked_higher_proof: This mission can capture hidden/visible or closed/open evidence, but a human must decide whether the UI is correct.
+  artifact_to_inspect: mission_runner/${missionId}/toggle_on.png
+  human_should_check_next: Inspect before/after screenshots and confirm the toggled surface is visible and acceptable.
+  unresolved_question: Did the toggle reveal the intended UI surface?
+
+human_handoff:
+  artifact_to_inspect: mission_runner/${missionId}/toggle_on.png
+  check_next: Confirm the after screenshot shows the intended toggled state, then add any project-specific expectations.
+  unresolved_question: What exact visual or runtime signal should prove this toggle in future runs?
+
+steps:
+  - action: runtime_info
+  - action: screenshot
+    label: toggle_off
+
+  # TODO toggle action: replace this with one real step.
+  # Examples:
+  # - action: press_button
+  #   name: TogglePanelButton
+  # - action: press_button
+  #   name: InventoryButton
+  # - action: key
+  #   args:
+  #     action: ui_cancel
+  - action: wait
+    ms: 300
+
+  - action: screenshot
+    label: toggle_on
+  - action: screenshot_diff
+    a: toggle_off
+    b: toggle_on
+    issue_title: TODO expected toggle did not change the visible state
+  - action: check_errors
+    label: toggle_errors
+`;
+}
+
+function renderMission({ missionId, recipe, pattern }) {
+  if (pattern === "transition") return renderTransitionMission({ missionId, recipe });
+  if (pattern === "toggle") return renderToggleMission({ missionId, recipe });
+  return renderDefaultMission({ missionId, recipe });
+}
+
 export function scaffoldMission(options = {}) {
   const projectDir = resolveProjectDir(options.projectDir);
   const missionId = options.missionId;
   validateMissionId(missionId);
+  const pattern = validatePattern(options.pattern);
 
   if (!isDirectory(projectDir)) {
     throw new Error(`Project path not found or not a directory: ${projectDir}`);
@@ -127,12 +254,13 @@ export function scaffoldMission(options = {}) {
     ? { recipe: options.recipe, source: "--recipe" }
     : readDefaultRecipe(projectDir);
 
-  fs.writeFileSync(missionPath, renderMission({ missionId, recipe: recipeInfo.recipe }));
+  fs.writeFileSync(missionPath, renderMission({ missionId, recipe: recipeInfo.recipe, pattern }));
 
   return {
     projectDir,
     missionId,
     missionPath,
+    pattern,
     recipe: recipeInfo.recipe,
     recipeSource: recipeInfo.source,
   };

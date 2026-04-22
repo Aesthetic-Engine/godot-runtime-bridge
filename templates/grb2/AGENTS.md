@@ -42,8 +42,14 @@ After the run, inspect:
 After `smoke_boot` passes, create one small project-specific mission for the next feature surface:
 
 ```bash
-node <path-to-grb-main>/cli/grb.mjs mission scaffold todo_mission_id --project <project>
+node <path-to-grb-main>/cli/grb.mjs mission scaffold todo_mission_id --project <project> --pattern transition
 ```
+
+Choose a small pattern:
+
+- `transition`: title to gameplay, menu to panel, screen/state change.
+- `toggle`: open/close or hidden/visible UI such as pause, inventory, map, settings.
+- `default`: use when the surface does not clearly fit the first two.
 
 Customize the goal, one interaction step, and human handoff before claiming proof. Prefer one clear before/after surface over broad exploratory automation.
 

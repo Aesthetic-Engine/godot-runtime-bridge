@@ -244,6 +244,19 @@ grb/missions/pause_menu.yaml
 
 The scaffold command does not overwrite an existing mission file.
 
+You can choose a small starter pattern:
+
+- `--pattern transition`: use for title -> gameplay, menu -> panel, screen/state change, or any bounded before/after transition.
+- `--pattern toggle`: use for open/close or hidden/visible UI surfaces like pause menu, inventory, map, or settings.
+- omit `--pattern` or use `--pattern default`: use when your mission does not clearly fit transition or toggle yet.
+
+Examples:
+
+```bash
+node C:\path\to\grb-main\cli\grb.mjs mission scaffold title_to_gameplay --project C:\path\to\YourGodotProject --pattern transition
+node C:\path\to\grb-main\cli\grb.mjs mission scaffold inventory_panel --project C:\path\to\YourGodotProject --pattern toggle
+```
+
 Customize these first:
 
 - `goal`: the exact behavior or surface the mission is meant to prove

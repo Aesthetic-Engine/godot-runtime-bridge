@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { initProject } from "./lib/init.mjs";
-import { scaffoldMission } from "./lib/mission_scaffold.mjs";
+import { scaffoldMission, VALID_MISSION_PATTERNS } from "./lib/mission_scaffold.mjs";
 import { runProjectMission } from "./lib/smoke_boot.mjs";
 import { compareRuns, printComparisonCloseout } from "./lib/compare_runs.mjs";
 
@@ -34,7 +34,7 @@ function printHelp() {
 
 Usage:
   node cli/grb.mjs init [--project <path>]
-  node cli/grb.mjs mission scaffold <mission_id> [--project <path>] [--recipe <recipe_id>]
+  node cli/grb.mjs mission scaffold <mission_id> [--project <path>] [--recipe <recipe_id>] [--pattern <pattern_id>]
   node cli/grb.mjs mission run <mission_id> [--project <path>] --exe <godot_exe>
   node cli/grb.mjs compare <baseline-run-dir> <candidate-run-dir>
 
@@ -42,6 +42,8 @@ Examples:
   # From the GRB repo
   node cli/grb.mjs init --project C:\\path\\to\\YourGodotProject
   node cli/grb.mjs mission scaffold pause_menu --project C:\\path\\to\\YourGodotProject
+  node cli/grb.mjs mission scaffold title_to_gameplay --project C:\\path\\to\\YourGodotProject --pattern transition
+  node cli/grb.mjs mission scaffold inventory_panel --project C:\\path\\to\\YourGodotProject --pattern toggle
   node cli/grb.mjs mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
   node cli/grb.mjs mission run scene_transition --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
   node cli/grb.mjs mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe --compare-to latest
@@ -53,6 +55,9 @@ Examples:
 
 Environment:
   GODOT_EXE may be used instead of --exe for mission runs.
+
+Mission scaffold patterns:
+  ${VALID_MISSION_PATTERNS.join(", ")}
 `);
 }
 
@@ -108,13 +113,15 @@ async function main() {
       missionId: target,
       projectDir: flags.project || process.cwd(),
       recipe: flags.recipe,
+      pattern: flags.pattern,
     });
     console.log(`GRB mission scaffold created: ${result.missionPath}`);
+    console.log(`Pattern: ${result.pattern}`);
     console.log(`Recipe: ${result.recipe} (${result.recipeSource})`);
     console.log("");
     console.log("Customize first:");
     console.log("  - Replace the TODO goal with the exact project surface this mission proves.");
-    console.log("  - Replace the placeholder interaction with one small real action.");
+    console.log(`  - Replace the ${result.pattern} placeholder interaction with one small real action.`);
     console.log("  - Update human_handoff so a reviewer knows what to inspect.");
     console.log("");
     console.log("Then run:");
