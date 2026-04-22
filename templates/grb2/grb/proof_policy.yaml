@@ -5,7 +5,7 @@ tiers:
 
 rules:
   - Agents may claim W when the mission launches, connects, captures runtime info, and reports no engine errors.
-  - Agents may cite screenshots as R evidence, but should not claim full visual correctness without project-specific expectations.
+  - Agents may cite screenshots as R evidence, but must not claim visual correctness without project-specific expectations or a human review.
   - Agents must not claim E unless a human confirms feel, UX, or design intent.
 
 blocked_proof_required_fields:

@@ -79,7 +79,7 @@ export function writeProofBundle(options) {
     ? handoff.check_next
     : "Inspect the listed artifact and rerun the mission once the blockage is resolved.";
   const runtimeVisualClaim = screenshotCount > 0
-    ? "Screenshots were captured for human/runtime visual inspection, but no project-specific visual baseline or UX intent was validated."
+    ? "Screenshots were captured as visual evidence, but no project-specific baseline, layout rule, or design intent was validated automatically."
     : "No runtime screenshot was captured, so runtime visual proof was not reached.";
 
   const proofTiers = {
@@ -89,7 +89,7 @@ export function writeProofBundle(options) {
       evidence: artifacts.filter((a) => a.type === "report" || a.type === "log").map((a) => a.path),
     },
     R: {
-      status: screenshotCount > 0 ? "evidence_captured_not_fully_claimed" : "not_reached",
+      status: screenshotCount > 0 ? "evidence_captured_not_validated" : "not_reached",
       claim: runtimeVisualClaim,
       evidence: artifacts.filter((a) => a.type === "screenshot").map((a) => a.path),
     },
@@ -148,9 +148,9 @@ export function writeProofBundle(options) {
     "",
     artifacts.length > 0 ? artifacts.map((a) => `- ${a.type}: \`${a.path}\``).join("\n") : "- No artifacts were captured.",
     "",
-    "## Blocked Proof / Human Handoff",
+    "## Human Handoff",
     "",
-    `- What blocked higher proof: ${runJson.blocked_proof.what_blocked_higher_proof}`,
+    `- Higher proof not claimed because: ${runJson.blocked_proof.what_blocked_higher_proof}`,
     `- Artifact to inspect: \`${runJson.blocked_proof.artifact_to_inspect}\``,
     `- Human should check next: ${runJson.blocked_proof.human_should_check_next}`,
     `- Unresolved question: ${runJson.blocked_proof.unresolved_question}`,
