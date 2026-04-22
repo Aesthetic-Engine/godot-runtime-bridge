@@ -16,6 +16,8 @@ Rules:
 - Do not turn this into a sample game.
 - Do not add art/content unless it creates a clearer proof surface.
 - Do not duplicate GRB Core logic here.
+- Do not commit a copied addon; use `tools/sync_grb_addon.mjs`.
 - Use existing GRB runtime commands and the mission runner.
 - Keep screenshots stable enough for comparison and human review.
 - Be explicit when proof is evidence-only and still needs a human check.
+- Prefer clarifying existing surfaces over adding new missions or UI.

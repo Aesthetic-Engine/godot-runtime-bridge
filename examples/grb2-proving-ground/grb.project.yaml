@@ -15,3 +15,13 @@ primary_surfaces:
   - scene_transition_state
   - visible_hud_state
   - toggleable_proof_panel
+
+setup:
+  addon_sync: tools/sync_grb_addon.mjs
+  reports_ignored: true
+  addon_copy_committed: false
+
+missions:
+  smoke_boot: Launch, connect, capture boot screenshot, scene tree, and runtime state.
+  scene_transition: Trigger title-to-lab state change and capture before/after evidence.
+  toggle_panel: Trigger proof panel visibility and capture before/after evidence.

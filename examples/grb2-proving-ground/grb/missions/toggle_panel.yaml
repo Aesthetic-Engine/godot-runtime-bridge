@@ -1,6 +1,6 @@
 id: toggle_panel
 name: Proving Ground Toggle Panel
-goal: Prove that GRB can trigger and capture a deterministic toggleable UI panel.
+goal: Prove that GRB can trigger and capture a deterministic closed-to-open UI panel transition.
 recipe: default
 targeted_proof_tier: R
 compare_expectation: change_expected

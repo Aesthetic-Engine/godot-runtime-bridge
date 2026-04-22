@@ -1,6 +1,6 @@
 id: scene_transition
 name: Proving Ground Scene Transition
-goal: Prove that GRB can trigger a deterministic state transition and capture matching visual/runtime evidence.
+goal: Prove that GRB can trigger a deterministic title-to-lab transition and capture matching visual/runtime evidence.
 recipe: default
 targeted_proof_tier: R
 compare_expectation: change_expected
@@ -16,7 +16,7 @@ blocked_proof:
 human_handoff:
   artifact_to_inspect: mission_runner/scene_transition/lab_after.png
   check_next: Confirm STATE is lab, COUNTER increased, and the compare banner is visible.
-  unresolved_question: Is this transition sufficient as a future regression surface?
+  unresolved_question: Is this transition clear enough as a future regression surface?
 
 steps:
   - action: runtime_info

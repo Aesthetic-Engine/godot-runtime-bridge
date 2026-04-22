@@ -1,6 +1,6 @@
 id: smoke_boot
 name: Proving Ground Smoke Boot
-goal: Launch the proving ground, connect GRB, and capture the stable title/HUD boot surface.
+goal: Launch the proving ground, connect GRB, and capture the stable title/HUD boot surface without claiming visual correctness.
 recipe: default
 targeted_proof_tier: W
 compare_expectation: no_unintended_change
