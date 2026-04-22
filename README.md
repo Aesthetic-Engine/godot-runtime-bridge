@@ -17,16 +17,18 @@ Your AI agent can **build, test, and debug your game under your direction**:
 
 You direct; the agent executes. *"Add a pause menu"*, *"Fix the button that’s cut off on the right"*, *"Run a smoke test and fix each bug you find"* — the agent launches the game, sees the result, edits code, and verifies. After setup, most iteration can happen from chat instead of bouncing back and forth between tools.
 
-## GRB 2.0 Sprint 1 Proof Flow
+## GRB 2.0 First Trustworthy Proof Run
 
-This branch includes the first minimal GRB 2.0 proof workflow:
+GRB 2.0 adds a proof workflow for humans and coding agents who need to move from "it changed" to "here is what was honestly proven." The first useful vertical path is:
 
-- `grb init` scaffold generation
-- `grb mission run smoke_boot`
-- project-local proof bundles under `grb_reports/<run-id>/`
-- explicit W / R / E proof reporting with human handoff
+1. Install and enable the GRB addon in a Godot project.
+2. Run `grb init` to create the project contract scaffold.
+3. Review and customize the generated contract files.
+4. Run `grb mission run smoke_boot`.
+5. Inspect `grb_reports/<run-id>/summary.md`.
+6. State what was proven, what was not proven, and what still needs human review.
 
-For Sprint 1, run the CLI with Node directly. No global `grb` install is required.
+For now, run the CLI with Node directly. No global `grb` install is required.
 
 ### Run from the GRB repo
 
@@ -34,6 +36,16 @@ Initialize a Godot project:
 
 ```bash
 node cli/grb.mjs init --project C:\path\to\YourGodotProject
+```
+
+Review these generated files first:
+
+```text
+AGENTS.md
+grb.project.yaml
+grb/proof_policy.yaml
+grb/missions/smoke_boot.yaml
+grb/gotchas.md
 ```
 
 Run the starter proof mission:
@@ -50,7 +62,7 @@ Initialize the current project:
 node C:\path\to\grb-main\cli\grb.mjs init
 ```
 
-Run the starter proof mission:
+Review the generated files, then run the starter proof mission:
 
 ```bash
 node C:\path\to\grb-main\cli\grb.mjs mission run smoke_boot --exe C:\path\to\Godot_v4.5_or_later_console.exe
@@ -74,22 +86,33 @@ grb_reports/<run-id>/
       report-*.md
 ```
 
+Start with `summary.md`. It now includes a First-Run Verdict:
+
+- proven by automation
+- not proven by automation
+- needs human review
+- blocked reason, when applicable
+- next recommended step
+
+Use `run.json` when another tool needs the same information in machine-readable form.
+
 ### What W / R / E Mean Here
 
 - **W**: wiring proof. The project launched, GRB connected, runtime info/errors were checked, scene tree was captured, and screenshots were saved.
 - **R**: runtime visual evidence. Screenshots were captured for inspection, but the CLI does not automatically know whether the visuals are correct.
 - **E**: experiential proof. A human must confirm feel, timing, UX, and design intent.
 
-### Sprint 1 Limits
+### Current Limits
 
 - R-tier screenshots are evidence, not automatic visual validation.
 - E-tier is never claimed by automation.
 - Some copied projects need to be opened once in Godot before `smoke_boot` can reach `GDRB_READY`.
-- The CLI is still invoked as `node cli/grb.mjs`; packaging and PATH polish are intentionally out of scope for Sprint 1.
+- The CLI is still invoked as `node cli/grb.mjs`; packaging and PATH polish are intentionally out of scope for this slice.
+- The generated scaffold is a starter contract. Customize project-specific expectations before asking agents to claim higher proof.
 
-### Sprint 2 Comparison Slice
+### Natural Second Step: Compare Runs
 
-Sprint 2 adds a thin proof-layer comparison above the existing mission runner. Compare two proof bundles directly:
+After one trustworthy baseline exists, compare proof bundles directly:
 
 ```bash
 node cli/grb.mjs compare C:\path\to\baseline-run C:\path\to\candidate-run

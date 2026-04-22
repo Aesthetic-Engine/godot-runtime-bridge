@@ -83,7 +83,33 @@ function writeBlockedBundle({ runDir, runId, projectDir, mission, startedAt, run
   console.error(error);
   console.error(`Proof summary: ${bundle.summaryPath}`);
   console.error(`Proof JSON: ${bundle.runJsonPath}`);
+  printProofCloseout(bundle.runJson, bundle.summaryPath, (line) => console.error(line));
   return { exitCode: 2, runDir };
+}
+
+function oneLine(text) {
+  return String(text || "").replace(/\s+/g, " ").trim();
+}
+
+function printList(log, label, items) {
+  log(`  ${label}:`);
+  for (const item of items || []) {
+    log(`    - ${oneLine(item)}`);
+  }
+}
+
+function printProofCloseout(runJson, summaryPath, log = console.log) {
+  log("");
+  log("Proof closeout:");
+  log(`  Result: ${String(runJson.result || "unknown").toUpperCase()}`);
+  printList(log, "Proven", runJson.proven || []);
+  printList(log, "Not proven", runJson.unproven || []);
+  printList(log, "Needs human review", runJson.needs_human_review || []);
+  if (runJson.blocked_reason) {
+    log(`  Blocked: ${oneLine(runJson.blocked_reason)}`);
+  }
+  log(`  Next: ${oneLine(runJson.human_next_step || runJson.next_step || "Inspect the proof bundle.")}`);
+  log(`  Open: ${summaryPath}`);
 }
 
 function summarizeRunnerError(result) {
@@ -319,6 +345,7 @@ export async function runProjectMission(options = {}) {
 
   console.log(`Proof summary: ${bundle.summaryPath}`);
   console.log(`Proof JSON: ${bundle.runJsonPath}`);
+  printProofCloseout(bundle.runJson, bundle.summaryPath);
 
   if (result.code === 0 && options.compareTo) {
     try {

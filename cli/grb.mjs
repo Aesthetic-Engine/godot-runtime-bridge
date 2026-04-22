@@ -29,7 +29,7 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-  console.log(`Godot Runtime Bridge 2.0 Sprint 1 CLI
+  console.log(`Godot Runtime Bridge 2.0 CLI
 
 Usage:
   node cli/grb.mjs init [--project <path>]
@@ -69,7 +69,17 @@ async function main() {
       console.log(`  ${entry.status.padEnd(7)} ${entry.path}`);
     }
     console.log("");
-    console.log("Next:");
+    if (!result.projectGodotExists) {
+      console.log("Note: project.godot was not found in this folder.");
+      console.log("  Run init from a Godot project root, or pass --project <path-to-project>.");
+      console.log("");
+    }
+    console.log("Review first:");
+    console.log("  AGENTS.md");
+    console.log("  grb.project.yaml");
+    console.log("  grb/proof_policy.yaml");
+    console.log("");
+    console.log("Then run the first trustworthy proof mission:");
     console.log(`  node ${process.argv[1]} mission run smoke_boot --project "${result.projectDir}" --exe <godot_exe>`);
     console.log("");
     console.log("Proof bundles will be written to:");

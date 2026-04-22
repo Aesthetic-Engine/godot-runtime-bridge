@@ -1,14 +1,25 @@
 tiers:
   W: wiring proof
-  R: runtime visual proof
+  R: runtime visual evidence
   E: experiential proof
 
 rules:
   - Agents may claim W when the mission launches, connects, captures runtime info, and reports no engine errors.
   - Agents may cite screenshots as R evidence, but must not claim visual correctness without project-specific expectations or a human review.
   - Agents must not claim E unless a human confirms feel, UX, or design intent.
+  - Agents must state what remains unproven before asking for merge/review.
   - Proof bundle summaries should link the run under grb_reports before claiming work is verified.
   - Comparison can flag differences or suspected regressions, but humans decide whether visual changes are intended.
+
+first_run_review:
+  inspect:
+    - grb_reports/<run-id>/summary.md
+    - primary screenshot listed in the summary
+    - grb_reports/<run-id>/run.json
+  human_questions:
+    - Is the boot screenshot the expected first visible state?
+    - Are any engine errors or warnings acceptable for this project?
+    - What project-specific expectation should be added before claiming R or E?
 
 blocked_proof_required_fields:
   - what_blocked_higher_proof
