@@ -105,6 +105,20 @@ node cli/grb.mjs mission run smoke_boot --project C:\path\to\YourGodotProject --
 
 Comparison output is written into the candidate bundle under `comparison/`. It currently compares paired screenshots, mission runtime summary fields, and issue/log surfaces. It reports differences honestly as matched, difference detected, suspected regression, blocked, or human review required.
 
+### GRB 2.0 Proving Ground
+
+Sprint 3 adds a tiny deterministic Godot project at `examples/grb2-proving-ground/` for validating and demoing proof workflows without a real game project. It has stable boot, transition, HUD/state, and toggle-panel surfaces.
+
+```bash
+node examples/grb2-proving-ground/tools/sync_grb_addon.mjs
+Godot_v4.6-stable_win64_console.exe --headless --editor --quit --path examples/grb2-proving-ground
+node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+node cli/grb.mjs mission run scene_transition --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+node cli/grb.mjs mission run toggle_panel --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+```
+
+The example keeps the canonical addon source under `addons/godot-runtime-bridge`; its local synced addon copy, `.godot/`, and `grb_reports/` are ignored.
+
 ## Initial Setup (Critical)
 
 1. **Install Godot 4.5 or later.** GRB relies on Godot's `Logger` API, which was added in Godot 4.5.

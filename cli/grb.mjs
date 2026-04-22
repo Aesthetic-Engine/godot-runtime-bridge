@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { initProject } from "./lib/init.mjs";
-import { runSmokeBoot } from "./lib/smoke_boot.mjs";
+import { runProjectMission } from "./lib/smoke_boot.mjs";
 import { compareRuns } from "./lib/compare_runs.mjs";
 
 function parseArgs(argv) {
@@ -33,13 +33,14 @@ function printHelp() {
 
 Usage:
   node cli/grb.mjs init [--project <path>]
-  node cli/grb.mjs mission run smoke_boot [--project <path>] --exe <godot_exe>
+  node cli/grb.mjs mission run <mission_id> [--project <path>] --exe <godot_exe>
   node cli/grb.mjs compare <baseline-run-dir> <candidate-run-dir>
 
 Examples:
   # From the GRB repo
   node cli/grb.mjs init --project C:\\path\\to\\YourGodotProject
   node cli/grb.mjs mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
+  node cli/grb.mjs mission run scene_transition --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
   node cli/grb.mjs mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe --compare-to latest
 
   # From inside a Godot project
@@ -76,8 +77,9 @@ async function main() {
     return;
   }
 
-  if (command === "mission" && subcommand === "run" && target === "smoke_boot") {
-    const result = await runSmokeBoot({
+  if (command === "mission" && subcommand === "run" && target) {
+    const result = await runProjectMission({
+      missionId: target,
       projectDir: flags.project || process.cwd(),
       exe: flags.exe || flags["godot-exe"] || process.env.GODOT_EXE,
       mode: flags.mode,

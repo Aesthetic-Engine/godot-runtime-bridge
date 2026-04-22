@@ -51,9 +51,9 @@ function artifactMetadata(filePath, runDir) {
   } else if (normalized === "runner.stderr.log") {
     role = "runner_stderr";
     id = "log:runner_stderr";
-  } else if (normalized === "smoke_boot.runner.json") {
+  } else if (normalized.endsWith(".runner.json")) {
     role = "generated_mission";
-    id = "json:generated_mission";
+    id = `json:generated_mission:${base.replace(/\.runner$/, "")}`;
   }
 
   return {

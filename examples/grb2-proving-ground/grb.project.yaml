@@ -1,0 +1,17 @@
+project_name: GRB 2.0 Proving Ground
+project_type: deterministic_validation_fixture
+default_recipe: default
+proof_reports_dir: grb_reports
+
+purpose: Validate and demo GRB 2.0 proof workflows without requiring a real game project.
+
+read_first:
+  - AGENTS.md
+  - grb/proof_policy.yaml
+  - grb/gotchas.md
+
+primary_surfaces:
+  - boot_title
+  - scene_transition_state
+  - visible_hud_state
+  - toggleable_proof_panel

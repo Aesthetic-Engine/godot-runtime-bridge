@@ -1,0 +1,10 @@
+proof_tiers:
+  W: Runtime wiring proof. GRB launched, connected, and captured basic runtime evidence.
+  R: Runtime evidence proof. Screenshots, scene tree, and runtime-readable state support the claim.
+  E: Experience proof. Requires a human to confirm visible behavior, feel, and intent.
+
+rules:
+  - Screenshots from this proving ground are evidence, not automatic visual correctness.
+  - Runtime-readable state should be captured when a mission changes visible state.
+  - E-tier requires human confirmation even when screenshots and state look consistent.
+  - Comparison can flag differences, but humans decide whether a visual change is intended.
