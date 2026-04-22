@@ -29,6 +29,71 @@ function writeLog(filePath, content) {
   fs.writeFileSync(filePath, content || "");
 }
 
+function isFile(filePath) {
+  try {
+    return fs.statSync(filePath).isFile();
+  } catch (_) {
+    return false;
+  }
+}
+
+function isDirectory(filePath) {
+  try {
+    return fs.statSync(filePath).isDirectory();
+  } catch (_) {
+    return false;
+  }
+}
+
+function defaultMission() {
+  return {
+    id: "smoke_boot",
+    name: "Smoke Boot",
+    tier_required: 1,
+    blocked_proof: {
+      what_blocked_higher_proof: "The mission was blocked before runtime evidence could be collected.",
+      human_should_check_next: "Resolve the preflight issue, then rerun smoke_boot.",
+      unresolved_question: "Can the project launch with GRB enabled and produce runtime evidence?",
+    },
+    human_handoff: {
+      check_next: "Resolve the preflight issue, then rerun smoke_boot.",
+      unresolved_question: "Can the project launch with GRB enabled and produce runtime evidence?",
+    },
+  };
+}
+
+function writeBlockedBundle({ runDir, runId, projectDir, mission, startedAt, runner, error, humanNextStep, unresolvedQuestion }) {
+  fs.mkdirSync(runDir, { recursive: true });
+  const finishedAt = new Date().toISOString();
+  const bundle = writeProofBundle({
+    runDir,
+    runId,
+    projectDir,
+    mission,
+    status: "blocked",
+    startedAt,
+    finishedAt,
+    runner,
+    error,
+    humanNextStep,
+    unresolvedQuestion,
+  });
+  console.error(error);
+  console.error(`Proof summary: ${bundle.summaryPath}`);
+  console.error(`Proof JSON: ${bundle.runJsonPath}`);
+  return { exitCode: 2, runDir };
+}
+
+function summarizeRunnerError(result) {
+  const combined = `${result.stderr || ""}\n${result.stdout || ""}`;
+  const fatal = combined
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .find((line) => line.startsWith("Fatal:"));
+  return fatal || `Mission runner exited with code ${result.code}.`;
+}
+
 function runMissionRunner(args, options) {
   return new Promise((resolve) => {
     let stdout = "";
@@ -82,55 +147,129 @@ export async function runSmokeBoot(options = {}) {
   const runnerOutputDir = path.join(runDir, "mission_runner");
   const startedAt = new Date().toISOString();
 
-  fs.mkdirSync(runDir, { recursive: true });
-  fs.mkdirSync(runnerOutputDir, { recursive: true });
+  if (!isDirectory(projectDir)) {
+    console.error(`Project path not found or not a directory: ${projectDir}`);
+    console.error("Run from inside a Godot project, or pass --project <path-to-project>.");
+    return { exitCode: 2, runDir: null };
+  }
 
-  if (!fs.existsSync(missionPath)) {
-    const finishedAt = new Date().toISOString();
-    const mission = { id: "smoke_boot", name: "Smoke Boot" };
-    const error = `Mission source not found: ${missionPath}. Run "node cli/grb.mjs init" from the project first.`;
-    const bundle = writeProofBundle({
+  if (!isFile(path.join(projectDir, "project.godot"))) {
+    return writeBlockedBundle({
       runDir,
       runId,
       projectDir,
-      mission,
-      status: "blocked",
+      mission: defaultMission(),
       startedAt,
-      finishedAt,
       runner: { command: null, exit_code: null },
-      error,
+      error: `No project.godot found in: ${projectDir}\nRun from the Godot project root, or pass --project <path-to-project>.`,
+      humanNextStep: "Run from the folder that contains project.godot, or pass --project <path-to-project>.",
+      unresolvedQuestion: "Which Godot project should smoke_boot run against?",
     });
-    console.error(error);
-    console.error(`Proof bundle: ${bundle.summaryPath}`);
-    return { exitCode: 2, runDir };
   }
 
-  const mission = parseSimpleYaml(fs.readFileSync(missionPath, "utf-8"));
-  const runnerMission = toRunnerMission(mission);
+  if (!fs.existsSync(missionPath)) {
+    return writeBlockedBundle({
+      runDir,
+      runId,
+      projectDir,
+      mission: defaultMission(),
+      startedAt,
+      runner: { command: null, exit_code: null },
+      error: `GRB scaffold not found: ${missionPath}\nRun init first: node <path-to-grb-main>\\cli\\grb.mjs init --project "${projectDir}"`,
+      humanNextStep: `Run init first, then rerun smoke_boot: node <path-to-grb-main>\\cli\\grb.mjs init --project "${projectDir}"`,
+      unresolvedQuestion: "Has this project been initialized with the GRB 2.0 Sprint 1 scaffold?",
+    });
+  }
+
+  const addonDir = path.join(projectDir, "addons", "godot-runtime-bridge");
+  if (!isDirectory(addonDir)) {
+    return writeBlockedBundle({
+      runDir,
+      runId,
+      projectDir,
+      mission: defaultMission(),
+      startedAt,
+      runner: { command: null, exit_code: null },
+      error: `GRB addon not found: ${addonDir}\nInstall and enable the Godot Runtime Bridge addon. If this project was copied, open it once in Godot so plugin/import metadata is ready, then rerun smoke_boot.`,
+      humanNextStep: "Install and enable the GRB addon, open the project once in Godot, then rerun smoke_boot.",
+      unresolvedQuestion: "Is the GRB addon installed and enabled for this project?",
+    });
+  }
+
+  const godotMetadataDir = path.join(projectDir, ".godot");
+  if (!isDirectory(godotMetadataDir)) {
+    return writeBlockedBundle({
+      runDir,
+      runId,
+      projectDir,
+      mission: defaultMission(),
+      startedAt,
+      runner: { command: null, exit_code: null },
+      error: `Godot metadata not found: ${godotMetadataDir}\nOpen this project once in Godot so imports/plugins are ready, then rerun smoke_boot.`,
+      humanNextStep: "Open this project once in Godot so imports/plugins are ready, then rerun smoke_boot.",
+      unresolvedQuestion: "Can Godot load this copied project with plugin metadata ready?",
+    });
+  }
+
+  let mission;
+  let runnerMission;
+  try {
+    mission = parseSimpleYaml(fs.readFileSync(missionPath, "utf-8"));
+    runnerMission = toRunnerMission(mission);
+  } catch (err) {
+    return writeBlockedBundle({
+      runDir,
+      runId,
+      projectDir,
+      mission: defaultMission(),
+      startedAt,
+      runner: { command: null, exit_code: null },
+      error: `Could not read smoke_boot mission: ${err.message}`,
+      humanNextStep: "Fix grb/missions/smoke_boot.yaml, then rerun smoke_boot.",
+      unresolvedQuestion: "Is smoke_boot.yaml valid for the Sprint 1 mission runner?",
+    });
+  }
+
   const runnerMissionsFile = path.join(runDir, "smoke_boot.runner.json");
+  fs.mkdirSync(runDir, { recursive: true });
+  fs.mkdirSync(runnerOutputDir, { recursive: true });
   fs.writeFileSync(runnerMissionsFile, `${JSON.stringify([runnerMission], null, 2)}\n`);
 
   if (!options.exe) {
-    const finishedAt = new Date().toISOString();
-    const error = "No Godot executable provided. Pass --exe <path> or set GODOT_EXE.";
-    const bundle = writeProofBundle({
+    return writeBlockedBundle({
       runDir,
       runId,
       projectDir,
       mission,
-      status: "blocked",
       startedAt,
-      finishedAt,
       runner: {
         command: null,
         exit_code: null,
         generated_missions_file: toPosixRelative(runDir, runnerMissionsFile),
       },
-      error,
+      error: "No Godot executable provided.\nPass --exe <path-to-godot> or set GODOT_EXE.",
+      humanNextStep: "Rerun smoke_boot with --exe <path-to-godot>, or set GODOT_EXE to a valid Godot executable.",
+      unresolvedQuestion: "Which Godot executable should launch this project?",
     });
-    console.error(error);
-    console.error(`Proof bundle: ${bundle.summaryPath}`);
-    return { exitCode: 2, runDir };
+  }
+
+  const exePath = path.resolve(options.exe);
+  if (!isFile(exePath)) {
+    return writeBlockedBundle({
+      runDir,
+      runId,
+      projectDir,
+      mission,
+      startedAt,
+      runner: {
+        command: null,
+        exit_code: null,
+        generated_missions_file: toPosixRelative(runDir, runnerMissionsFile),
+      },
+      error: `Godot executable not found: ${exePath}\nPass --exe <path-to-godot> or set GODOT_EXE to a valid Godot executable.`,
+      humanNextStep: "Rerun smoke_boot with a valid --exe path, or set GODOT_EXE to a valid Godot executable.",
+      unresolvedQuestion: "Where is the Godot executable for this project?",
+    });
   }
 
   const runnerArgs = [
@@ -138,7 +277,7 @@ export async function runSmokeBoot(options = {}) {
     "--mission", runnerMission.id,
     "--missions-file", runnerMissionsFile,
     "--output-dir", runnerOutputDir,
-    "--exe", options.exe,
+    "--exe", exePath,
     "--project", projectDir,
   ];
 
@@ -171,7 +310,7 @@ export async function runSmokeBoot(options = {}) {
       generated_missions_file: toPosixRelative(runDir, runnerMissionsFile),
       output_dir: toPosixRelative(runDir, runnerOutputDir),
     },
-    error: result.code === 0 ? null : `Mission runner exited with code ${result.code}.`,
+    error: result.code === 0 ? null : summarizeRunnerError(result),
   });
 
   console.log(`Proof summary: ${bundle.summaryPath}`);

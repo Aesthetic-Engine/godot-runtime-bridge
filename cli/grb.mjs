@@ -34,6 +34,15 @@ Usage:
   node cli/grb.mjs init [--project <path>]
   node cli/grb.mjs mission run smoke_boot [--project <path>] --exe <godot_exe>
 
+Examples:
+  # From the GRB repo
+  node cli/grb.mjs init --project C:\\path\\to\\YourGodotProject
+  node cli/grb.mjs mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
+
+  # From inside a Godot project
+  node C:\\path\\to\\grb-main\\cli\\grb.mjs init
+  node C:\\path\\to\\grb-main\\cli\\grb.mjs mission run smoke_boot --exe C:\\path\\to\\Godot_console.exe
+
 Environment:
   GODOT_EXE may be used instead of --exe for mission runs.
 `);
@@ -58,6 +67,9 @@ async function main() {
     console.log("");
     console.log("Next:");
     console.log(`  node ${process.argv[1]} mission run smoke_boot --project "${result.projectDir}" --exe <godot_exe>`);
+    console.log("");
+    console.log("Proof bundles will be written to:");
+    console.log(`  ${result.projectDir}\\grb_reports\\<run-id>\\`);
     return;
   }
 

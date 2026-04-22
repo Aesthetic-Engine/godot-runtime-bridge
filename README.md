@@ -19,27 +19,73 @@ You direct; the agent executes. *"Add a pause menu"*, *"Fix the button that’s 
 
 ## GRB 2.0 Sprint 1 Proof Flow
 
-This branch includes the first minimal GRB 2.0 proof workflow. It is intentionally run with Node directly; no global `grb` install is required for Sprint 1.
+This branch includes the first minimal GRB 2.0 proof workflow:
 
-From the GRB repo, initialize a Godot project:
+- `grb init` scaffold generation
+- `grb mission run smoke_boot`
+- project-local proof bundles under `grb_reports/<run-id>/`
+- explicit W / R / E proof reporting with human handoff
+
+For Sprint 1, run the CLI with Node directly. No global `grb` install is required.
+
+### Run from the GRB repo
+
+Initialize a Godot project:
 
 ```bash
 node cli/grb.mjs init --project C:\path\to\YourGodotProject
 ```
 
-Or, from inside the Godot project folder:
+Run the starter proof mission:
+
+```bash
+node cli/grb.mjs mission run smoke_boot --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
+```
+
+### Run from inside a Godot project
+
+Initialize the current project:
 
 ```bash
 node C:\path\to\grb-main\cli\grb.mjs init
 ```
 
-Then run the starter proof mission:
+Run the starter proof mission:
 
 ```bash
-node C:\path\to\grb-main\cli\grb.mjs mission run smoke_boot --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
+node C:\path\to\grb-main\cli\grb.mjs mission run smoke_boot --exe C:\path\to\Godot_v4.5_or_later_console.exe
 ```
 
-You may also set `GODOT_EXE` instead of passing `--exe`. Use a project that already opens normally in Godot with the GRB addon enabled; for a newly copied project, open it once in Godot first so import/plugin metadata is ready. The mission reuses `missions/run_mission.mjs`, writes artifacts under `grb_reports/<run-id>/`, and generates `summary.md` plus `run.json` with explicit W/R/E proof status and human handoff fields.
+You may also set `GODOT_EXE` instead of passing `--exe`.
+
+### Proof Bundle Output
+
+`smoke_boot` reuses `missions/run_mission.mjs` and writes into the target Godot project:
+
+```text
+grb_reports/<run-id>/
+  summary.md
+  run.json
+  mission_runner/
+    OVERALL.md
+    smoke_boot/
+      boot_screen.png
+      after_wait.png
+      report-*.md
+```
+
+### What W / R / E Mean Here
+
+- **W**: wiring proof. The project launched, GRB connected, runtime info/errors were checked, scene tree was captured, and screenshots were saved.
+- **R**: runtime visual evidence. Screenshots were captured for inspection, but the CLI does not automatically know whether the visuals are correct.
+- **E**: experiential proof. A human must confirm feel, timing, UX, and design intent.
+
+### Sprint 1 Limits
+
+- R-tier screenshots are evidence, not automatic visual validation.
+- E-tier is never claimed by automation.
+- Some copied projects need to be opened once in Godot before `smoke_boot` can reach `GDRB_READY`.
+- The CLI is still invoked as `node cli/grb.mjs`; packaging and PATH polish are intentionally out of scope for Sprint 1.
 
 ## Initial Setup (Critical)
 

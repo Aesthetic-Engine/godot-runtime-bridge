@@ -19,7 +19,7 @@ This project uses Godot Runtime Bridge 2.0 proof workflows. Treat this file as t
 
 ## First Proof Run
 
-Run `grb/missions/smoke_boot.yaml` before making larger changes. A passing smoke boot can support W-tier wiring proof. It can provide R-tier screenshot evidence, but it does not prove visual correctness by itself. E-tier still needs human review.
+Run `grb/missions/smoke_boot.yaml` before making larger changes. A passing smoke boot targets W-tier wiring proof. It can provide R-tier screenshot evidence, but it does not prove visual correctness by itself. E-tier still needs human review.
 
 ## Proof Language
 
