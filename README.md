@@ -52,8 +52,8 @@ all equivalent.
   Godot project. This is enough for the in-project addon, editor dock, and the
   bridge runtime itself.
 - **Full repo clone**: gives you the repo-level tooling surfaces too, including
-  `mcp/`, `cli/grb.mjs`, `templates/grb2/`, `examples/grb2-proving-ground/`,
-  and `tools/`.
+  the repo-root GRB launcher (`grb.cmd` on Windows, `./grb` on POSIX), `mcp/`,
+  `templates/grb2/`, `examples/grb2-proving-ground/`, and `tools/`.
 - **MCP helper path**: uses the full repo's `mcp/` folder plus the addon in
   your Godot project.
 - **GRB 2.0 proof workflow**: also requires the full repo path, because it uses
@@ -101,7 +101,7 @@ Download this repo and copy the `addons/godot-runtime-bridge/` folder into your 
 Then go to **Project → Project Settings → Plugins** and enable **Godot Runtime Bridge**. When enabled, GRB adds its runtime server automatically — you do **not** need to wire anything by hand.
 
 > **Channel note:** this addon install gives you the runtime bridge inside your
-> Godot project. The MCP helper, `node cli/grb.mjs`, project scaffolds, proving
+> Godot project. The MCP helper, repo-root `grb.cmd` / `./grb` launcher, project scaffolds, proving
 > ground, and other GRB 2.0 repo tooling still require a full clone of this
 > repository.
 
@@ -193,9 +193,9 @@ See [`mcp/README.md`](mcp/README.md) for Claude Code setup (and other agent clie
 
 GRB 2.0 adds a **proof workflow**: a reproducible way to run your game, collect evidence, and get a report that distinguishes what was verified by automation from what still needs you to look at it.
 
-This is a **full-repo workflow**, not an addon-only workflow. It depends on
-repo-level surfaces such as `cli/grb.mjs`, `templates/grb2/`,
-`examples/grb2-proving-ground/`, and repo-side docs/tools.
+This is a **full-repo workflow**, not an addon-only workflow. It depends on the
+repo-root GRB launcher (`grb.cmd` on Windows, `./grb` on POSIX), plus
+`templates/grb2/`, `examples/grb2-proving-ground/`, and repo-side docs/tools.
 
 A few plain-English terms first:
 
@@ -227,12 +227,18 @@ Use the proof workflow in stages:
 
 **The manual way (CLI):**
 
-> **First time seeing these paths?** Replace `C:\path\to\grb-main` with wherever you cloned this repo, and `C:\path\to\YourGodotProject` with your game's folder. You can also set the `GODOT_EXE` environment variable instead of passing `--exe` every time.
+> **Full-repo launcher:** from the GRB repo root, use `grb.cmd ...` on Windows
+> or `./grb ...` on POSIX shells. From another directory, call the repo-root
+> launcher directly, for example `C:\path\to\grb-main\grb.cmd ...`.
+>
+> Replace `C:\path\to\grb-main` with wherever you cloned this repo, and
+> `C:\path\to\YourGodotProject` with your game's folder. You can also set the
+> `GODOT_EXE` environment variable instead of passing `--exe` every time.
 
 One-time: initialize your project. This creates a starter contract of config files.
 
 ```bash
-node C:\path\to\grb-main\cli\grb.mjs init --project C:\path\to\YourGodotProject
+C:\path\to\grb-main\grb.cmd init --project C:\path\to\YourGodotProject
 ```
 
 Review the generated files in stages:
@@ -254,7 +260,7 @@ Use when needed:
 Then run the starter proof mission:
 
 ```bash
-node C:\path\to\grb-main\cli\grb.mjs mission run smoke_boot --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
+C:\path\to\grb-main\grb.cmd mission run smoke_boot --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
 ```
 
 ### What You'll Get Back
@@ -291,7 +297,7 @@ After `smoke_boot` passes, the next normal step is to create one small project-s
 Scaffold a starter mission:
 
 ```bash
-node C:\path\to\grb-main\cli\grb.mjs mission scaffold pause_menu --project C:\path\to\YourGodotProject
+C:\path\to\grb-main\grb.cmd mission scaffold pause_menu --project C:\path\to\YourGodotProject
 ```
 
 This creates:
@@ -314,9 +320,9 @@ Runnable examples in this repo: `transition` -> `examples/grb2-proving-ground/gr
 Examples:
 
 ```bash
-node C:\path\to\grb-main\cli\grb.mjs mission scaffold title_to_gameplay --project C:\path\to\YourGodotProject --pattern transition
-node C:\path\to\grb-main\cli\grb.mjs mission scaffold inventory_panel --project C:\path\to\YourGodotProject --pattern toggle
-node C:\path\to\grb-main\cli\grb.mjs mission scaffold hud_counter --project C:\path\to\YourGodotProject --pattern state_check
+C:\path\to\grb-main\grb.cmd mission scaffold title_to_gameplay --project C:\path\to\YourGodotProject --pattern transition
+C:\path\to\grb-main\grb.cmd mission scaffold inventory_panel --project C:\path\to\YourGodotProject --pattern toggle
+C:\path\to\grb-main\grb.cmd mission scaffold hud_counter --project C:\path\to\YourGodotProject --pattern state_check
 ```
 
 Customize these first:
@@ -333,7 +339,7 @@ If the mission needs a stable runtime value, use `grb/runtime_proof_hooks.md` fo
 Then run it:
 
 ```bash
-node C:\path\to\grb-main\cli\grb.mjs mission run pause_menu --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
+C:\path\to\grb-main\grb.cmd mission run pause_menu --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
 ```
 
 The scaffold gives you a bounded proof surface. It does not magically know whether your UI is correct; it captures before/after evidence and asks for the remaining human judgment explicitly.
@@ -345,7 +351,7 @@ After a small mission passes, read `grb/regression_workflow.md` before treating 
 - R-tier screenshots are evidence, not automatic visual validation.
 - E-tier is never claimed by automation.
 - Some copied projects need to be opened once in the Godot editor before `smoke_boot` can reach the ready state.
-- The CLI is still invoked as `node cli/grb.mjs`; packaging and PATH polish are intentionally out of scope for this slice.
+- The full-repo launcher is still repo-root only: `grb.cmd` on Windows or `./grb` on POSIX. Packaging and PATH/global-install polish are intentionally out of scope for this slice.
 - The generated scaffold is a starter contract. Customize project-specific expectations before asking agents to claim higher proof.
 
 ## Optional: Compare Runs Over Time
@@ -361,7 +367,7 @@ There are two compare flows.
 **Run-and-compare** — run a fresh mission and compare it to the latest previous passing run of the same mission:
 
 ```bash
-node cli/grb.mjs mission run smoke_boot --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe --compare-to latest
+C:\path\to\grb-main\grb.cmd mission run smoke_boot --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe --compare-to latest
 ```
 
 Use this once you already have at least one passing run for that mission.
@@ -369,7 +375,7 @@ Use this once you already have at least one passing run for that mission.
 **Bundle-to-bundle compare** — compare two known proof bundles directly:
 
 ```bash
-node cli/grb.mjs compare C:\path\to\baseline-run C:\path\to\candidate-run
+C:\path\to\grb-main\grb.cmd compare C:\path\to\baseline-run C:\path\to\candidate-run
 ```
 
 Use this when you want to choose the baseline explicitly.
@@ -499,17 +505,17 @@ A small deterministic Godot project at `examples/grb2-proving-ground/` lets you 
 ```bash
 node examples/grb2-proving-ground/tools/sync_grb_addon.mjs
 Godot_v4.6-stable_win64_console.exe --headless --editor --quit --path examples/grb2-proving-ground
-node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
-node cli/grb.mjs mission run scene_transition --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
-node cli/grb.mjs mission run toggle_panel --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
-node cli/grb.mjs mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+grb.cmd mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+grb.cmd mission run scene_transition --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+grb.cmd mission run toggle_panel --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+grb.cmd mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
 ```
 
 A simple compare practice run once a baseline exists:
 
 ```bash
-node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
-node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
+grb.cmd mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+grb.cmd mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
 ```
 
 Start with `smoke_boot` for compare practice because it is a stable rerun surface. Then use `scene_transition`, `toggle_panel`, or `hud_state_check` once you want to practice change-expected missions.

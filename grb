@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 1
+
+if command -v node >/dev/null 2>&1; then
+  NODE_BIN=node
+else
+  echo "GRB requires Node.js on PATH." >&2
+  exit 1
+fi
+
+exec "$NODE_BIN" "$SCRIPT_DIR/cli/grb.mjs" "$@"

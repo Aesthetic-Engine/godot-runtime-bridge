@@ -211,6 +211,18 @@ function checkChannelAndDocTruth() {
   const authoring = fs.readFileSync(path.join(repoRoot, "templates", "grb2", "grb", "mission_authoring.md"), "utf-8");
   const regression = fs.readFileSync(path.join(repoRoot, "templates", "grb2", "grb", "regression_workflow.md"), "utf-8");
   const agents = fs.readFileSync(path.join(repoRoot, "templates", "grb2", "AGENTS.md"), "utf-8");
+  const projectYaml = fs.readFileSync(path.join(repoRoot, "templates", "grb2", "grb.project.yaml"), "utf-8");
+  const provingGround = fs.readFileSync(path.join(repoRoot, "examples", "grb2-proving-ground", "README.md"), "utf-8");
+  const cliHelp = fs.readFileSync(path.join(repoRoot, "cli", "grb.mjs"), "utf-8");
+  const wrapperCmd = fs.readFileSync(path.join(repoRoot, "grb.cmd"), "utf-8");
+  const wrapperPosix = fs.readFileSync(path.join(repoRoot, "grb"), "utf-8");
+
+  assert(fs.existsSync(path.join(repoRoot, "grb.cmd")), "repo-root grb.cmd launcher missing");
+  assert(fs.existsSync(path.join(repoRoot, "grb")), "repo-root grb launcher missing");
+  assertIncludes(wrapperCmd, 'cli\\grb.mjs', "Windows launcher");
+  assertIncludes(wrapperCmd, "GRB requires Node.js on PATH.", "Windows launcher");
+  assertIncludes(wrapperPosix, "cli/grb.mjs", "POSIX launcher");
+  assertIncludes(wrapperPosix, "GRB requires Node.js on PATH.", "POSIX launcher");
 
   assertIncludes(readme, "## Choose the Right Install Path", "README channel truth");
   assertIncludes(readme, "Addon-only / AssetLib path", "README channel truth");
@@ -218,6 +230,9 @@ function checkChannelAndDocTruth() {
   assertIncludes(readme, "GRB 2.0 proof workflow", "README channel truth");
   assertIncludes(readme, "Current export/archive packaging is addon-oriented", "README channel truth");
   assertIncludes(readme, "This is a **full-repo workflow**, not an addon-only workflow.", "README proof channel truth");
+  assertIncludes(readme, "grb.cmd ...` on Windows", "README launcher truth");
+  assertIncludes(readme, "`./grb ...` on POSIX", "README launcher truth");
+  assert(!readme.includes("node C:\\path\\to\\grb-main\\cli\\grb.mjs"), "README should not primarily teach raw cli/grb.mjs path");
 
   assertIncludes(legacyMissions, "# Legacy Built-In Mission Pack", "legacy mission doc");
   assertIncludes(legacyMissions, "project-local proof workflow", "legacy mission doc");
@@ -233,6 +248,15 @@ function checkChannelAndDocTruth() {
   assertIncludes(regression, "## Stable Evidence Surfaces", "regression workflow contract");
   assertIncludes(regression, "not a strong regression surface yet", "regression workflow contract");
   assertIncludes(agents, "Treat screenshot labels as capture slots", "agent contract");
+  assertIncludes(agents, "C:\\path\\to\\grb-main\\grb.cmd mission scaffold", "agent launcher contract");
+  assert(!agents.includes("node <path-to-grb-main>/cli/grb.mjs"), "AGENTS should not primarily teach raw cli/grb.mjs path");
+  assertIncludes(projectYaml, "grb.cmd mission run smoke_boot", "project yaml launcher contract");
+  assert(!projectYaml.includes("node <path-to-grb-main>/cli/grb.mjs"), "grb.project.yaml should not primarily teach raw cli/grb.mjs path");
+  assertIncludes(provingGround, "grb.cmd mission run smoke_boot", "proving ground launcher truth");
+  assertIncludes(provingGround, "..\\..\\grb.cmd mission run smoke_boot", "proving ground launcher truth");
+  assert(!provingGround.includes("node cli/grb.mjs mission run smoke_boot"), "proving ground README should not primarily teach raw cli/grb.mjs path");
+  assertIncludes(cliHelp, "grb.cmd init", "CLI help launcher truth");
+  assertIncludes(cliHelp, "./grb init", "CLI help launcher truth");
 }
 
 function checkContributorReadmeTruth() {

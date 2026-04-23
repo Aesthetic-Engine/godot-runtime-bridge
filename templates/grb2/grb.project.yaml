@@ -18,5 +18,6 @@ expected_first_run:
   primary_human_check: TODO describe what the boot screenshot should show
 proof_reports_dir: grb_reports
 first_trustworthy_proof_run:
-  command: node <path-to-grb-main>/cli/grb.mjs mission run smoke_boot --exe <godot_exe>
+  # Prefer the repo-root GRB launcher from a full clone. On POSIX, use /path/to/grb-main/grb.
+  command: C:\path\to\grb-main\grb.cmd mission run smoke_boot --project <project> --exe <godot_exe>
   inspect: grb_reports/<run-id>/summary.md

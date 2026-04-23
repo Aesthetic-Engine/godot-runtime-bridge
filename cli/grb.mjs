@@ -1,9 +1,28 @@
 #!/usr/bin/env node
 
+import path from "path";
+import { fileURLToPath } from "url";
 import { initProject } from "./lib/init.mjs";
 import { scaffoldMission, VALID_MISSION_PATTERNS } from "./lib/mission_scaffold.mjs";
 import { runProjectMission } from "./lib/smoke_boot.mjs";
 import { compareRuns, printComparisonCloseout } from "./lib/compare_runs.mjs";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, "..");
+
+function repoRootLauncherName() {
+  return process.platform === "win32" ? "grb.cmd" : "./grb";
+}
+
+function repoRootLauncherPath() {
+  return process.platform === "win32"
+    ? `${repoRoot}\\grb.cmd`
+    : `${repoRoot}/grb`;
+}
+
+function quotedRepoRootLauncherPath() {
+  return `"${repoRootLauncherPath()}"`;
+}
 
 function parseArgs(argv) {
   const positional = [];
@@ -33,29 +52,36 @@ function printHelp() {
   console.log(`Godot Runtime Bridge 2.0 CLI
 
 Usage:
-  node cli/grb.mjs init [--project <path>]
-  node cli/grb.mjs mission scaffold <mission_id> [--project <path>] [--recipe <recipe_id>] [--pattern <pattern_id>]
-  node cli/grb.mjs mission run <mission_id> [--project <path>] --exe <godot_exe>
-  node cli/grb.mjs compare <baseline-run-dir> <candidate-run-dir>
+  ${process.platform === "win32" ? "grb.cmd" : "./grb"} init [--project <path>]
+  ${process.platform === "win32" ? "grb.cmd" : "./grb"} mission scaffold <mission_id> [--project <path>] [--recipe <recipe_id>] [--pattern <pattern_id>]
+  ${process.platform === "win32" ? "grb.cmd" : "./grb"} mission run <mission_id> [--project <path>] --exe <godot_exe>
+  ${process.platform === "win32" ? "grb.cmd" : "./grb"} compare <baseline-run-dir> <candidate-run-dir>
 
 Examples:
-  # From the GRB repo
-  node cli/grb.mjs init --project C:\\path\\to\\YourGodotProject
-  node cli/grb.mjs mission scaffold pause_menu --project C:\\path\\to\\YourGodotProject
-  node cli/grb.mjs mission scaffold title_to_gameplay --project C:\\path\\to\\YourGodotProject --pattern transition
-  node cli/grb.mjs mission scaffold inventory_panel --project C:\\path\\to\\YourGodotProject --pattern toggle
-  node cli/grb.mjs mission scaffold hud_counter --project C:\\path\\to\\YourGodotProject --pattern state_check
-  node cli/grb.mjs mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
-  node cli/grb.mjs mission run scene_transition --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
-  node cli/grb.mjs mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe --compare-to latest
+  # From the GRB repo root on Windows
+  grb.cmd init --project C:\\path\\to\\YourGodotProject
+  grb.cmd mission scaffold pause_menu --project C:\\path\\to\\YourGodotProject
+  grb.cmd mission scaffold title_to_gameplay --project C:\\path\\to\\YourGodotProject --pattern transition
+  grb.cmd mission scaffold inventory_panel --project C:\\path\\to\\YourGodotProject --pattern toggle
+  grb.cmd mission scaffold hud_counter --project C:\\path\\to\\YourGodotProject --pattern state_check
+  grb.cmd mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
+  grb.cmd mission run scene_transition --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
+  grb.cmd mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe --compare-to latest
 
-  # From inside a Godot project
-  node C:\\path\\to\\grb-main\\cli\\grb.mjs init
-  node C:\\path\\to\\grb-main\\cli\\grb.mjs mission scaffold pause_menu
-  node C:\\path\\to\\grb-main\\cli\\grb.mjs mission run smoke_boot --exe C:\\path\\to\\Godot_console.exe
+  # From the GRB repo root on POSIX
+  ./grb init --project /path/to/YourGodotProject
+  ./grb mission run smoke_boot --project /path/to/YourGodotProject --exe /path/to/Godot_console
+
+  # From another directory, call the repo-root launcher directly
+  ${process.platform === "win32" ? "C:\\path\\to\\grb-main\\grb.cmd init --project C:\\path\\to\\YourGodotProject" : "/path/to/grb-main/grb init --project /path/to/YourGodotProject"}
 
 Environment:
   GODOT_EXE may be used instead of --exe for mission runs.
+
+Repo-root launchers:
+  Windows: grb.cmd
+  POSIX:   ./grb
+  Current repo: ${repoRootLauncherPath()}
 
 Mission scaffold patterns:
   ${VALID_MISSION_PATTERNS.join(", ")}
@@ -92,7 +118,7 @@ async function main() {
     console.log("     - grb/missions/smoke_boot.yaml");
     console.log("");
     console.log("  2. Run the first trustworthy proof mission:");
-    console.log(`     node ${process.argv[1]} mission run smoke_boot --project "${result.projectDir}" --exe <godot_exe>`);
+    console.log(`     ${quotedRepoRootLauncherPath()} mission run smoke_boot --project "${result.projectDir}" --exe <godot_exe>`);
     console.log("");
     console.log("  3. Inspect the proof bundle summary:");
     console.log(`     ${result.projectDir}\\grb_reports\\<run-id>\\summary.md`);
@@ -148,7 +174,7 @@ async function main() {
     console.log("  - Use grb/mission_authoring.md for step examples and honest handoff wording.");
     console.log("");
     console.log("Then run:");
-    console.log(`  node ${process.argv[1]} mission run ${result.missionId} --project "${result.projectDir}" --exe <godot_exe>`);
+    console.log(`  ${quotedRepoRootLauncherPath()} mission run ${result.missionId} --project "${result.projectDir}" --exe <godot_exe>`);
     console.log("");
     console.log("After a trustworthy pass:");
     console.log("  Read grb/regression_workflow.md before treating the run as a baseline candidate.");
@@ -162,7 +188,7 @@ async function main() {
     const baseline = subcommand;
     const candidate = target;
     if (!baseline || !candidate) {
-      console.error("Usage: node cli/grb.mjs compare <baseline-run-dir> <candidate-run-dir>");
+      console.error(`Usage: ${repoRootLauncherName()} compare <baseline-run-dir> <candidate-run-dir>`);
       process.exit(1);
     }
     const result = compareRuns(baseline, candidate);

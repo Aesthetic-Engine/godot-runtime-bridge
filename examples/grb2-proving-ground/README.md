@@ -40,17 +40,22 @@ For compare practice after a passing mission, read `grb/regression_workflow.md`.
 
 From the GRB repo root:
 
+Use the repo-root launcher directly: `grb.cmd ...` on Windows or `./grb ...`
+on POSIX shells.
+
 ```bash
-node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
-node cli/grb.mjs mission run scene_transition --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
-node cli/grb.mjs mission run toggle_panel --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
-node cli/grb.mjs mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+grb.cmd mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+grb.cmd mission run scene_transition --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+grb.cmd mission run toggle_panel --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+grb.cmd mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
 ```
 
 From inside this project:
 
+Use the repo-root launcher by path. On POSIX, use `../../grb ...`.
+
 ```bash
-node ..\..\cli\grb.mjs mission run smoke_boot --exe C:\path\to\Godot_console.exe
+..\..\grb.cmd mission run smoke_boot --exe C:\path\to\Godot_console.exe
 ```
 
 Proof bundles land under `grb_reports/<run-id>/`.
@@ -80,13 +85,13 @@ Start compare practice with `smoke_boot`. It is the simplest mental model: the t
 First create and inspect a baseline candidate:
 
 ```bash
-node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+grb.cmd mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
 ```
 
 If `summary.md`, `boot_screen.png`, and the mission report look trustworthy, rerun with comparison:
 
 ```bash
-node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
+grb.cmd mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
 ```
 
 This should select the latest passing `smoke_boot` bundle as the baseline, pair matching screenshots by capture slot, compare runtime/error surfaces, and write comparison output under the candidate bundle's `comparison/` folder.

@@ -50,8 +50,12 @@ After the run, inspect:
 After `smoke_boot` passes, create one small project-specific mission for the next feature surface:
 
 ```bash
-node <path-to-grb-main>/cli/grb.mjs mission scaffold todo_mission_id --project <project> --pattern transition
+C:\path\to\grb-main\grb.cmd mission scaffold todo_mission_id --project <project> --pattern transition
 ```
+
+From the GRB repo root, prefer the repo-root launcher directly: `grb.cmd ...`
+on Windows or `./grb ...` on POSIX shells. This is a full-repo path, not an
+addon-only path.
 
 Choose a small pattern:
 
