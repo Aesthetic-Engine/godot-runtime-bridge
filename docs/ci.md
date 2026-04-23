@@ -1,76 +1,116 @@
-# Running GRB in CI/CD
+# GRB in CI/CD
 
-## Linux (GitHub Actions / GitLab CI)
+This repo now has two different automation layers, and CI docs should keep them
+separate:
 
-Godot requires a display server for rendering. On headless Linux runners, use `xvfb` (X Virtual Framebuffer):
+1. **Repo-level release smoke** - verifies the shipped addon + MCP release
+   surface in this repo
+2. **Project-level proof workflows** - run in an actual Godot project using
+   `node cli/grb.mjs ...`
 
-### GitHub Actions Example
+There is also an older **legacy mission runner** in `missions/`. It can still
+be used in CI for broad runtime passes, but it is not the primary GRB 2.0 proof
+product story.
 
-```yaml
-name: GRB QA
-on: [push, pull_request]
+## Repo-Level Release Smoke
 
-jobs:
-  qa:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+The repo's main CI truth today is the release smoke path under `mcp/`.
 
-      - name: Install Godot
-        run: |
-          wget -q https://github.com/godotengine/godot-builds/releases/download/4.6-stable/Godot_v4.6-stable_linux.x86_64.zip
-          unzip -q Godot_v4.6-stable_linux.x86_64.zip
-          chmod +x Godot_v4.6-stable_linux.x86_64
-          echo "GODOT_PATH=$(pwd)/Godot_v4.6-stable_linux.x86_64" >> $GITHUB_ENV
+It checks:
 
-      - name: Install xvfb
-        run: sudo apt-get install -y xvfb
+- version parity (`npm run verify:versions`)
+- live bridge launch/connect on a temporary Godot project
+- core release-smoke commands such as `ping`, `auth_info`, `capabilities`,
+  `runtime_info`, `get_errors`, `screenshot`, and `quit`
+- release-smoke artifacts under `mcp/reports/release-smoke/`
 
-      - name: Install Node.js dependencies
-        run: cd mcp && npm install
+This is what the repo's GitHub Actions smoke workflow is built around.
 
-      - name: Run GRB missions
-        run: |
-          xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" \
-            node missions/run_mission.mjs \
-              --mission starters \
-              --exe "$GODOT_PATH" \
-              --project .
+### Local command
+
+From `mcp/`:
+
+```bash
+npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"
 ```
 
-### Key Points
+This is a release-surface smoke check. It does **not** prove product
+correctness, UX quality, or E-tier experience.
 
-- `xvfb-run` provides a virtual display so Godot can render and GRB can capture screenshots
-- `--auto-servernum` avoids display number conflicts
-- `-screen 0 1280x720x24` sets the virtual screen resolution
-- Screenshots captured via GRB will work normally
+## Linux CI and xvfb
 
-### Windows (GitHub Actions)
+Godot still needs a display server for rendered screenshot flows on headless
+Linux runners. Use `xvfb-run` when you need live rendering.
 
-Windows runners have a display server by default. No xvfb needed:
+Minimal shape:
 
-```yaml
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run GRB missions
-        run: |
-          node missions/run_mission.mjs --mission starters --exe "Godot.exe" --project .
+```bash
+xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" \
+  npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"
 ```
 
-### macOS
+Key points:
 
-macOS runners also have a display. Use the `.app` bundle or extracted binary.
+- `xvfb-run` provides a virtual display so Godot can render
+- `--auto-servernum` avoids display-number conflicts
+- `-screen 0 1280x720x24` gives Godot a stable framebuffer
 
-## Environment Variables
+Windows and macOS runners already provide a display server, so `xvfb` is
+usually not needed there.
 
-| Variable | Description |
-|----------|-------------|
-| `GODOT_PATH` | Path to Godot executable |
-| `GDRB_TIER` | Max tier (default 1; set to 2 for missions that use set_property/call_method) |
+## Project-Level GRB 2.0 Proof Workflows
 
-## Exit Codes
+If you are validating a real Godot project with GRB 2.0, the normal path is not
+the legacy mission pack. It is:
 
-- `0` — All missions passed
-- `1` — One or more missions had issues
-- `2` — Boot errors detected (use `--allow-boot-errors` to override)
+1. `node cli/grb.mjs init --project <project>`
+2. `node cli/grb.mjs mission run smoke_boot --project <project> --exe <godot>`
+3. inspect `grb_reports/<run-id>/summary.md`
+4. after a trustworthy small mission pass, use compare honestly
+
+That workflow is project-local and belongs in the project's own CI or release
+process, not in this repo's generic smoke workflow.
+
+Use the root `README.md` for that path.
+
+## Legacy Mission Runner in CI
+
+The older mission runner still works for broad runtime passes:
+
+```bash
+node missions/run_mission.mjs --mission smoke_test --exe "/path/to/godot" --project "/path/to/project"
+```
+
+It writes reports under `missions/reports/` by default.
+
+That can be useful when a project wants a generic built-in mission pack without
+adopting the GRB 2.0 project-contract flow. It should not be confused with:
+
+- GRB 2.0 proof bundles under `grb_reports/`
+- baseline-candidate guidance
+- `node cli/grb.mjs compare ...`
+
+One current repo-truth wrinkle: `run_mission.mjs` still accepts
+`--mission starters`, but the built-in mission pack on current `main` does not
+mark any missions with `starter: true`. In practice, use an explicit mission id
+or `--mission all`.
+
+## What CI Can and Cannot Honestly Claim
+
+CI can realistically support:
+
+- version parity checks
+- bridge launch/connect smoke checks
+- screenshot/runtime artifact capture
+- generic or project-specific mission execution
+- comparison as a review aid when a project intentionally opts into it
+
+CI does **not** automatically prove:
+
+- product correctness
+- design intent correctness
+- player experience / feel
+- E-tier proof
+
+Use CI evidence as a decision aid, then keep the remaining human review
+explicit.
