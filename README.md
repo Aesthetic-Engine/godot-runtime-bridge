@@ -65,9 +65,12 @@ In short:
 - **Want MCP, CLI, proof workflow, templates, or the proving ground?** Use a
   full repo clone.
 
-Current export/archive packaging is addon-oriented. Do not assume every
-repo-documented workflow is available from an addon-only install or export
-archive.
+Current export/archive packaging is addon-oriented. Downloading the repo via
+an archive (GitHub "Download ZIP", AssetLib, `git archive`) gives you the
+addon plus the legacy built-in mission pack — **not** the GRB 2.0 CLI, MCP
+helper, templates, proving ground, or product-shape tooling. Do not assume
+every repo-documented workflow is available from an addon-only install or
+export archive; the GRB 2.0 proof workflow requires a full repo clone.
 
 ## Quick Start: Connect Cursor to Your Game
 

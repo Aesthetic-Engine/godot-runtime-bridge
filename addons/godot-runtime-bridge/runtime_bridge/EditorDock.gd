@@ -13,6 +13,63 @@ const GRB_TESTING_RULE := """When testing with GRB:
 - Prefer grb_reset instead of ad-hoc relaunch logic when a session goes stale.
 - If a fix fails 3 times in a row, stop and ask the user for guidance instead of retrying."""
 
+# Cursor-specific rules support is opt-in. Enabling the plugin never writes
+# these files automatically — only the explicit dock action below does.
+const GRB_CURSOR_RULES_PATH := "res://.cursor/rules/grb.mdc"
+const GRB_CURSOR_RULES_CONTENT := """---
+description: Godot Runtime Bridge — always-on agent directives
+globs: "**/*.gd,**/*.tscn,**/*.json"
+alwaysApply: true
+---
+
+# Godot Runtime Bridge (GRB) Directives
+
+You have access to the **godot-runtime-bridge** MCP server. Use it for ALL Godot interactions.
+
+## 1. Finding the Godot Executable
+The GODOT_PATH is configured in `.cursor/mcp.json` under `env.GODOT_PATH`. If you need it, read that file. NEVER say you don't know where Godot is — the path is always there.
+
+## 2. The Verification Mandate
+You are forbidden from assuming your code works without verification. After implementing a feature, fixing a bug, or altering visuals, you MUST run the **GRB verification loop**:
+1. Launch the game using `grb_launch` via the MCP server.
+2. Wait for the game to load, then use `grb_screenshot` to capture the viewport.
+3. Examine the screenshot to verify your changes are visible and correct.
+4. If something looks wrong, fix it and re-run the loop.
+5. Only report done after visual confirmation.
+
+## 3. Available MCP Tools
+You have these tools via the godot-runtime-bridge MCP server:
+- `grb_launch` — start the game
+- `grb_connect` — connect to an already-running GRB session
+- `grb_screenshot` — capture viewport screenshot
+- `grb_scene_tree` — inspect node hierarchy
+- `grb_call_method` — call methods on nodes
+- `grb_get_property` / `grb_set_property` — read/write node properties
+- `grb_click` / `grb_key` / `grb_drag` / `grb_scroll` / `grb_gesture` / `grb_gamepad` — simulate input
+- `grb_runtime_info` — get FPS, frame count, engine version
+- `grb_get_errors` — inspect engine/runtime errors
+- `grb_wait_for` — wait for property/state changes
+- `grb_capabilities` — inspect available commands at the current tier
+- `grb_quit` / `grb_reset` — stop or cleanly relaunch the game
+- `grb_audio_state` / `grb_network_state` — inspect runtime subsystems
+- `grb_find_nodes` — search for nodes by name, type, or group
+- `grb_performance` — capture performance metrics
+- `grb_run_custom_command` — call project-registered hooks via `GRBCommands`
+
+## 4. When the User Says "Run the GRB verification loop"
+This means: launch the game, take a screenshot, verify visually, report what you see. Always do this.
+
+## 5. Error Check on Launch
+After launching the game with `grb_launch`, immediately check the console output for errors. If you see errors, STOP. Report them to the user and ask whether to fix them before continuing with the original task.
+
+## 6. Anti-Drift Rules
+- Do NOT forget you have MCP tools. They are always available.
+- Do NOT skip verification because "the code looks right."
+- Do NOT ask the user where Godot is. Read `.cursor/mcp.json`.
+- Prefer `grb_reset` over ad-hoc relaunch logic when the session looks stale.
+- If a fix fails 3 times, stop and ask the user for guidance.
+"""
+
 const CUSTOM_COMMAND_SNIPPET := """# Add as an autoload or call from your game's bootstrap.
 func _ready() -> void:
 \tif has_node("/root/GRBCommands"):
@@ -26,6 +83,8 @@ var _clear_btn: Button
 var _runtime_status_label: Label
 var _grb_commands_action_btn: Button
 var _grb_commands_help_label: Label
+var _cursor_rules_status_label: Label
+var _cursor_rules_action_btn: Button
 
 # Mission prompt buttons
 var _mission_section: VBoxContainer
@@ -239,6 +298,27 @@ func _build_agent_settings() -> void:
 
 	_content.add_child(rule_row)
 
+	var rules_file_heading := Label.new()
+	rules_file_heading.text = "Install Cursor rules file (optional, Cursor-specific)"
+	rules_file_heading.add_theme_font_size_override("font_size", 12)
+	_content.add_child(rules_file_heading)
+
+	_cursor_rules_status_label = Label.new()
+	_cursor_rules_status_label.add_theme_font_size_override("font_size", 11)
+	_cursor_rules_status_label.add_theme_color_override("font_color", Color(0.68, 0.68, 0.68))
+	_cursor_rules_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_content.add_child(_cursor_rules_status_label)
+
+	var rules_action_row := HBoxContainer.new()
+	rules_action_row.add_theme_constant_override("separation", 6)
+
+	_cursor_rules_action_btn = Button.new()
+	_cursor_rules_action_btn.pressed.connect(_on_install_cursor_rules_pressed)
+	rules_action_row.add_child(_cursor_rules_action_btn)
+
+	_content.add_child(rules_action_row)
+	_refresh_cursor_rules_status()
+
 	var clear_row := HBoxContainer.new()
 	clear_row.add_theme_constant_override("separation", 6)
 
@@ -254,6 +334,63 @@ func _build_agent_settings() -> void:
 	_clear_btn.pressed.connect(_on_clear_screenshots)
 	clear_row.add_child(_clear_btn)
 	_content.add_child(clear_row)
+
+
+func _read_cursor_rules_text() -> String:
+	if not FileAccess.file_exists(GRB_CURSOR_RULES_PATH):
+		return ""
+	var f := FileAccess.open(GRB_CURSOR_RULES_PATH, FileAccess.READ)
+	if f == null:
+		return ""
+	var t := f.get_as_text()
+	f.close()
+	return t
+
+
+func _cursor_rules_state() -> String:
+	if not FileAccess.file_exists(GRB_CURSOR_RULES_PATH):
+		return "absent"
+	if _read_cursor_rules_text() == GRB_CURSOR_RULES_CONTENT:
+		return "fresh"
+	return "stale"
+
+
+func _refresh_cursor_rules_status() -> void:
+	if _cursor_rules_status_label == null or _cursor_rules_action_btn == null:
+		return
+	match _cursor_rules_state():
+		"absent":
+			_cursor_rules_status_label.text = "Cursor rules file is NOT installed. Click to write %s with the GRB verification loop and anti-drift directives. Only needed if you use Cursor." % GRB_CURSOR_RULES_PATH
+			_cursor_rules_action_btn.text = "Install Cursor rules"
+			_cursor_rules_action_btn.disabled = false
+			_cursor_rules_action_btn.tooltip_text = "Write the GRB-shipped Cursor rules file to %s." % GRB_CURSOR_RULES_PATH
+		"fresh":
+			_cursor_rules_status_label.text = "Cursor rules file is up to date at %s." % GRB_CURSOR_RULES_PATH
+			_cursor_rules_action_btn.text = "Cursor rules up to date"
+			_cursor_rules_action_btn.disabled = true
+			_cursor_rules_action_btn.tooltip_text = "The installed Cursor rules match the version shipped with this GRB."
+		"stale":
+			_cursor_rules_status_label.text = "Cursor rules file at %s differs from the version shipped with this GRB. Refresh to overwrite with the current rules, or ignore to keep your customizations." % GRB_CURSOR_RULES_PATH
+			_cursor_rules_action_btn.text = "Refresh Cursor rules"
+			_cursor_rules_action_btn.disabled = false
+			_cursor_rules_action_btn.tooltip_text = "Overwrite %s with the GRB-shipped Cursor rules content." % GRB_CURSOR_RULES_PATH
+
+
+func _on_install_cursor_rules_pressed() -> void:
+	var dir_path := GRB_CURSOR_RULES_PATH.get_base_dir()
+	if not DirAccess.dir_exists_absolute(dir_path):
+		var mk_err := DirAccess.make_dir_recursive_absolute(dir_path)
+		if mk_err != OK:
+			push_warning("GRB: could not create %s (%s)" % [dir_path, error_string(mk_err)])
+			return
+	var f := FileAccess.open(GRB_CURSOR_RULES_PATH, FileAccess.WRITE)
+	if f == null:
+		push_warning("GRB: could not open %s for write" % GRB_CURSOR_RULES_PATH)
+		return
+	f.store_string(GRB_CURSOR_RULES_CONTENT)
+	f.close()
+	print("[GRB] Wrote Cursor rules to %s" % GRB_CURSOR_RULES_PATH)
+	_refresh_cursor_rules_status()
 
 
 func _on_open_screenshots_folder() -> void:

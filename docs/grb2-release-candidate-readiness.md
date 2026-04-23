@@ -101,6 +101,10 @@ They do not replace human judgment.
 Current channel truth remains:
 
 - addon/archive/export packaging is addon-oriented
+- archive exports (GitHub "Download ZIP", AssetLib, `git archive`) ship the
+  runtime bridge addon plus the legacy built-in mission pack, and deliberately
+  do **not** ship the GRB 2.0 CLI, MCP helper, templates, proving ground, or
+  product-shape tooling
 - the GRB 2.0 proof workflow requires a full repo clone
 - templates, proving ground, repo-root launchers, and product-shape verification are full-repo surfaces
 
@@ -138,13 +142,30 @@ Sprint 13 Slice 3 additionally delivered:
 - **MCP `.godot/` guard** — `grb_launch` refuses never-opened projects with
   an actionable error instead of a slow launch timeout
 
-Still deferred to later Sprint 13 slices:
+Sprint 13 Slice 4 additionally delivered:
+
+- **agent-agnostic addon default behavior** — enabling the GRB plugin no
+  longer silently writes `res://.cursor/rules/grb.mdc` into the user's
+  project; `runtime_bridge_plugin.gd` now only wires the server autoload and
+  the dock
+- **opt-in Cursor rules install/refresh** — the Runtime Bridge dock exposes
+  an explicit "Install Cursor rules" / "Refresh Cursor rules" action so
+  Cursor users can still get the shipped rules file on demand
+- **honest Cursor-rules staleness** — staleness is now determined by exact
+  comparison against the GRB-shipped rules content instead of the prior
+  single-keyword heuristic, so any drift from the current rules surfaces as
+  a refresh offer
+- **explicit archive/channel truth** — `.gitattributes`, the README channel
+  section, and this document now state exactly what archive exports ship
+  (addon + legacy mission pack) and what they deliberately omit (GRB 2.0
+  CLI, MCP, templates, proving ground, product-shape tooling)
+
+Still deferred to Sprint 14:
 
 - final release smoke on the intended release target
-- any final release-channel or packaging decision beyond current addon-oriented archive truth
-- the other audit items not covered yet (addon-side Cursor-only side
-  effects, archive/channel policy, proof-tier headline wording, and YAML
-  parser robustness)
+- second pre-launch audit and final release gate
+- any remaining audit items not covered in Sprint 13 (e.g. proof-tier
+  headline wording refinement and YAML parser robustness)
 
 ## Intentionally Out Of Scope For GRB 2.0 Launch
 
