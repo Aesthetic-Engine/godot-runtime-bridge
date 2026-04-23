@@ -379,8 +379,8 @@ function checkChannelAndDocTruth() {
   assertIncludes(readinessDoc, "experiential quality or E-tier proof", "release-candidate readiness doc");
   assertIncludes(readinessDoc, "addon/archive/export packaging is addon-oriented", "release-candidate readiness doc");
   assertIncludes(readinessDoc, "the GRB 2.0 proof workflow requires a full repo clone", "release-candidate readiness doc");
-  assertIncludes(readinessDoc, "final version/tag decision", "release-candidate readiness doc");
-  assertIncludes(readinessDoc, "final release changelog section", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "2.0.0-rc.0", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "verify:release:live", "release-candidate readiness doc");
   assertIncludes(readinessDoc, "final release smoke on the intended release target", "release-candidate readiness doc");
 
   assertIncludes(legacyMissions, "# Legacy Built-In Mission Pack", "legacy mission doc");

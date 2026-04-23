@@ -57,7 +57,14 @@ What each check does:
   - runs the live GRB release smoke sequence
 - `verify:release`
   - **does** require a real Godot executable and a real project
-  - runs version parity plus the live release smoke sequence in one command
+  - is the honest aggregate release gate: it runs `verify:grb2:shape` first,
+    then version parity, then the live release smoke sequence. This is the
+    command maintainers should treat as "the full release-facing check."
+- `verify:release:live`
+  - **does** require a real Godot executable and a real project
+  - runs version parity plus the live release smoke sequence only; it does
+    not run the GRB 2.0 product-shape check. Use it when you have already run
+    `verify:grb2:shape` separately and just want to re-exercise the live smoke.
 
 ## What These Checks Support
 
@@ -95,12 +102,25 @@ Do not treat addon-only or AssetLib delivery as equivalent to the full-repo GRB 
 
 ## Deferred To Sprint 13
 
-Sprint 13 should own the final launch/release decision surfaces, including:
+Sprint 13 Slice 1 has now delivered:
 
-- final version/tag decision
-- final release changelog section
+- **version/tag decision** — all GRB version surfaces now report
+  `2.0.0-rc.0`; `verify:versions` enforces this parity
+- **release changelog section** — `CHANGELOG.md` now has a real
+  `2.0.0-rc.0 — 2026-04-22` section in place of the open-ended `Unreleased`
+  bucket
+- **release verification naming** — `verify:release` is now the honest
+  aggregate (shape + versions + live smoke); `verify:release:live` preserves
+  the prior versions+live-smoke-only behavior
+
+Still deferred to later Sprint 13 slices:
+
 - final release smoke on the intended release target
 - any final release-channel or packaging decision beyond current addon-oriented archive truth
+- the other audit items not covered by Slice 1 (CI runtime coverage of
+  `init` / `doctor` / `mission run smoke_boot`, addon-side Cursor-only side
+  effects, launcher-doctrine scan expansion, MCP `.godot` guard, placeholder
+  detection breadth, and YAML parser robustness)
 
 ## Intentionally Out Of Scope For GRB 2.0 Launch
 

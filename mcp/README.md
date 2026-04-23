@@ -140,7 +140,13 @@ npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/proje
   - `addons/godot-runtime-bridge/runtime_bridge/EditorDock.gd`
   - `mcp/index.js` server version and startup banner
 - `verify:grb` runs the live release smoke sequence
-- `verify:release` runs version parity plus the live release smoke sequence
+- `verify:release` is the honest aggregate release gate: it runs
+  `verify:grb2:shape`, then version parity, then the live release smoke
+  sequence. Use this when you want one command to cover the full release-facing
+  checks.
+- `verify:release:live` runs version parity plus the live release smoke
+  sequence only (no product-shape check). Use this when you have already run
+  `verify:grb2:shape` separately and just want to re-exercise the live smoke.
 
 This MCP package lives inside the full repo. Release verification that covers
 GRB 2.0 proof/onboarding truth still depends on a full clone; addon-only export

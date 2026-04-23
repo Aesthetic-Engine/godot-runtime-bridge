@@ -1,6 +1,6 @@
 {
   "name": "godot-runtime-bridge-mcp",
-  "version": "1.0.6",
+  "version": "2.0.0-rc.0",
   "description": "MCP server for Godot Runtime Bridge — AI-driven game testing and automation",
   "type": "module",
   "main": "index.js",
@@ -12,7 +12,8 @@
     "verify:versions": "node check_versions.mjs",
     "verify:grb2:shape": "node ../tools/verify_grb2_product_shape.mjs",
     "verify:grb": "node verify_grb_release.mjs",
-    "verify:release": "node verify_release.mjs"
+    "verify:release:live": "node verify_release.mjs",
+    "verify:release": "npm run verify:grb2:shape && npm run verify:release:live"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1"

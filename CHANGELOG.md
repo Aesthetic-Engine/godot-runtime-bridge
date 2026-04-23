@@ -1,25 +1,78 @@
 # Changelog
 
-## Unreleased
+## 2.0.0-rc.0 — 2026-04-22
+
+First GRB 2.0 release candidate. Version surfaces across `mcp/package.json`,
+`mcp/package-lock.json`, `addons/godot-runtime-bridge/plugin.cfg`,
+`addons/godot-runtime-bridge/runtime_bridge/EditorDock.gd`, and the MCP server
+name/startup banner in `mcp/index.js` now agree on `2.0.0-rc.0`. Prior RC
+iterations are expected before a final `2.0.0` tag.
+
+This RC covers the full-repo GRB 2.0 proof workflow. Addon/archive/export
+packaging remains addon-oriented; the GRB 2.0 CLI, templates, proving ground,
+and product-shape verification still require a full repo clone.
 
 ### Added
 
-- **GRB 2.0 proof CLI** - Added full-repo GRB 2.0 proof flows for `init`, `doctor`, `mission scaffold`, `mission run <mission_id>`, and `compare`.
-- **Project contract scaffolds** - Added GRB 2.0 templates for `AGENTS.md`, `grb.project.yaml`, proof policy, missions, recipes, gotchas, mission authoring guidance, runtime proof hooks, and regression workflow guidance.
-- **Mission scaffold patterns** - Added `default`, `transition`, `toggle`, and `state_check` starter patterns with honest TODOs and references to runnable proving-ground examples.
-- **Proof bundles** - Added project-local proof bundles under `grb_reports/<run-id>/` with `summary.md`, `run.json`, evidence references, W/R/E proof reporting, blocked-proof reporting, primary review artifacts, and human handoff fields.
-- **Compare and baseline review** - Added bundle-to-bundle compare and `--compare-to latest` flows with same-mission baseline selection, rejected-baseline explanations, comparison summaries, and trust-boundary guidance.
-- **GRB 2.0 proving ground** - Added `examples/grb2-proving-ground/`, a tiny deterministic Godot project with `smoke_boot`, `scene_transition`, `toggle_panel`, and `hud_state_check` missions.
-- **Product-shape verification** - Added `tools/verify_grb2_product_shape.mjs` to check high-value GRB 2.0 proof/onboarding summary surfaces without launching Godot.
+- **GRB 2.0 proof CLI** — Full-repo GRB 2.0 proof flows for `init`, `doctor`,
+  `mission scaffold`, `mission run <mission_id>`, and `compare`.
+- **Project contract scaffolds** — GRB 2.0 templates for `AGENTS.md`,
+  `grb.project.yaml`, proof policy, missions, recipes, gotchas, mission
+  authoring guidance, runtime proof hooks, and regression workflow guidance.
+- **Mission scaffold patterns** — `default`, `transition`, `toggle`, and
+  `state_check` starter patterns with honest TODOs and references to runnable
+  proving-ground examples.
+- **Proof bundles** — Project-local proof bundles under `grb_reports/<run-id>/`
+  with `summary.md`, `run.json`, evidence references, W/R/E proof reporting,
+  blocked-proof reporting, primary review artifacts, and human handoff fields.
+- **Compare and baseline review** — Bundle-to-bundle compare and
+  `--compare-to latest` flows with same-mission baseline selection,
+  rejected-baseline explanations, comparison summaries, and trust-boundary
+  guidance.
+- **GRB 2.0 proving ground** — `examples/grb2-proving-ground/`, a tiny
+  deterministic Godot project with `smoke_boot`, `scene_transition`,
+  `toggle_panel`, and `hud_state_check` missions.
+- **Product-shape verification** — `tools/verify_grb2_product_shape.mjs` checks
+  high-value GRB 2.0 proof/onboarding summary surfaces without launching Godot.
 
 ### Changed
 
-- **Mission runner output directory** - `missions/run_mission.mjs` now accepts `--output-dir` while preserving the existing `missions/reports` default.
-- **Mission tier defaults** - Missing `tier_required` values now default to `1` before mission launch and reporting.
-- **Release-surface docs** - Synced protocol, security, MCP, and version-check documentation with the current shipped command/tool surface.
-- **Release-candidate verification hardening** - Added a repo-full-clone `verify:grb2:shape` check, wired GRB 2.0 product-shape verification into release smoke, and expanded workflow triggers to cover launch-critical GRB 2.0 CLI/template/tooling surfaces.
-- **Release-candidate checklist / version truth hardening** - Clarified the maintainer-facing release checklist, documented exactly which version surfaces `verify:versions` owns, and reinforced that archive/export packaging remains addon-oriented while GRB 2.0 proof tooling stays full-repo-only.
-- **Release-candidate readiness handoff** - Added a compact GRB 2.0 readiness doc that states what checks support release-candidate confidence, what they do not prove, and what remains deferred to Sprint 13.
+- **Release identity** — All authoritative GRB version surfaces bumped from
+  `1.0.6` to `2.0.0-rc.0`. The product-shape check's startup-banner regex in
+  `mcp/check_versions.mjs` now accepts pre-release suffixes.
+- **`verify:release` aggregate** — The `mcp/` npm script now runs
+  `verify:grb2:shape` in addition to the existing versions+live-smoke chain.
+  The legacy versions+live-smoke-only behavior is preserved under a new
+  `verify:release:live` script.
+- **README / mcp README / release-candidate readiness doc** — Release
+  verification section updated to reflect the new aggregate.
+- **Placeholder vocabulary** — README and `cli/grb.mjs` help text replaced the
+  internal `grb-main` token with the neutral `<grb-repo>` placeholder.
+- **Mission runner output directory** — `missions/run_mission.mjs` accepts
+  `--output-dir` while preserving the existing `missions/reports` default.
+- **Mission tier defaults** — Missing `tier_required` values default to `1`
+  before mission launch and reporting.
+- **Release-surface docs** — Protocol, security, MCP, and version-check docs
+  synced with the current shipped command/tool surface.
+- **Release smoke workflow** — GRB 2.0 product-shape verification is wired into
+  release smoke so launch-critical CLI/template/tooling surfaces do not drift.
+- **Readiness handoff** — Compact GRB 2.0 readiness doc states what checks
+  support release-candidate confidence and what they do not prove.
+
+### Removed
+
+- **Stale top-level zip** — `godot-runtime-bridge-v0.1.5.zip` deleted from the
+  repo root; it was two major releases stale and unrelated to the 2.0 story.
+- **Stale ship-readiness doc** — `missions/SHIP_READINESS_0.1.6.md` removed;
+  its filename and body disagreed on the covered version and neither matched
+  the current release.
+
+### Notes
+
+Items intentionally deferred to later Sprint 13 slices: CI coverage for the
+live `init` / `doctor` / `mission run smoke_boot` flow, addon-side Cursor-only
+side effects, launcher-doctrine scan expansion, MCP `.godot` guard, placeholder
+detection breadth, archive/channel policy, and YAML parser robustness.
 
 ## 1.0.6 - 2026-03-28
 

@@ -230,16 +230,18 @@ Use the proof workflow in stages:
 
 > **Full-repo launcher:** from the GRB repo root, use `grb.cmd ...` on Windows
 > or `./grb ...` on POSIX shells. From another directory, call the repo-root
-> launcher directly, for example `C:\path\to\grb-main\grb.cmd ...`.
+> launcher directly, for example `<grb-repo>\grb.cmd ...` on Windows or
+> `<grb-repo>/grb ...` on POSIX.
 >
-> Replace `C:\path\to\grb-main` with wherever you cloned this repo, and
-> `C:\path\to\YourGodotProject` with your game's folder. You can also set the
+> In every CLI example below, `<grb-repo>` is a placeholder for wherever you
+> cloned this repo (for example `C:\Tools\godot-runtime-bridge`), and
+> `C:\path\to\YourGodotProject` is your game's folder. You can also set the
 > `GODOT_EXE` environment variable instead of passing `--exe` every time.
 
 One-time: initialize your project. This creates a starter contract of config files.
 
 ```bash
-C:\path\to\grb-main\grb.cmd init --project C:\path\to\YourGodotProject
+<grb-repo>\grb.cmd init --project C:\path\to\YourGodotProject
 ```
 
 `grb init` also records the full-repo GRB linkage it used into
@@ -266,7 +268,7 @@ Use when needed:
 Then check readiness without launching Godot:
 
 ```bash
-C:\path\to\grb-main\grb.cmd doctor --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
+<grb-repo>\grb.cmd doctor --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
 ```
 
 `doctor` is a no-launch preflight check. It tells you whether the project
@@ -276,7 +278,7 @@ ready for the first GRB 2.0 proof run.
 Then run the starter proof mission:
 
 ```bash
-C:\path\to\grb-main\grb.cmd mission run smoke_boot --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
+<grb-repo>\grb.cmd mission run smoke_boot --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
 ```
 
 ### What You'll Get Back
@@ -313,7 +315,7 @@ After `smoke_boot` passes, the next normal step is to create one small project-s
 Scaffold a starter mission:
 
 ```bash
-C:\path\to\grb-main\grb.cmd mission scaffold pause_menu --project C:\path\to\YourGodotProject
+<grb-repo>\grb.cmd mission scaffold pause_menu --project C:\path\to\YourGodotProject
 ```
 
 This creates:
@@ -336,9 +338,9 @@ Runnable examples in this repo: `transition` -> `examples/grb2-proving-ground/gr
 Examples:
 
 ```bash
-C:\path\to\grb-main\grb.cmd mission scaffold title_to_gameplay --project C:\path\to\YourGodotProject --pattern transition
-C:\path\to\grb-main\grb.cmd mission scaffold inventory_panel --project C:\path\to\YourGodotProject --pattern toggle
-C:\path\to\grb-main\grb.cmd mission scaffold hud_counter --project C:\path\to\YourGodotProject --pattern state_check
+<grb-repo>\grb.cmd mission scaffold title_to_gameplay --project C:\path\to\YourGodotProject --pattern transition
+<grb-repo>\grb.cmd mission scaffold inventory_panel --project C:\path\to\YourGodotProject --pattern toggle
+<grb-repo>\grb.cmd mission scaffold hud_counter --project C:\path\to\YourGodotProject --pattern state_check
 ```
 
 Customize these first:
@@ -355,7 +357,7 @@ If the mission needs a stable runtime value, use `grb/runtime_proof_hooks.md` fo
 Then run it:
 
 ```bash
-C:\path\to\grb-main\grb.cmd mission run pause_menu --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
+<grb-repo>\grb.cmd mission run pause_menu --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
 ```
 
 The scaffold gives you a bounded proof surface. It does not magically know whether your UI is correct; it captures before/after evidence and asks for the remaining human judgment explicitly.
@@ -383,7 +385,7 @@ There are two compare flows.
 **Run-and-compare** — run a fresh mission and compare it to the latest previous passing run of the same mission:
 
 ```bash
-C:\path\to\grb-main\grb.cmd mission run smoke_boot --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe --compare-to latest
+<grb-repo>\grb.cmd mission run smoke_boot --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe --compare-to latest
 ```
 
 Use this once you already have at least one passing run for that mission.
@@ -391,7 +393,7 @@ Use this once you already have at least one passing run for that mission.
 **Bundle-to-bundle compare** — compare two known proof bundles directly:
 
 ```bash
-C:\path\to\grb-main\grb.cmd compare C:\path\to\baseline-run C:\path\to\candidate-run
+<grb-repo>\grb.cmd compare C:\path\to\baseline-run C:\path\to\candidate-run
 ```
 
 Use this when you want to choose the baseline explicitly.
@@ -544,7 +546,13 @@ Before tagging a release candidate, run:
   - runs the live GRB release smoke sequence
 - `npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"`
   - **does** require a real Godot executable and a real project
-  - runs version parity plus the live release smoke sequence in one command
+  - honest aggregate release gate: runs `verify:grb2:shape` first, then
+    version parity, then the live release smoke sequence in one command
+- `npm run verify:release:live -- --godot-exe "/path/to/godot" --project "/path/to/project"`
+  - **does** require a real Godot executable and a real project
+  - version parity plus the live release smoke sequence only; skips the GRB 2.0
+    product-shape check (use this when you have already run
+    `verify:grb2:shape` separately)
 
 Channel reminder:
 

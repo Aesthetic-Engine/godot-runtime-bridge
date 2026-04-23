@@ -46,7 +46,7 @@ const targets = [
   {
     label: "index.js startup banner",
     path: path.join(__dirname, "index.js"),
-    readVersion: (text) => matchRequired(text, /\[GRB\] MCP server started \(godot-runtime-bridge v([0-9.]+)\)\\n"\s*\+/, "index.js startup banner version"),
+    readVersion: (text) => matchRequired(text, /\[GRB\] MCP server started \(godot-runtime-bridge v([^)]+)\)\\n"\s*\+/, "index.js startup banner version"),
   },
 ];
 

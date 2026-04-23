@@ -76,7 +76,8 @@ Examples:
   ./grb mission run smoke_boot --project /path/to/YourGodotProject --exe /path/to/Godot_console
 
   # From another directory, call the repo-root launcher directly
-  ${process.platform === "win32" ? "C:\\path\\to\\grb-main\\grb.cmd init --project C:\\path\\to\\YourGodotProject" : "/path/to/grb-main/grb init --project /path/to/YourGodotProject"}
+  # <grb-repo> is a placeholder for wherever you cloned this repo.
+  ${process.platform === "win32" ? "<grb-repo>\\grb.cmd init --project C:\\path\\to\\YourGodotProject" : "<grb-repo>/grb init --project /path/to/YourGodotProject"}
 
 Environment:
   GODOT_EXE may be used instead of --exe for mission runs.

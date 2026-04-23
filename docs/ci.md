@@ -34,6 +34,10 @@ From `mcp/`:
 npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"
 ```
 
+`verify:release` is the honest aggregate release gate: it runs
+`verify:grb2:shape`, version parity, and the live release smoke in one
+command. If you only want the live-smoke half, use `verify:release:live`.
+
 This is a release-surface smoke check. It does **not** prove product
 correctness, UX quality, or E-tier experience.
 
