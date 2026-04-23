@@ -6,6 +6,7 @@ import { compareRuntimeSummary } from "./compare/compare_runtime_summary.mjs";
 import { compareErrors } from "./compare/compare_errors.mjs";
 import { classifyRegression } from "./regression_classifier.mjs";
 import { renderComparisonSummary } from "./render_comparison_summary.mjs";
+import { baselineBlockedText, baselineReasonText, blockedNextStep } from "./baseline_reason_text.mjs";
 
 const SUMMARY_START = "<!-- GRB_COMPARISON_START -->";
 const SUMMARY_END = "<!-- GRB_COMPARISON_END -->";
@@ -84,7 +85,7 @@ function nextAction(result, fallback) {
     case "regression_suspected":
       return "Review the changed evidence before accepting the candidate; fix the regression or update the expectation/baseline only if the change is intentional.";
     case "blocked":
-      return "Create or choose a trustworthy baseline, then compare again.";
+      return oneLine(fallback || "Create or choose a trustworthy baseline, then compare again.");
     case "human_review_required":
       return oneLine(fallback || "Inspect comparison.md, then decide whether the candidate is acceptable.");
     default:
@@ -96,6 +97,7 @@ export function printComparisonCloseout(comparison, comparisonMdPath, comparison
   const stats = comparison.stats || comparisonStats(comparison);
   const selected = comparison.baseline_selection?.selected;
   const action = nextAction(comparison.result, comparison.human_next_step);
+  const blockedText = baselineBlockedText(comparison.baseline_selection?.blocked_reason || comparison.reason);
 
   log("");
   log("Comparison closeout:");
@@ -106,7 +108,20 @@ export function printComparisonCloseout(comparison, comparisonMdPath, comparison
   log(`  Baseline: ${comparison.baseline?.run_id || "none"}`);
   log(`  Candidate: ${comparison.candidate?.run_id || "unknown"}`);
   log(`  Baseline mode: ${comparison.baseline_selection?.requested_mode || "unknown"} -> ${comparison.baseline_selection?.effective_mode || "unknown"}`);
-  log(`  Baseline selected because: ${selected?.reason || comparison.baseline_selection?.blocked_reason || "not selected"}`);
+  if (selected) {
+    log(`  Baseline selected because: ${baselineReasonText(selected.reason)}`);
+  } else {
+    log(`  Baseline not selected: ${blockedText}`);
+  }
+  if (comparison.result === "blocked" && comparison.baseline_selection?.rejected?.length) {
+    log("  Rejected baseline candidates:");
+    for (const item of comparison.baseline_selection.rejected.slice(0, 5)) {
+      log(`    - ${item.run_id || item.path || "unknown"}: ${baselineReasonText(item.reason)}`);
+    }
+    if (comparison.baseline_selection.rejected.length > 5) {
+      log(`    - ...${comparison.baseline_selection.rejected.length - 5} more in comparison.md`);
+    }
+  }
   log(`  Screenshot pairs: ${stats.screenshot_matched} matched, ${stats.screenshot_changed} changed, ${stats.screenshot_missing} missing`);
   log(`  Runtime differences: ${stats.runtime_differences}`);
   log(`  Issue delta: ${stats.issue_delta ?? "unknown"}; stderr changed: ${stats.stderr_changed ? "yes" : "no"}`);
@@ -208,6 +223,7 @@ export function writeBlockedComparison(candidatePath, decision, message) {
     human_next_step: "Select an explicit trustworthy baseline or create a passing baseline run, then compare again.",
     unresolved_question: "Which prior run is a trustworthy baseline for this candidate?",
   };
+  comparison.human_next_step = blockedNextStep(decision?.blocked_reason || message);
   comparison.stats = comparisonStats(comparison);
 
   const comparisonJsonPath = path.join(comparisonDir, "comparison.json");

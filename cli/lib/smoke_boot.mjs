@@ -6,6 +6,7 @@ import { missionRunnerPath, resolveProjectDir, toPosixRelative } from "./paths.m
 import { writeProofBundle } from "./proof_bundle.mjs";
 import { BaselineSelectionError, selectBaseline } from "./select_baseline.mjs";
 import { compareRuns, printComparisonCloseout, writeBlockedComparison } from "./compare_runs.mjs";
+import { baselineBlockedText } from "./baseline_reason_text.mjs";
 
 function makeRunId(missionId) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
@@ -364,7 +365,7 @@ export async function runProjectMission(options = {}) {
     } catch (err) {
       if (err instanceof BaselineSelectionError) {
         const comparison = writeBlockedComparison(runDir, err.decision, err.message);
-        console.error(`Comparison blocked: ${err.message}`);
+        console.error(`Comparison blocked: ${baselineBlockedText(err.decision?.blocked_reason || err.message)}`);
         printComparisonCloseout(comparison.comparison, comparison.comparisonMdPath, comparison.comparisonJsonPath, (line) => console.error(line));
         exitCode = 1;
       } else {

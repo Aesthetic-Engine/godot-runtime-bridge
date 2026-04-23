@@ -79,6 +79,8 @@ node <path-to-grb-main>/cli/grb.mjs compare <baseline-run-dir> <candidate-run-di
 
 If no trustworthy baseline exists, create one first. Do not force comparison against a vague or unreviewed run.
 
+When comparison is blocked, open `comparison.md` and read the baseline selection section. It should explain which candidates were rejected in plain language, why GRB refused to compare, and the safest next step.
+
 ## Outcomes
 
 - `matched`: compared artifacts matched within current GRB checks. Still inspect the summary before claiming correctness.

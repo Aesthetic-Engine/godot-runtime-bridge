@@ -57,6 +57,8 @@ node cli/grb.mjs compare examples/grb2-proving-ground/grb_reports/<baseline-run-
 
 This is better than `--compare-to latest` when you are reviewing a specific pair or when automatic baseline selection is blocked.
 
+If comparison is blocked, use `comparison.md` to see which proving-ground run candidates were rejected and why. Common causes are no prior passing run yet, choosing the candidate as its own baseline, or comparing against the wrong mission.
+
 ## Outcome Meanings
 
 - `matched`: the deterministic artifacts matched; still review the screenshot and mission report.

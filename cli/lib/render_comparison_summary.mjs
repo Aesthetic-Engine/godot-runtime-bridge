@@ -1,5 +1,8 @@
+import { baselineBlockedText, baselineReasonText, blockedNextStep } from "./baseline_reason_text.mjs";
+
 export function renderComparisonSummary(comparison) {
   const stats = comparison.stats || {};
+  const blockedText = baselineBlockedText(comparison.baseline_selection?.blocked_reason || comparison.reason);
   const meaning = comparison.result === "matched"
     ? "Compared artifacts matched within the current GRB checks."
     : comparison.result === "blocked"
@@ -27,8 +30,10 @@ export function renderComparisonSummary(comparison) {
       : comparison.result === "regression_suspected"
         ? "Do not accept the candidate on automation alone; fix the regression or explicitly confirm the change is intended."
         : comparison.result === "blocked"
-          ? "Create or choose a trustworthy baseline, then compare again."
+          ? blockedNextStep(comparison.baseline_selection?.blocked_reason || comparison.reason)
           : comparison.human_next_step;
+  const selected = comparison.baseline_selection?.selected;
+  const rejected = comparison.baseline_selection?.rejected || [];
 
   const lines = [
     `# GRB Run Comparison: ${comparison.mission_name}`,
@@ -48,6 +53,7 @@ export function renderComparisonSummary(comparison) {
     "",
     `- Meaning: ${meaning}`,
     `- Compared: \`${comparison.baseline.run_id || "none"}\` -> \`${comparison.candidate.run_id || "unknown"}\``,
+    ...(comparison.result === "blocked" ? [`- Why blocked: ${blockedText}`] : []),
     `- Screenshot pairs: ${stats.screenshot_matched ?? "unknown"} matched, ${stats.screenshot_changed ?? "unknown"} changed, ${stats.screenshot_missing ?? "unknown"} missing`,
     `- Runtime differences: ${stats.runtime_differences ?? "unknown"}`,
     `- Issue delta: ${stats.issue_delta ?? "unknown"}`,
@@ -67,17 +73,20 @@ export function renderComparisonSummary(comparison) {
     "",
     "## Baseline Selection",
     "",
-    comparison.baseline_selection?.selected
-      ? `- Selected: \`${comparison.baseline_selection.selected.run_id}\` (${comparison.baseline_selection.selected.reason})`
+    selected
+      ? `- Selected: \`${selected.run_id}\` (${baselineReasonText(selected.reason)})`
       : "- Selected: none",
-    comparison.baseline_selection?.selected?.path
-      ? `- Path: \`${comparison.baseline_selection.selected.path}\``
+    selected?.path
+      ? `- Path: \`${selected.path}\``
+      : "",
+    comparison.result === "blocked"
+      ? `- Blocking reason: ${blockedText}`
       : "",
     "",
     "### Rejected Candidates",
     "",
-    ...(comparison.baseline_selection?.rejected?.length
-      ? comparison.baseline_selection.rejected.map((item) => `- \`${item.run_id || item.path}\`: ${item.reason}`)
+    ...(rejected.length
+      ? rejected.map((item) => `- \`${item.run_id || item.path}\`: ${baselineReasonText(item.reason)}`)
       : ["- None"]),
     "",
     "## Screenshot Comparison",
@@ -114,8 +123,8 @@ export function renderComparisonSummary(comparison) {
   lines.push(`- stderr changed: ${errors.stderr_changed ? "yes" : "no"}`);
 
   lines.push("", "## Human Handoff", "");
-  lines.push(`- Reason: ${comparison.reason}`);
-  lines.push(`- Next step: ${comparison.human_next_step}`);
+  lines.push(`- Reason: ${comparison.result === "blocked" ? blockedText : comparison.reason}`);
+  lines.push(`- Next step: ${nextAction}`);
   lines.push(`- Unresolved question: ${comparison.unresolved_question}`);
   lines.push("");
 
