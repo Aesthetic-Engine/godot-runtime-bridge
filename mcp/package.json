@@ -13,7 +13,7 @@
     "verify:grb2:shape": "node ../tools/verify_grb2_product_shape.mjs",
     "verify:grb": "node verify_grb_release.mjs",
     "verify:release:live": "node verify_release.mjs",
-    "verify:release": "npm run verify:grb2:shape && npm run verify:release:live"
+    "verify:release": "npm run verify:grb2:shape && npm run verify:release:live --"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1"
