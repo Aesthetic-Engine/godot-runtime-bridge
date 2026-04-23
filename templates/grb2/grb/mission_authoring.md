@@ -17,6 +17,8 @@ Canonical runnable examples in this repo:
 - `toggle`: `examples/grb2-proving-ground/grb/missions/toggle_panel.yaml`
 - `state_check`: `examples/grb2-proving-ground/grb/missions/hud_state_check.yaml`
 
+Generated `transition`, `toggle`, and `state_check` mission files also keep their matching canonical example path in a top-of-file comment.
+
 ## Replace TODO Steps
 
 Choose the smallest action that reaches the proof surface:

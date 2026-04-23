@@ -122,6 +122,7 @@ steps:
 function renderTransitionMission({ missionId, recipe }) {
   const title = titleCaseFromId(missionId);
   return `# GRB mission scaffold pattern: transition.
+# Canonical example: examples/grb2-proving-ground/grb/missions/scene_transition.yaml
 # Use for title -> gameplay, menu -> panel, screen/state change, or one bounded before/after transition.
 # Replace the TODO interaction with the smallest action that causes the transition.
 # This captures evidence; it does not prove product correctness by itself.
@@ -177,6 +178,7 @@ steps:
 function renderToggleMission({ missionId, recipe }) {
   const title = titleCaseFromId(missionId);
   return `# GRB mission scaffold pattern: toggle.
+# Canonical example: examples/grb2-proving-ground/grb/missions/toggle_panel.yaml
 # Use for open/close or hidden/visible UI surfaces: pause menu, inventory, map, settings, debug panel.
 # Replace the TODO interaction with the smallest action that toggles the surface.
 # This captures evidence; it does not prove product correctness by itself.
@@ -232,6 +234,7 @@ steps:
 function renderStateCheckMission({ missionId, recipe }) {
   const title = titleCaseFromId(missionId);
   return `# GRB mission scaffold pattern: state_check.
+# Canonical example: examples/grb2-proving-ground/grb/missions/hud_state_check.yaml
 # Use when a HUD label, counter, mode, selected item, or runtime-readable state should change.
 # Replace TODO node/method/property placeholders with project-specific state access.
 # This captures evidence; it does not prove product correctness by itself.
