@@ -99,3 +99,54 @@ jobs:
         with:
           name: grb-release-smoke
           path: mcp/reports/release-smoke
+
+      - name: Exercise GRB 2.0 first-run path (init → doctor → mission run smoke_boot)
+        env:
+          GRB_FIRST_RUN_PROJECT: ${{ runner.temp }}/grb-first-run-project
+        run: |
+          set -euo pipefail
+
+          # Build a fresh minimal Godot project with the GRB addon, distinct
+          # from the earlier release-smoke project. This proves the full first
+          # -run path (init → doctor → mission run smoke_boot) end to end, not
+          # just the release-smoke subset.
+          mkdir -p "$GRB_FIRST_RUN_PROJECT/addons"
+          cp -R "$GITHUB_WORKSPACE/addons/godot-runtime-bridge" "$GRB_FIRST_RUN_PROJECT/addons/"
+          cat > "$GRB_FIRST_RUN_PROJECT/project.godot" <<'EOF'
+          config_version=5
+
+          [application]
+
+          config/name="GRB First-Run Project"
+          run/main_scene="res://Main.tscn"
+
+          [autoload]
+
+          GRBServer="*res://addons/godot-runtime-bridge/runtime_bridge/DebugServer.gd"
+          EOF
+          cat > "$GRB_FIRST_RUN_PROJECT/Main.tscn" <<'EOF'
+          [gd_scene format=3]
+
+          [node name="Main" type="Node"]
+          EOF
+
+          # Let Godot generate .godot/ metadata so doctor and smoke_boot's
+          # first-run readiness guards do not refuse a never-opened project.
+          xvfb-run -a "$GODOT_BIN" --headless --path "$GRB_FIRST_RUN_PROJECT" --quit || true
+
+          # 1. init: scaffold grb.project.yaml, grb/, and record repo linkage.
+          ./grb init --project "$GRB_FIRST_RUN_PROJECT"
+
+          # 2. doctor: fail the job if the first-run path is not truly ready.
+          ./grb doctor --project "$GRB_FIRST_RUN_PROJECT" --exe "$GODOT_BIN"
+
+          # 3. mission run smoke_boot: exit code 0 means the proof bundle
+          #    landed and smoke_boot was not blocked.
+          xvfb-run -a ./grb mission run smoke_boot --project "$GRB_FIRST_RUN_PROJECT" --exe "$GODOT_BIN"
+
+      - name: Upload first-run proof bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grb-first-run-proof
+          path: ${{ runner.temp }}/grb-first-run-project/grb_reports/

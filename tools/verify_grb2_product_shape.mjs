@@ -236,8 +236,12 @@ function checkInitStampedRepoLinkage() {
     assert(parsed.grb_repo_root === repoRoot, "init should stamp actual grb_repo_root into generated contract");
     assertIncludes(
       parsed.first_trustworthy_proof_run.command,
-      `"${expectedLauncher}" mission run smoke_boot --project "${tempRoot}" --exe <godot_exe>`,
+      `"${expectedLauncher}" mission run smoke_boot --project "${tempRoot}"`,
       "init-stamped first proof command"
+    );
+    assert(
+      !parsed.first_trustworthy_proof_run.command.includes("<"),
+      "init-stamped first proof command must not carry any unresolved <placeholder> markers"
     );
     assert(!contractText.includes("<set-by-grb-init>"), "generated contract should not keep repo-linkage placeholders after init");
     assert(result.repoLinkage.repoRoot === repoRoot, "init result should expose recorded repo root");
@@ -278,8 +282,12 @@ function checkInitRepoLinkagePatchSafety() {
     assert(patched.grb_repo_root === repoRoot, "init should patch placeholder contracts with the active repo root");
     assertIncludes(
       patched.first_trustworthy_proof_run.command,
-      `"${process.platform === "win32" ? `${repoRoot}\\grb.cmd` : `${repoRoot}/grb`}" mission run smoke_boot --project "${placeholderProject}" --exe <godot_exe>`,
+      `"${process.platform === "win32" ? `${repoRoot}\\grb.cmd` : `${repoRoot}/grb`}" mission run smoke_boot --project "${placeholderProject}"`,
       "patched placeholder contract"
+    );
+    assert(
+      !patched.first_trustworthy_proof_run.command.includes("<godot_exe>"),
+      "re-init must strip stale <godot_exe> placeholder from legacy contracts"
     );
 
     const preservedProject = path.join(tempRoot, "preserved");
@@ -299,7 +307,7 @@ function checkInitRepoLinkagePatchSafety() {
         '  - grb.project.yaml',
         'proof_reports_dir: grb_reports',
         'first_trustworthy_proof_run:',
-        "  command: '\"D:\\Custom\\grb-main\\grb.cmd\" mission run smoke_boot --project \"D:\\Games\\Proj\" --exe <godot_exe>'",
+        "  command: '\"D:\\Custom\\grb-main\\grb.cmd\" mission run smoke_boot --project \"D:\\Games\\Proj\"'",
         '  inspect: grb_reports/<run-id>/summary.md',
         '',
       ].join("\n")
@@ -309,9 +317,46 @@ function checkInitRepoLinkagePatchSafety() {
     const preserved = parseSimpleYaml(fs.readFileSync(path.join(preservedProject, "grb.project.yaml"), "utf-8"));
     assert(preserved.grb_repo_root === "D:\\Custom\\grb-main", "init should preserve a real custom grb_repo_root");
     assert(
-      preserved.first_trustworthy_proof_run.command === '"D:\\Custom\\grb-main\\grb.cmd" mission run smoke_boot --project "D:\\Games\\Proj" --exe <godot_exe>',
+      preserved.first_trustworthy_proof_run.command === '"D:\\Custom\\grb-main\\grb.cmd" mission run smoke_boot --project "D:\\Games\\Proj"',
       "init should preserve a real custom first proof command"
     );
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+}
+
+function checkFirstProofCommandPlaceholderGuard() {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "grb2-first-proof-guard-"));
+
+  try {
+    const placeholderCommands = [
+      '../../grb mission run smoke_boot --project <project> --exe <godot_exe>',
+      '"<launcher>" mission run smoke_boot --project <project>',
+      '"/real/launcher" mission run smoke_boot --project "/real/project" --exe <path-to-godot-exe>',
+      '"/real/launcher" mission run smoke_boot --project "/real/project" --exe <path-to-godot>',
+    ];
+
+    for (const cmd of placeholderCommands) {
+      const projectDir = fs.mkdtempSync(path.join(tempRoot, "proj-"));
+      writeFile(path.join(projectDir, "project.godot"), "; synthetic project\n");
+      initProject({ projectDir });
+      fs.mkdirSync(path.join(projectDir, "addons", "godot-runtime-bridge"), { recursive: true });
+      fs.mkdirSync(path.join(projectDir, ".godot"), { recursive: true });
+
+      const contractPath = path.join(projectDir, "grb.project.yaml");
+      const original = fs.readFileSync(contractPath, "utf-8");
+      const pollutedYaml = original.replace(/^  command:.*$/m, `  command: ${cmd}`);
+      fs.writeFileSync(contractPath, pollutedYaml);
+
+      const fakeExe = path.join(projectDir, "Godot_console.exe");
+      writeFile(fakeExe, "fake exe");
+      const result = inspectProjectReadiness({ projectDir, exe: fakeExe });
+      const proofCheck = result.checks.find((item) => item.label === "first proof command");
+      assert(
+        proofCheck && proofCheck.status === "fail",
+        `doctor must refuse unresolved placeholder in first_trustworthy_proof_run.command: ${cmd}`
+      );
+    }
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
@@ -486,6 +531,9 @@ function main() {
 
   checkDoctorReadiness();
   console.log("ok doctor readiness");
+
+  checkFirstProofCommandPlaceholderGuard();
+  console.log("ok first proof command placeholder guard");
 
   checkChannelAndDocTruth();
   console.log("ok channel and doc truth");

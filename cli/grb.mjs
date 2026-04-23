@@ -129,8 +129,8 @@ async function main() {
     console.log("  2. Check project readiness without launching Godot:");
     console.log(`     ${quotedRepoRootLauncherPath()} doctor --project "${result.projectDir}" --exe <godot_exe>`);
     console.log("");
-    console.log("  3. Run the first trustworthy proof mission:");
-    console.log(`     ${result.repoLinkage.firstProofCommand}`);
+    console.log("  3. Run the first trustworthy proof mission (append --exe <path-to-godot>):");
+    console.log(`     ${result.repoLinkage.firstProofCommand} --exe <path-to-godot>`);
     console.log("");
     console.log("  4. Inspect the proof bundle summary:");
     console.log(`     ${result.projectDir}\\grb_reports\\<run-id>\\summary.md`);

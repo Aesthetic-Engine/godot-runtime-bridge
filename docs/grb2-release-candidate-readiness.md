@@ -18,7 +18,9 @@ The repo is currently release-candidate ready for the following GRB 2.0 surfaces
   - `grb.cmd`
   - `./grb`
 - GRB 2.0 project initialization and local repo-linkage stamping
-- no-launch readiness checking via `doctor`
+- no-launch readiness checking via `doctor`, including a refusal to
+  green-light unresolved `<project>` / `<godot_exe>` / `<path-to-godot-exe>`
+  placeholders in the first trustworthy proof-run contract
 - first trustworthy proof-run flow:
   - `init`
   - `doctor`
@@ -26,7 +28,11 @@ The repo is currently release-candidate ready for the following GRB 2.0 surfaces
 - project-local proof bundles and compare/baseline workflow
 - deterministic proving-ground reference project
 - lightweight GRB 2.0 product-shape verification
-- release smoke that now includes GRB 2.0 product-shape verification
+- release smoke that now includes GRB 2.0 product-shape verification plus a
+  live `init` → `doctor` → `mission run smoke_boot` exercise on a fresh
+  project, not just file-shape assertions
+- MCP `grb_launch` refuses never-opened projects missing `.godot/` metadata
+  with an actionable error instead of a slow launch timeout
 
 ## Required Checks
 
@@ -113,14 +119,32 @@ Sprint 13 Slice 1 has now delivered:
   aggregate (shape + versions + live smoke); `verify:release:live` preserves
   the prior versions+live-smoke-only behavior
 
+Sprint 13 Slice 2 additionally delivered launcher-doctrine cleanup across
+templates, proving-ground helper output, CLI error text, and docs, plus
+product-facing comparison wording and product-shape enforcement of these
+surfaces.
+
+Sprint 13 Slice 3 additionally delivered:
+
+- **CI coverage of the actual first-run flow** — release smoke now
+  exercises `init` → `doctor` → `mission run smoke_boot` on a fresh project
+  end-to-end
+- **stricter placeholder detection** — `doctor` and the first-proof contract
+  check now refuse `<project>`, `<godot_exe>`, `<path-to-godot-exe>`,
+  `<path-to-godot>`, and `<godot_path>` in `first_trustworthy_proof_run.command`
+- **proving-ground contract honesty** — the proving-ground's
+  `grb.project.yaml` no longer ships with unresolved placeholders in its
+  first-proof command
+- **MCP `.godot/` guard** — `grb_launch` refuses never-opened projects with
+  an actionable error instead of a slow launch timeout
+
 Still deferred to later Sprint 13 slices:
 
 - final release smoke on the intended release target
 - any final release-channel or packaging decision beyond current addon-oriented archive truth
-- the other audit items not covered by Slice 1 (CI runtime coverage of
-  `init` / `doctor` / `mission run smoke_boot`, addon-side Cursor-only side
-  effects, launcher-doctrine scan expansion, MCP `.godot` guard, placeholder
-  detection breadth, and YAML parser robustness)
+- the other audit items not covered yet (addon-side Cursor-only side
+  effects, archive/channel policy, proof-tier headline wording, and YAML
+  parser robustness)
 
 ## Intentionally Out Of Scope For GRB 2.0 Launch
 

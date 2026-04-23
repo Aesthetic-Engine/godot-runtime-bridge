@@ -32,7 +32,10 @@ function formatLauncherPath() {
 }
 
 function formatFirstProofCommand(projectDir) {
-  return `"${formatLauncherPath()}" mission run smoke_boot --project "${projectDir}" --exe <godot_exe>`;
+  // The recorded command intentionally omits --exe: the user supplies the
+  // Godot path at runtime. Doctor now refuses placeholder markers like
+  // <godot_exe> in this field, so the stamped form must be concrete.
+  return `"${formatLauncherPath()}" mission run smoke_boot --project "${projectDir}"`;
 }
 
 function formatYamlSingleQuoted(value) {
@@ -48,7 +51,11 @@ function shouldPatchTemplateValue(value) {
     text.includes("node <path-to-grb-main>/cli/grb.mjs") ||
     text.includes("C:\\path\\to\\grb-main\\grb.cmd") ||
     text.includes("/path/to/grb-main/grb") ||
-    text.includes("<project>")
+    text.includes("<project>") ||
+    text.includes("<godot_exe>") ||
+    text.includes("<path-to-godot-exe>") ||
+    text.includes("<path-to-godot>") ||
+    text.includes("<godot_path>")
   );
 }
 

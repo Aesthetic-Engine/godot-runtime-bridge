@@ -21,5 +21,7 @@ expected_first_run:
 proof_reports_dir: grb_reports
 first_trustworthy_proof_run:
   # grb init records the concrete repo-root launcher command for this project.
+  # The recorded command omits --exe on purpose; supply --exe <path-to-godot>
+  # (or set GODOT_EXE) when you actually run the mission.
   command: <set-by-grb-init>
   inspect: grb_reports/<run-id>/summary.md

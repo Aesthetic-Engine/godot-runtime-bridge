@@ -648,6 +648,40 @@ async function handleTool(name, args) {
 
       const projectPath = args.project_path;
       grbProjectPath = projectPath;
+
+      // First-run readiness guard: mirror the protection doctor already has.
+      // Launching a never-opened Godot project (no `.godot/` metadata) turns
+      // into a confusing slow-fail where GDRB_READY never arrives. Refuse
+      // early with an actionable message so the user can open the project
+      // once in Godot to let imports/plugins settle, then retry.
+      if (!projectPath) {
+        return errResult({
+          ok: false,
+          error: {
+            code: "project_path_missing",
+            message: "project_path is required to launch Godot.",
+          },
+        });
+      }
+      if (!fs.existsSync(path.join(projectPath, "project.godot"))) {
+        return errResult({
+          ok: false,
+          error: {
+            code: "project_godot_missing",
+            message: `No project.godot found in: ${projectPath}. Pass the Godot project root (the folder that contains project.godot).`,
+          },
+        });
+      }
+      if (!fs.existsSync(path.join(projectPath, ".godot"))) {
+        return errResult({
+          ok: false,
+          error: {
+            code: "godot_metadata_missing",
+            message: `Godot metadata not found: ${path.join(projectPath, ".godot")}. Open this project once in the Godot editor so imports and plugin metadata are generated, then retry grb_launch.`,
+          },
+        });
+      }
+
       const launchTarget = resolveGodotExecutable(args.godot_exe);
       const godotExe = launchTarget.godotExe;
       const tier = args.tier != null ? String(args.tier) : "1";

@@ -58,8 +58,23 @@ function resolveRecordedRepoRoot(projectDir, rawValue) {
   return path.isAbsolute(text) ? text : path.resolve(projectDir, text);
 }
 
+// Known unresolved placeholder markers that must NOT survive into a
+// trustworthy first-proof contract value. This list is intentionally narrow
+// and explicit: it only catches the obvious "this was never substituted"
+// shapes that doctor/smoke_boot must refuse to green-light.
+const UNRESOLVED_PLACEHOLDER_MARKERS = [
+  "<set-by-grb-init>",
+  "<path-to-grb-main>",
+  "<project>",
+  "<godot_exe>",
+  "<path-to-godot-exe>",
+  "<path-to-godot>",
+  "<godot_path>",
+];
+
 function looksLikePlaceholder(text) {
-  return String(text || "").includes("<set-by-grb-init>") || String(text || "").includes("<path-to-grb-main>");
+  const s = String(text || "");
+  return UNRESOLVED_PLACEHOLDER_MARKERS.some((marker) => s.includes(marker));
 }
 
 function quoteArg(value) {
