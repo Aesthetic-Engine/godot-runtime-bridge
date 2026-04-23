@@ -11,6 +11,12 @@ A good mission is small: one surface, one action, one before/after question. It 
 - `toggle`: use when one action should open/close or show/hide a UI surface.
 - `state_check`: use when visible UI should match a runtime-readable value, such as a HUD label, counter, mode, or selected item.
 
+Canonical runnable examples in this repo:
+
+- `transition`: `examples/grb2-proving-ground/grb/missions/scene_transition.yaml`
+- `toggle`: `examples/grb2-proving-ground/grb/missions/toggle_panel.yaml`
+- `state_check`: `examples/grb2-proving-ground/grb/missions/hud_state_check.yaml`
+
 ## Replace TODO Steps
 
 Choose the smallest action that reaches the proof surface:

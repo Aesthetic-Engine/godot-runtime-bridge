@@ -4,6 +4,11 @@ import { resolveProjectDir } from "./paths.mjs";
 import { parseSimpleYaml } from "./simple_yaml.mjs";
 
 export const VALID_MISSION_PATTERNS = ["default", "transition", "toggle", "state_check"];
+export const CANONICAL_PATTERN_EXAMPLES = {
+  transition: "examples/grb2-proving-ground/grb/missions/scene_transition.yaml",
+  toggle: "examples/grb2-proving-ground/grb/missions/toggle_panel.yaml",
+  state_check: "examples/grb2-proving-ground/grb/missions/hud_state_check.yaml",
+};
 
 function isDirectory(filePath) {
   try {
@@ -346,6 +351,7 @@ export function scaffoldMission(options = {}) {
     missionId,
     missionPath,
     pattern,
+    canonicalExamplePath: CANONICAL_PATTERN_EXAMPLES[pattern] || null,
     recipe: recipeInfo.recipe,
     recipeSource: recipeInfo.source,
   };

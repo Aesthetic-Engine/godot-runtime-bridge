@@ -54,6 +54,8 @@ Choose a small pattern:
 - `state_check`: HUD label, counter, selected mode/item, or runtime-readable property change.
 - `default`: use when the surface does not clearly fit one of the named patterns.
 
+Repo examples: `transition` -> `examples/grb2-proving-ground/grb/missions/scene_transition.yaml`, `toggle` -> `examples/grb2-proving-ground/grb/missions/toggle_panel.yaml`, `state_check` -> `examples/grb2-proving-ground/grb/missions/hud_state_check.yaml`.
+
 Customize the goal, one interaction step, and human handoff before claiming proof. For `state_check`, also replace the TODO runtime state reads with one `call_method` or `get_property` source. Prefer one clear before/after surface over broad exploratory automation.
 
 When replacing scaffold TODOs, use `grb/mission_authoring.md` as the local cookbook. It explains when to use `press_button`, `click`, `key`, `call_method`, `get_property`, `assert_property`, `screenshot_diff`, and `check_errors`.

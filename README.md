@@ -253,6 +253,8 @@ You can choose a small starter pattern:
 - `--pattern state_check`: use when a HUD label, score/counter, selected mode, weapon, or runtime-readable property should change and visible UI should match it.
 - omit `--pattern` or use `--pattern default`: use when your mission does not clearly fit one of the named patterns yet.
 
+Runnable examples in this repo: `transition` -> `examples/grb2-proving-ground/grb/missions/scene_transition.yaml`, `toggle` -> `examples/grb2-proving-ground/grb/missions/toggle_panel.yaml`, `state_check` -> `examples/grb2-proving-ground/grb/missions/hud_state_check.yaml`.
+
 Examples:
 
 ```bash

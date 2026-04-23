@@ -121,6 +121,9 @@ async function main() {
     console.log(`GRB mission scaffold created: ${result.missionPath}`);
     console.log(`Pattern: ${result.pattern}`);
     console.log(`Recipe: ${result.recipe} (${result.recipeSource})`);
+    if (result.canonicalExamplePath) {
+      console.log(`Canonical example: ${result.canonicalExamplePath}`);
+    }
     console.log("");
     console.log("Customize first:");
     console.log("  - Replace the TODO goal with the exact project surface this mission proves.");
