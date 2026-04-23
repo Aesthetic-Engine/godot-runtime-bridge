@@ -204,6 +204,46 @@ function checkContractShape() {
   }
 }
 
+function checkChannelAndDocTruth() {
+  const readme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf-8");
+  const legacyMissions = fs.readFileSync(path.join(repoRoot, "missions", "README.md"), "utf-8");
+  const ciDoc = fs.readFileSync(path.join(repoRoot, "docs", "ci.md"), "utf-8");
+  const authoring = fs.readFileSync(path.join(repoRoot, "templates", "grb2", "grb", "mission_authoring.md"), "utf-8");
+  const regression = fs.readFileSync(path.join(repoRoot, "templates", "grb2", "grb", "regression_workflow.md"), "utf-8");
+  const agents = fs.readFileSync(path.join(repoRoot, "templates", "grb2", "AGENTS.md"), "utf-8");
+
+  assertIncludes(readme, "## Choose the Right Install Path", "README channel truth");
+  assertIncludes(readme, "Addon-only / AssetLib path", "README channel truth");
+  assertIncludes(readme, "Full repo clone", "README channel truth");
+  assertIncludes(readme, "GRB 2.0 proof workflow", "README channel truth");
+  assertIncludes(readme, "Current export/archive packaging is addon-oriented", "README channel truth");
+  assertIncludes(readme, "This is a **full-repo workflow**, not an addon-only workflow.", "README proof channel truth");
+
+  assertIncludes(legacyMissions, "# Legacy Built-In Mission Pack", "legacy mission doc");
+  assertIncludes(legacyMissions, "project-local proof workflow", "legacy mission doc");
+  assertIncludes(legacyMissions, "built-in pack ships **15** generic missions", "legacy mission doc");
+  assertIncludes(legacyMissions, "--mission starters", "legacy mission doc");
+  assertIncludes(ciDoc, "Repo-Level Release Smoke", "CI doc truth");
+  assertIncludes(ciDoc, "Project-Level GRB 2.0 Proof Workflows", "CI doc truth");
+  assertIncludes(ciDoc, "legacy mission runner", "CI doc truth");
+
+  assertIncludes(authoring, "## Stable Capture Slots", "mission authoring contract");
+  assertIncludes(authoring, "treat screenshot labels as", "mission authoring contract");
+  assertIncludes(authoring, "stable surface rather than deep semantic understanding", "mission authoring contract");
+  assertIncludes(regression, "## Stable Evidence Surfaces", "regression workflow contract");
+  assertIncludes(regression, "not a strong regression surface yet", "regression workflow contract");
+  assertIncludes(agents, "Treat screenshot labels as capture slots", "agent contract");
+}
+
+function checkContributorReadmeTruth() {
+  const readme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf-8");
+  assertIncludes(readme, "### CLI Exit Codes", "README contributor closeout");
+  assertIncludes(readme, "`mission run` exits:", "README contributor closeout");
+  assertIncludes(readme, "`compare` exits:", "README contributor closeout");
+  assertIncludes(readme, "compatible GRB proof bundle directories", "README contributor closeout");
+  assertIncludes(readme, "This still does not prove product correctness", "README contributor closeout");
+}
+
 function main() {
   checkBaselineReasonText();
   console.log("ok baseline reason text");
@@ -216,6 +256,12 @@ function main() {
 
   checkContractShape();
   console.log("ok GRB 2.0 contract shape");
+
+  checkChannelAndDocTruth();
+  console.log("ok channel and doc truth");
+
+  checkContributorReadmeTruth();
+  console.log("ok contributor README truth");
 }
 
 try {

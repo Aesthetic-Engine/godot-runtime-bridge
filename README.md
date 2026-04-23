@@ -388,6 +388,28 @@ Comparison output is written into the candidate bundle under `comparison/`, and 
 
 `--compare-to latest` resolves to the newest previous passing run with the same `mission_id`. The candidate run is never eligible as its own baseline, and blocked/corrupt/mismatched automatic candidates are rejected with reasons in `comparison/comparison.md`.
 
+### CLI Exit Codes
+
+Contributor-facing shorthand for the current CLI behavior:
+
+- `mission run` exits:
+  - `0` when the mission run completed as a pass
+  - `1` when the mission failed, a compare-on-rerun result was blocked or
+    `regression_suspected`, or another fatal CLI error occurred
+  - `2` when preflight checks blocked the run before meaningful proof could be
+    collected
+- `compare` exits:
+  - `0` for non-blocked comparison outcomes such as `matched`,
+    `difference_detected`, or `human_review_required`
+  - `1` for `blocked`, `regression_suspected`, bad usage, or fatal CLI error
+
+`compare` expects **compatible GRB proof bundle directories** as input: folders
+like `grb_reports/<run-id>/` that contain GRB run artifacts such as `run.json`.
+It does not compare arbitrary folders.
+
+This still does not prove product correctness, design intent, or E-tier
+experience. It only makes the CLI and compare workflow easier to reason about.
+
 ## Background Testing
 
 By default (`GDRB_INPUT_MODE=synthetic`), input commands inject Godot `InputEvent` objects without touching the OS cursor. In this mode, real mouse and keyboard events from your hardware are **blocked from reaching game nodes entirely** — the bridge intercepts them at the viewport level so only GRB-injected events get through. Your mouse and keyboard remain yours.
