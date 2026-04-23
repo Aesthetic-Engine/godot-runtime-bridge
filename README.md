@@ -410,6 +410,16 @@ The server is completely inert without activation environment variables. No TCP 
 
 ## For Contributors
 
+### GRB 2.0 Product-Shape Verification
+
+Run this lightweight check after changing GRB 2.0 proof/onboarding wording, bundle summaries, comparison summaries, or project contracts:
+
+```bash
+node tools/verify_grb2_product_shape.mjs
+```
+
+It does not launch Godot. It checks small deterministic product-layer truths such as readable baseline rejection reasons, blocked comparison summaries, proof-bundle review handoff, and generated/proving-ground contract shape.
+
 ### Release Verification
 
 From the `mcp/` folder:
