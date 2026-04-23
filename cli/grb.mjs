@@ -88,6 +88,8 @@ async function main() {
     console.log("  AGENTS.md");
     console.log("  grb.project.yaml");
     console.log("  grb/proof_policy.yaml");
+    console.log("  grb/mission_authoring.md");
+    console.log("  grb/runtime_proof_hooks.md");
     console.log("");
     console.log("Then run the first trustworthy proof mission:");
     console.log(`  node ${process.argv[1]} mission run smoke_boot --project "${result.projectDir}" --exe <godot_exe>`);
@@ -124,11 +126,13 @@ async function main() {
     console.log("  - Replace the TODO goal with the exact project surface this mission proves.");
     if (result.pattern === "state_check") {
       console.log("  - Replace the TODO state reads with one call_method or get_property source.");
+      console.log("  - Use grb/runtime_proof_hooks.md if you need to add a safe state helper.");
       console.log("  - Replace the state_check placeholder interaction with one small real action.");
     } else {
       console.log(`  - Replace the ${result.pattern} placeholder interaction with one small real action.`);
     }
     console.log("  - Update human_handoff so a reviewer knows what to inspect.");
+    console.log("  - Use grb/mission_authoring.md for step examples and honest handoff wording.");
     console.log("");
     console.log("Then run:");
     console.log(`  node ${process.argv[1]} mission run ${result.missionId} --project "${result.projectDir}" --exe <godot_exe>`);

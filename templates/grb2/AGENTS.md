@@ -8,6 +8,8 @@ Customize the TODOs before relying on this contract for larger work.
 
 - `grb.project.yaml`
 - `grb/proof_policy.yaml`
+- `grb/mission_authoring.md`
+- `grb/runtime_proof_hooks.md`
 - `grb/missions/smoke_boot.yaml`
 - `grb/gotchas.md`
 
@@ -53,6 +55,10 @@ Choose a small pattern:
 - `default`: use when the surface does not clearly fit one of the named patterns.
 
 Customize the goal, one interaction step, and human handoff before claiming proof. For `state_check`, also replace the TODO runtime state reads with one `call_method` or `get_property` source. Prefer one clear before/after surface over broad exploratory automation.
+
+When replacing scaffold TODOs, use `grb/mission_authoring.md` as the local cookbook. It explains when to use `press_button`, `click`, `key`, `call_method`, `get_property`, `assert_property`, `screenshot_diff`, and `check_errors`.
+
+When a `state_check` mission needs project-specific runtime state, use `grb/runtime_proof_hooks.md` before adding helper methods. Keep hooks small, stable, safe, and product-facing.
 
 ## Proof Language
 

@@ -190,6 +190,8 @@ Review and customize the generated files:
 AGENTS.md
 grb.project.yaml
 grb/proof_policy.yaml
+grb/mission_authoring.md
+grb/runtime_proof_hooks.md
 grb/missions/smoke_boot.yaml
 grb/gotchas.md
 ```
@@ -265,6 +267,10 @@ Customize these first:
 - the placeholder interaction step: for example `press_button`, `click`, or `key`
 - for `state_check`, the TODO runtime state reads: use one `call_method` or `get_property` source
 - `human_handoff`: what screenshot/report a reviewer should inspect next
+
+Use `grb/mission_authoring.md` in your project for short examples of panel toggles, transitions, and HUD/runtime state checks. It is created by `grb init`.
+
+If the mission needs a stable runtime value, use `grb/runtime_proof_hooks.md` for guidance on adding small, safe project helper methods for `call_method` or choosing a clear `get_property` read.
 
 Then run it:
 
