@@ -105,6 +105,28 @@ function humanReviewItems(screenshotCount) {
   return items;
 }
 
+function regressionWorkflowPath(projectDir) {
+  const workflowPath = path.join(projectDir, "grb", "regression_workflow.md");
+  return fs.existsSync(workflowPath) ? "grb/regression_workflow.md" : null;
+}
+
+function baselineCandidateGuidance({ passed, mission, workflowDoc }) {
+  if (!passed) return [];
+
+  const missionId = mission.id || "mission";
+  const guidance = [
+    "This passing run may be a baseline candidate only after you inspect the summary, primary artifacts, mission report, runtime state, and human handoff.",
+    "Do not treat the baseline as automatic truth; it is a reviewed reference run for future comparison.",
+    `Once you trust this run, rerun this mission with \`--compare-to latest\` after another passing ${missionId} run exists.`,
+  ];
+
+  if (workflowDoc) {
+    guidance.push(`For the full checklist, read \`${workflowDoc}\`.`);
+  }
+
+  return guidance;
+}
+
 export function writeProofBundle(options) {
   const {
     runDir,
@@ -153,6 +175,7 @@ export function writeProofBundle(options) {
   const runtimeVisualClaim = screenshotCount > 0
     ? "Screenshots were captured as visual evidence, but no project-specific baseline, layout rule, or design intent was validated automatically."
     : "No runtime screenshot was captured, so runtime visual proof was not reached.";
+  const workflowDoc = regressionWorkflowPath(projectDir);
 
   const proofTiers = {
     W: {
@@ -173,6 +196,7 @@ export function writeProofBundle(options) {
   };
 
   const evidence = artifacts.map((a) => ({ ...a }));
+  const baselineGuidance = baselineCandidateGuidance({ passed, mission, workflowDoc });
   const unproven = [];
   if (!passed) {
     unproven.push("W-tier wiring proof was not reached because the mission did not complete successfully.");
@@ -259,6 +283,12 @@ export function writeProofBundle(options) {
     "",
     `Next step: ${humanNextStep}`,
     "",
+    ...(baselineGuidance.length > 0 ? [
+      "## Baseline Candidate Guidance",
+      "",
+      ...baselineGuidance.map((item) => `- ${item}`),
+      "",
+    ] : []),
     "## Proof Tiers",
     "",
     `- **W**: ${proofTiers.W.status}. ${proofTiers.W.claim}`,

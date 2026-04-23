@@ -21,6 +21,8 @@ A proving-ground run is a baseline candidate only after you inspect:
 
 For example, `hud_state_check` is trustworthy as a baseline candidate only if the report shows `counter_before` is `0`, `counter_after` is `1`, and the screenshots visibly agree.
 
+If the proof summary says the run may be a baseline candidate, read that as conditional on this inspection.
+
 ## First Practice Flow
 
 From the repo root:

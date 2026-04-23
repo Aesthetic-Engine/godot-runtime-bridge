@@ -110,6 +110,12 @@ function printProofCloseout(runJson, summaryPath, log = console.log) {
   }
   log(`  Next: ${oneLine(runJson.human_next_step || runJson.next_step || "Inspect the proof bundle.")}`);
   log(`  Open: ${summaryPath}`);
+  if (runJson.result === "pass" && runJson.mission_id && runJson.mission_id !== "smoke_boot") {
+    log("  After a trustworthy pass:");
+    log("    - This run may be a baseline candidate only after you inspect summary/artifacts/handoff.");
+    log("    - Once trusted, rerun this mission with --compare-to latest after another passing run exists.");
+    log("    - Guide: grb/regression_workflow.md");
+  }
 }
 
 function summarizeRunnerError(result) {

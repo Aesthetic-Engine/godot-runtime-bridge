@@ -28,6 +28,8 @@ Before using compare, inspect:
 
 Only treat the run as a baseline candidate after you know what it proves and what still needs human review.
 
+Passing proof summaries may call a run a baseline candidate, but that is conditional on this inspection step.
+
 ## First Compare Workflow
 
 1. Run the mission once:
