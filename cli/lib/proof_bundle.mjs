@@ -36,7 +36,7 @@ function artifactMetadata(filePath, runDir) {
   let id = `${kind}:${normalized}`;
 
   if (kind === "screenshot") {
-    role = "primary_screenshot";
+    role = "supporting_screenshot";
     captureSlot = base;
     id = `screenshot:${captureSlot}`;
   } else if (normalized === "mission_runner/OVERALL.md") {
@@ -66,12 +66,63 @@ function artifactMetadata(filePath, runDir) {
   };
 }
 
+function artifactLabel(artifact) {
+  switch (artifact?.role) {
+    case "primary_review_screenshot":
+      return "primary review screenshot";
+    case "primary_review_artifact":
+      return "primary review artifact";
+    case "blocked_review_artifact":
+      return "blocked-run review artifact";
+    case "supporting_screenshot":
+      return "supporting screenshot";
+    case "mission_overall_report":
+      return "mission overall report";
+    case "mission_report":
+      return "mission detail report";
+    case "runner_stdout":
+      return "runner stdout log";
+    case "runner_stderr":
+      return "runner stderr log";
+    case "generated_mission":
+      return "generated mission file";
+    default:
+      return artifact?.type || "artifact";
+  }
+}
+
 function selectInspectArtifact(artifacts, fallback) {
   return artifacts.find((a) => a.path.endsWith("boot_screen.png"))
     || artifacts.find((a) => a.type === "screenshot")
     || artifacts.find((a) => a.type === "report")
     || artifacts[0]
     || fallback;
+}
+
+function selectBlockedInspectArtifact(artifacts, fallback) {
+  return artifacts.find((a) => a.role === "runner_stderr")
+    || artifacts.find((a) => a.role === "mission_report")
+    || artifacts.find((a) => a.role === "mission_overall_report")
+    || artifacts.find((a) => a.role === "generated_mission")
+    || artifacts.find((a) => a.type === "log")
+    || artifacts.find((a) => a.type === "report")
+    || artifacts[0]
+    || fallback;
+}
+
+function markPrimaryReviewArtifact(artifacts, primaryPath, blocked) {
+  return artifacts.map((artifact) => {
+    if (artifact.path !== primaryPath) return artifact;
+    return {
+      ...artifact,
+      role: blocked
+        ? "blocked_review_artifact"
+        : artifact.type === "screenshot"
+          ? "primary_review_screenshot"
+          : "primary_review_artifact",
+      review_primary: true,
+    };
+  });
 }
 
 function targetedProofTier(mission) {
@@ -103,6 +154,19 @@ function humanReviewItems(screenshotCount) {
     items.unshift("Inspect the primary screenshot and mission report before claiming visual correctness.");
   }
   return items;
+}
+
+function primaryReviewReason({ passed, artifact, screenshotCount }) {
+  if (!passed) {
+    return "The mission did not complete, so review this artifact or error surface before rerunning.";
+  }
+  if (artifact?.type === "screenshot") {
+    return "This is the main visual evidence surface for human review.";
+  }
+  if (screenshotCount > 0) {
+    return "Review this artifact first, then inspect the captured screenshots before claiming visual correctness.";
+  }
+  return "Review this artifact first because no screenshot was captured.";
 }
 
 function regressionWorkflowPath(projectDir) {
@@ -142,36 +206,44 @@ export function writeProofBundle(options) {
     unresolvedQuestion: explicitUnresolvedQuestion,
   } = options;
 
-  const artifacts = findFiles(runDir)
+  let artifacts = findFiles(runDir)
     .filter((filePath) => !filePath.endsWith("run.json") && !filePath.endsWith("summary.md"))
     .map((filePath) => artifactMetadata(filePath, runDir))
     .sort((a, b) => a.path.localeCompare(b.path));
 
-  const fallbackArtifact = { path: "summary.md", type: "report" };
-  const inspectArtifact = selectInspectArtifact(artifacts, fallbackArtifact);
+  const fallbackArtifact = { path: "summary.md", role: "summary_report", type: "report", kind: "report" };
   const passed = status === "pass";
   const targetedTier = targetedProofTier(mission);
   const reachedTier = reachedProofTier(status);
-  const screenshotCount = artifacts.filter((a) => a.type === "screenshot").length;
-  const reportCount = artifacts.filter((a) => a.type === "report").length;
   const handoff = mission.human_handoff || {};
   const blockedProof = mission.blocked_proof || {};
   const preferredBlockedArtifact = blockedProof.artifact_to_inspect;
   const preferredHandoffArtifact = handoff.artifact_to_inspect;
   const preferredBlockedArtifactExists = artifacts.some((a) => a.path === preferredBlockedArtifact);
   const preferredHandoffArtifactExists = artifacts.some((a) => a.path === preferredHandoffArtifact);
+  const defaultInspectArtifact = passed
+    ? selectInspectArtifact(artifacts, fallbackArtifact)
+    : selectBlockedInspectArtifact(artifacts, fallbackArtifact);
+  const preferredInspectArtifact = passed
+    ? artifacts.find((a) => a.path === preferredHandoffArtifact)
+    : artifacts.find((a) => a.path === preferredBlockedArtifact);
+  const primaryReviewArtifact = preferredInspectArtifact || defaultInspectArtifact;
+  const primaryReviewArtifactPath = primaryReviewArtifact.path;
+  artifacts = markPrimaryReviewArtifact(artifacts, primaryReviewArtifactPath, !passed);
+  const primaryReviewArtifactMetadata = artifacts.find((a) => a.path === primaryReviewArtifactPath)
+    || { ...primaryReviewArtifact, review_primary: true };
+  const screenshotCount = artifacts.filter((a) => a.type === "screenshot").length;
+  const reportCount = artifacts.filter((a) => a.type === "report").length;
   const blockedArtifactPath = preferredBlockedArtifactExists
     ? preferredBlockedArtifact
-    : inspectArtifact.path;
+    : primaryReviewArtifactPath;
   const handoffArtifactPath = preferredHandoffArtifactExists
     ? preferredHandoffArtifact
-    : blockedArtifactPath;
-  const blockedCheckNext = preferredBlockedArtifactExists
-    ? blockedProof.human_should_check_next
-    : "Inspect the listed artifact, resolve the runner blockage, then rerun the mission to capture runtime screenshots.";
-  const handoffCheckNext = preferredHandoffArtifactExists
-    ? handoff.check_next
-    : "Inspect the listed artifact and rerun the mission once the blockage is resolved.";
+    : primaryReviewArtifactPath;
+  const blockedCheckNext = blockedProof.human_should_check_next
+    || "Inspect the primary review artifact, resolve the blockage, then rerun the mission to capture runtime evidence.";
+  const handoffCheckNext = handoff.check_next
+    || "Inspect the primary review artifact and mission report before claiming visual correctness.";
   const runtimeVisualClaim = screenshotCount > 0
     ? "Screenshots were captured as visual evidence, but no project-specific baseline, layout rule, or design intent was validated automatically."
     : "No runtime screenshot was captured, so runtime visual proof was not reached.";
@@ -210,6 +282,15 @@ export function writeProofBundle(options) {
     ? (handoffCheckNext || "Inspect the captured screenshot and mission report.")
     : (blockedCheckNext || "Resolve the blockage, then rerun the mission."));
   const unresolvedQuestion = explicitUnresolvedQuestion || blockedProof.unresolved_question || handoff.unresolved_question || "Does the captured state match the intended player experience?";
+  const primaryReview = {
+    path: primaryReviewArtifactPath,
+    role: primaryReviewArtifactMetadata.role || "primary_review_artifact",
+    kind: primaryReviewArtifactMetadata.type || primaryReviewArtifactMetadata.kind || "artifact",
+    label: artifactLabel(primaryReviewArtifactMetadata),
+    check_next: humanNextStep,
+    unresolved_question: unresolvedQuestion,
+    reason: primaryReviewReason({ passed, artifact: primaryReviewArtifactMetadata, screenshotCount }),
+  };
 
   const runJson = {
     schema_version: 1,
@@ -226,6 +307,7 @@ export function writeProofBundle(options) {
     proof_achieved: reachedTier,
     compare_expectation: mission.compare_expectation || "no_unintended_change",
     evidence,
+    primary_review_artifact: primaryReview,
     proven: provenClaims(passed, screenshotCount),
     unproven,
     needs_human_review: humanReviewItems(screenshotCount),
@@ -266,8 +348,16 @@ export function writeProofBundle(options) {
     `| Finished | ${finishedAt} |`,
     `| Screenshots | ${screenshotCount} |`,
     `| Reports | ${reportCount} |`,
+    `| Primary review artifact | \`${primaryReview.path}\` |`,
     "",
-    "## First-Run Verdict",
+    "## Review Verdict",
+    "",
+    `- Result: **${status.toUpperCase()}**`,
+    `- Primary artifact: \`${primaryReview.path}\` (${primaryReview.label})`,
+    `- Why this artifact: ${primaryReview.reason}`,
+    `- Reviewer should check: ${primaryReview.check_next}`,
+    `- Unresolved question: ${primaryReview.unresolved_question}`,
+    "- Trust boundary: screenshots and runtime state are evidence, not automatic visual correctness or E-tier proof.",
     "",
     "### Proven by automation",
     "",
@@ -297,7 +387,9 @@ export function writeProofBundle(options) {
     "",
     "## Evidence",
     "",
-    evidence.length > 0 ? evidence.map((a) => `- ${a.type}: \`${a.path}\``).join("\n") : "- No artifacts were captured.",
+    evidence.length > 0
+      ? evidence.map((a) => `- ${artifactLabel(a)}: \`${a.path}\`${a.review_primary ? " (primary review artifact)" : ""}`).join("\n")
+      : `- No supporting artifacts were captured. Start with \`${primaryReview.path}\`.`,
     "",
     "## Still Unproven",
     "",
@@ -305,9 +397,10 @@ export function writeProofBundle(options) {
     "",
     "## Human Handoff",
     "",
-    blockedReason ? `- Blocked reason: ${blockedReason}` : `- Higher proof not claimed because: ${higherProofReason}`,
-    `- Artifact to inspect: \`${runJson.blocked_proof.artifact_to_inspect}\``,
-    `- Human should check next: ${humanNextStep}`,
+    blockedReason ? `- What blocked higher proof: ${blockedReason}` : `- What automation reached: ${runJson.proven.join(" ")}`,
+    blockedReason ? `- Artifact or error surface to inspect: \`${primaryReview.path}\`` : `- Primary artifact to inspect: \`${primaryReview.path}\``,
+    blockedReason ? `- Resolve next: ${humanNextStep}` : `- Human should check next: ${humanNextStep}`,
+    blockedReason ? "- Safe assumption: no higher proof should be claimed until this mission is rerun successfully." : `- Higher proof not claimed because: ${higherProofReason}`,
     `- Unresolved question: ${unresolvedQuestion}`,
     "",
   ];

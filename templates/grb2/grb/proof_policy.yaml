@@ -14,7 +14,7 @@ rules:
 first_run_review:
   inspect:
     - grb_reports/<run-id>/summary.md
-    - primary screenshot listed in the summary
+    - primary review artifact listed in the summary
     - grb_reports/<run-id>/run.json
   human_questions:
     - Is the boot screenshot the expected first visible state?

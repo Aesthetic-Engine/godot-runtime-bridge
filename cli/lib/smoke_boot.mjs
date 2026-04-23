@@ -103,6 +103,10 @@ function printProofCloseout(runJson, summaryPath, log = console.log) {
   log("");
   log("Proof closeout:");
   log(`  Result: ${String(runJson.result || "unknown").toUpperCase()}`);
+  if (runJson.primary_review_artifact?.path) {
+    log(`  Primary review artifact: ${runJson.primary_review_artifact.path}`);
+    log(`  Review focus: ${oneLine(runJson.primary_review_artifact.check_next)}`);
+  }
   printList(log, "Proven", runJson.proven || []);
   printList(log, "Not proven", runJson.unproven || []);
   printList(log, "Needs human review", runJson.needs_human_review || []);

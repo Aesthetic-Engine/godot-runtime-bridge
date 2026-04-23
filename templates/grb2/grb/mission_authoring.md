@@ -46,7 +46,7 @@ For `state_check` missions, read `grb/runtime_proof_hooks.md` before adding help
 - a runtime value changed, but the expected design intent is not encoded yet
 - the mission proves a narrow surface, not the whole feature
 
-`human_handoff` should point to one artifact and one next check:
+`human_handoff` should point to one artifact and one next check. That artifact becomes the primary review artifact in `summary.md` when it exists:
 
 - artifact: `mission_runner/<mission_id>/<screenshot_label>.png`
 - check: what a human should confirm in that artifact

@@ -23,7 +23,7 @@ A baseline is not magical truth. It is a prior run you intentionally decide is g
 Before using compare, inspect:
 
 1. `grb_reports/<run-id>/summary.md`
-2. the named screenshot in `human_handoff.artifact_to_inspect`
+2. the primary review artifact named in `summary.md`
 3. the mission runner report under `mission_runner/<mission_id>/`
 4. captured runtime values when the mission uses `call_method` or `get_property`
 5. the unresolved question in `human_handoff`

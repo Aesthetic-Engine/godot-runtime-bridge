@@ -239,6 +239,7 @@ grb_reports/<run-id>/
 
 - what was proven by automation
 - what was not proven by automation
+- the primary artifact to inspect next
 - what needs human review
 - any blocked reason
 - the next recommended step
