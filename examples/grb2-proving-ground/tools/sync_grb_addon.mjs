@@ -44,7 +44,11 @@ console.log(`Source addon: ${sourceDir}`);
 console.log(`Synced canonical addon to: ${targetDir}`);
 console.log("This copy is ignored by git and should not be committed.");
 console.log("");
+const launcherExample = process.platform === "win32"
+  ? "grb.cmd mission run smoke_boot --project examples/grb2-proving-ground --exe <godot_exe>"
+  : "./grb mission run smoke_boot --project examples/grb2-proving-ground --exe <godot_exe>";
+
 console.log("Next:");
 console.log("  Open the project once in Godot if .godot metadata is missing.");
-console.log("  Run a mission, for example:");
-console.log("  node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe <godot_exe>");
+console.log("  From the GRB repo root, run a mission, for example:");
+console.log(`  ${launcherExample}`);

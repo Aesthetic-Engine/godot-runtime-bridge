@@ -10,7 +10,8 @@ thing as the newer GRB 2.0 project-local proof workflow.
 
 If you want the GRB 2.0 path with `grb init`, project contracts, project-local
 missions, proof bundles under `grb_reports/`, and compare/baseline guidance, use
-the root `README.md` and `node cli/grb.mjs ...`.
+the root `README.md` and the repo-root GRB launcher (`grb.cmd ...` on Windows
+or `./grb ...` on POSIX).
 
 ## What This Layer Is
 
@@ -141,6 +142,7 @@ project contract flow.
 That is separate from:
 
 - repo-level GRB release smoke under `mcp/`
-- project-local GRB 2.0 proof runs via `node cli/grb.mjs mission run ...`
+- project-local GRB 2.0 proof runs via the repo-root GRB launcher
+  (`grb.cmd mission run ...` on Windows or `./grb mission run ...` on POSIX)
 
 See `docs/ci.md` for the current CI framing.

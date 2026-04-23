@@ -28,6 +28,6 @@ export function classifyRegression(parts, expectation = "no_unintended_change") 
   return {
     result: "matched",
     human_review_required: false,
-    reason: "Compared artifacts matched within the current Sprint 2 checks.",
+    reason: "Compared artifacts matched within the current GRB comparison checks.",
   };
 }

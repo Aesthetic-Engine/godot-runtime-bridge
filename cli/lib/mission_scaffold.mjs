@@ -339,7 +339,10 @@ export function scaffoldMission(options = {}) {
 
   const missionsDir = path.join(projectDir, "grb", "missions");
   if (!isDirectory(missionsDir)) {
-    throw new Error(`GRB missions directory not found: ${missionsDir}\nRun init first: node <path-to-grb-main>\\cli\\grb.mjs init --project "${projectDir}"`);
+    const launcherHint = process.platform === "win32"
+      ? `grb.cmd init --project "${projectDir}"`
+      : `./grb init --project "${projectDir}"`;
+    throw new Error(`GRB missions directory not found: ${missionsDir}\nRun init first from the GRB repo root: ${launcherHint}`);
   }
 
   const missionPath = path.join(missionsDir, `${missionId}.yaml`);

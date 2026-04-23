@@ -68,10 +68,14 @@ but it is not a strong regression surface yet.
 
 ## First Compare Workflow
 
+Use the GRB launcher path recorded in `grb.project.yaml` for the commands
+below. From the GRB repo root, the launcher is `grb.cmd ...` on Windows or
+`./grb ...` on POSIX shells. From elsewhere, call it by its full path.
+
 1. Run the mission once:
 
    ```bash
-   node <path-to-grb-main>/cli/grb.mjs mission run <mission_id> --project <project> --exe <godot_exe>
+   <grb launcher> mission run <mission_id> --project <project> --exe <godot_exe>
    ```
 
 2. Inspect `summary.md`.
@@ -81,7 +85,7 @@ but it is not a strong regression surface yet.
 6. Rerun with automatic same-mission baseline selection:
 
    ```bash
-   node <path-to-grb-main>/cli/grb.mjs mission run <mission_id> --project <project> --exe <godot_exe> --compare-to latest
+   <grb launcher> mission run <mission_id> --project <project> --exe <godot_exe> --compare-to latest
    ```
 
 7. Inspect:
@@ -111,7 +115,7 @@ Use explicit bundle-to-bundle compare when:
 - automatic baseline selection is blocked or not trusted
 
 ```bash
-node <path-to-grb-main>/cli/grb.mjs compare <baseline-run-dir> <candidate-run-dir>
+<grb launcher> compare <baseline-run-dir> <candidate-run-dir>
 ```
 
 If no trustworthy baseline exists, create one first. Do not force comparison against a vague or unreviewed run.

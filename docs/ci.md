@@ -6,7 +6,8 @@ separate:
 1. **Repo-level release smoke** - verifies the shipped addon + MCP release
    surface in this repo
 2. **Project-level proof workflows** - run in an actual Godot project using
-   `node cli/grb.mjs ...`
+   the repo-root GRB launcher (`grb.cmd ...` on Windows or `./grb ...` on
+   POSIX)
 
 There is also an older **legacy mission runner** in `missions/`. It can still
 be used in CI for broad runtime passes, but it is not the primary GRB 2.0 proof
@@ -65,10 +66,11 @@ usually not needed there.
 ## Project-Level GRB 2.0 Proof Workflows
 
 If you are validating a real Godot project with GRB 2.0, the normal path is not
-the legacy mission pack. It is:
+the legacy mission pack. It is, from the GRB repo root (substitute `grb.cmd`
+for `./grb` on Windows):
 
-1. `node cli/grb.mjs init --project <project>`
-2. `node cli/grb.mjs mission run smoke_boot --project <project> --exe <godot>`
+1. `./grb init --project <project>`
+2. `./grb mission run smoke_boot --project <project> --exe <godot>`
 3. inspect `grb_reports/<run-id>/summary.md`
 4. after a trustworthy small mission pass, use compare honestly
 
@@ -92,7 +94,8 @@ adopting the GRB 2.0 project-contract flow. It should not be confused with:
 
 - GRB 2.0 proof bundles under `grb_reports/`
 - baseline-candidate guidance
-- `node cli/grb.mjs compare ...`
+- the GRB 2.0 launcher's `compare` command (`grb.cmd compare ...` on Windows
+  or `./grb compare ...` on POSIX)
 
 One current repo-truth wrinkle: `run_mission.mjs` still accepts
 `--mission starters`, but the built-in mission pack on current `main` does not

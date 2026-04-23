@@ -30,6 +30,20 @@ function assertReadableReason(raw, expected, forbidden = raw) {
   assert(rendered !== forbidden, `reason ${raw} leaked raw/internal wording`);
 }
 
+const RAW_NODE_GRB_MJS_PATTERN = /\bnode\b[^\n]*cli[\\/]+grb\.mjs/;
+
+function assertNoRawNodeGrbMjs(text, label) {
+  if (RAW_NODE_GRB_MJS_PATTERN.test(text)) {
+    throw new Error(`${label} still teaches forbidden raw \`node ... cli/grb.mjs\` invocation; use the repo-root launcher (grb.cmd / ./grb) instead`);
+  }
+}
+
+function assertNoSprintEraLanguage(text, label) {
+  if (/\bSprint\s*\d+\b/.test(text)) {
+    throw new Error(`${label} still leaks internal sprint-era language; use product-facing wording instead`);
+  }
+}
+
 function checkBaselineReasonText() {
   assertReadableReason("candidate_self", "cannot be used as its own baseline");
   assertReadableReason("mission_mismatch", "different mission");
@@ -415,6 +429,31 @@ function checkChannelAndDocTruth() {
   assertIncludes(readme, "grb init` also records the full-repo GRB linkage", "README init linkage truth");
 }
 
+function checkLauncherDoctrineSurfaces() {
+  const surfaces = [
+    "templates/grb2/grb/regression_workflow.md",
+    "templates/grb2/grb/mission_authoring.md",
+    "templates/grb2/grb/runtime_proof_hooks.md",
+    "templates/grb2/grb/gotchas.md",
+    "templates/grb2/AGENTS.md",
+    "missions/README.md",
+    "docs/ci.md",
+    "examples/grb2-proving-ground/tools/sync_grb_addon.mjs",
+    "cli/lib/mission_scaffold.mjs",
+  ];
+
+  for (const relPath of surfaces) {
+    const fullPath = path.join(repoRoot, relPath);
+    if (!fs.existsSync(fullPath)) continue;
+    const text = fs.readFileSync(fullPath, "utf-8");
+    assertNoRawNodeGrbMjs(text, relPath);
+  }
+
+  const classifier = fs.readFileSync(path.join(repoRoot, "cli", "lib", "regression_classifier.mjs"), "utf-8");
+  assertNoSprintEraLanguage(classifier, "cli/lib/regression_classifier.mjs");
+  assertIncludes(classifier, "current GRB comparison checks", "regression classifier product-facing wording");
+}
+
 function checkContributorReadmeTruth() {
   const readme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf-8");
   const mcpReadme = fs.readFileSync(path.join(repoRoot, "mcp", "README.md"), "utf-8");
@@ -450,6 +489,9 @@ function main() {
 
   checkChannelAndDocTruth();
   console.log("ok channel and doc truth");
+
+  checkLauncherDoctrineSurfaces();
+  console.log("ok launcher doctrine surfaces");
 
   checkContributorReadmeTruth();
   console.log("ok contributor README truth");
