@@ -126,13 +126,16 @@ From `mcp/`:
 
 ```bash
 npm run verify:versions
+npm run verify:grb2:shape
 npm run verify:grb -- --godot-exe "/path/to/godot" --project "/path/to/project"
 npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"
 ```
 
+- `verify:grb2:shape` runs the repo's full-clone GRB 2.0 product-shape check
+  from `../tools/verify_grb2_product_shape.mjs`. It does not launch Godot.
 - `verify:versions` checks version parity across the addon and MCP package
 - `verify:grb` runs the live release smoke sequence
-- `verify:release` runs both checks in order
+- `verify:release` runs version parity plus the live release smoke sequence
 
 ## Environment Variables
 

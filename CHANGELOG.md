@@ -4,7 +4,7 @@
 
 ### Added
 
-- **GRB 2.0 proof CLI** - Added `node cli/grb.mjs init`, `mission scaffold`, `mission run <mission_id>`, and `compare` flows for project-local proof work.
+- **GRB 2.0 proof CLI** - Added full-repo GRB 2.0 proof flows for `init`, `doctor`, `mission scaffold`, `mission run <mission_id>`, and `compare`.
 - **Project contract scaffolds** - Added GRB 2.0 templates for `AGENTS.md`, `grb.project.yaml`, proof policy, missions, recipes, gotchas, mission authoring guidance, runtime proof hooks, and regression workflow guidance.
 - **Mission scaffold patterns** - Added `default`, `transition`, `toggle`, and `state_check` starter patterns with honest TODOs and references to runnable proving-ground examples.
 - **Proof bundles** - Added project-local proof bundles under `grb_reports/<run-id>/` with `summary.md`, `run.json`, evidence references, W/R/E proof reporting, blocked-proof reporting, primary review artifacts, and human handoff fields.
@@ -17,6 +17,7 @@
 - **Mission runner output directory** - `missions/run_mission.mjs` now accepts `--output-dir` while preserving the existing `missions/reports` default.
 - **Mission tier defaults** - Missing `tier_required` values now default to `1` before mission launch and reporting.
 - **Release-surface docs** - Synced protocol, security, MCP, and version-check documentation with the current shipped command/tool surface.
+- **Release-candidate verification hardening** - Added a repo-full-clone `verify:grb2:shape` check, wired GRB 2.0 product-shape verification into release smoke, and expanded workflow triggers to cover launch-critical GRB 2.0 CLI/template/tooling surfaces.
 
 ## 1.0.6 - 2026-03-28
 

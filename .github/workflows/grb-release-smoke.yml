@@ -5,6 +5,12 @@ on:
     paths:
       - ".github/workflows/grb-release-smoke.yml"
       - "addons/godot-runtime-bridge/**"
+      - "cli/**"
+      - "templates/grb2/**"
+      - "tools/**"
+      - "examples/grb2-proving-ground/**"
+      - "grb"
+      - "grb.cmd"
       - "mcp/**"
       - "missions/**"
       - "README.md"
@@ -13,6 +19,12 @@ on:
     paths:
       - ".github/workflows/grb-release-smoke.yml"
       - "addons/godot-runtime-bridge/**"
+      - "cli/**"
+      - "templates/grb2/**"
+      - "tools/**"
+      - "examples/grb2-proving-ground/**"
+      - "grb"
+      - "grb.cmd"
       - "mcp/**"
       - "missions/**"
       - "README.md"
@@ -41,6 +53,10 @@ jobs:
       - name: Install MCP dependencies
         working-directory: mcp
         run: npm ci
+
+      - name: Run GRB 2.0 product-shape verification
+        working-directory: mcp
+        run: npm run verify:grb2:shape
 
       - name: Download Godot
         run: |

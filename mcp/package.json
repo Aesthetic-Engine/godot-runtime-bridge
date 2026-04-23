@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node index.js",
     "verify:versions": "node check_versions.mjs",
+    "verify:grb2:shape": "node ../tools/verify_grb2_product_shape.mjs",
     "verify:grb": "node verify_grb_release.mjs",
     "verify:release": "node verify_release.mjs"
   },

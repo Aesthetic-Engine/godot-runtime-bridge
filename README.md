@@ -508,9 +508,15 @@ From the `mcp/` folder:
 
 ```bash
 npm run verify:versions
+npm run verify:grb2:shape
 npm run verify:grb -- --godot-exe "/path/to/godot" --project "/path/to/project"
 npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"
 ```
+
+`verify:grb2:shape` runs the repo's lightweight GRB 2.0 product-shape check
+from `tools/verify_grb2_product_shape.mjs`. It does not launch Godot.
+The release-smoke workflow also runs this check so launch-critical GRB 2.0
+CLI/template/tooling surfaces do not drift silently.
 
 `verify:grb` performs a release-grade smoke run: launch, `ping`, `auth_info`, `capabilities`, `runtime_info`, `get_errors`, `screenshot`, and clean `quit`. Artifacts are written to `mcp/reports/release-smoke/`.
 
