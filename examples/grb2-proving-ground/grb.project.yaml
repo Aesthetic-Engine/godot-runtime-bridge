@@ -25,3 +25,4 @@ missions:
   smoke_boot: Launch, connect, capture boot screenshot, scene tree, and runtime state.
   scene_transition: Trigger title-to-lab state change and capture before/after evidence.
   toggle_panel: Trigger proof panel visibility and capture before/after evidence.
+  hud_state_check: Assert a visible HUD counter change and capture matching runtime state evidence.

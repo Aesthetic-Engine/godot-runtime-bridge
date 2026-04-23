@@ -40,6 +40,7 @@ From the GRB repo root:
 node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
 node cli/grb.mjs mission run scene_transition --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
 node cli/grb.mjs mission run toggle_panel --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+node cli/grb.mjs mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
 ```
 
 From inside this project:
@@ -57,12 +58,14 @@ Proof bundles land under `grb_reports/<run-id>/`.
 | `smoke_boot` | GRB can launch the project, connect, capture runtime info, scene tree, title screenshot, and runtime state. | `boot_screen.png`, `boot_state`, `summary.md`, `run.json` |
 | `scene_transition` | GRB can trigger a deterministic interaction and capture matching visual/runtime state change. | `title_before.png`, `lab_after.png`, `state_before`, `state_after` |
 | `toggle_panel` | GRB can trigger and capture a deterministic before/after UI panel surface. | `panel_closed.png`, `panel_open.png`, `panel_state` |
+| `hud_state_check` | GRB can assert one runtime-readable HUD value changed and pair it with before/after screenshots. | `hud_before.png`, `hud_after.png`, `counter_before`, `counter_after`, `state_before`, `state_after` |
 
 ## What To Inspect
 
 - `smoke_boot` should show the stable title and HUD labels.
 - `scene_transition` should show `STATE: lab`, an incremented counter, and the visible compare banner.
 - `toggle_panel` should show `PANEL: open` plus the proof panel text.
+- `hud_state_check` should show `COUNTER: 0` before, `COUNTER: 1` after, and runtime values that agree with the HUD.
 
 Screenshots are evidence surfaces, not automatic visual correctness claims. E-tier still requires a human to confirm that the visible behavior is meaningful and acceptable.
 
@@ -85,6 +88,7 @@ Use this project when changing GRB proof or comparison behavior and you need a s
 1. Run `smoke_boot`.
 2. Run `scene_transition`.
 3. Run `toggle_panel`.
-4. If comparison behavior is relevant, rerun `scene_transition --compare-to latest`.
+4. Run `hud_state_check`.
+5. If comparison behavior is relevant, rerun `scene_transition --compare-to latest`.
 
 For real game claims, use the target game project. This proving ground is a reference surface, not evidence that another project works.

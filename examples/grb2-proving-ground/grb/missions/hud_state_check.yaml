@@ -1,0 +1,64 @@
+id: hud_state_check
+name: Proving Ground HUD State Check
+goal: Prove one bounded HUD/runtime state change by pressing Enter Lab, asserting the visible counter changed from 0 to 1, and capturing matching screenshot evidence.
+recipe: default
+targeted_proof_tier: R
+compare_expectation: change_expected
+tier_required: 2
+estimated_time_sec: 15
+
+blocked_proof:
+  what_blocked_higher_proof: The mission proves a deterministic counter value changed and captures screenshots, but a human must decide whether the resulting HUD presentation is correct.
+  artifact_to_inspect: mission_runner/hud_state_check/hud_after.png
+  human_should_check_next: Inspect before/after screenshots plus state_before/state_after in the mission report.
+  unresolved_question: Does the visible HUD state clearly and correctly represent the runtime counter change?
+
+human_handoff:
+  artifact_to_inspect: mission_runner/hud_state_check/hud_after.png
+  check_next: Confirm COUNTER is 1, STATE is lab, and the captured runtime state agrees with the visible HUD.
+  unresolved_question: Is this HUD/runtime pairing clear enough as the canonical state_check example?
+
+steps:
+  - action: runtime_info
+  - action: call_method
+    node: Main
+    method: grb_pg_reset
+    label: reset_state
+  - action: screenshot
+    label: hud_before
+  - action: get_property
+    node: Main
+    property: counter
+    label: counter_before
+  - action: assert_property
+    label: counter_before
+    expected: 0
+    issue_title: Counter did not reset to 0 before the state check
+  - action: call_method
+    node: Main
+    method: grb_pg_state
+    label: state_before
+  - action: press_button
+    name: EnterLabButton
+  - action: wait
+    ms: 250
+  - action: get_property
+    node: Main
+    property: counter
+    label: counter_after
+  - action: assert_property
+    label: counter_after
+    expected: 1
+    issue_title: Counter did not increment to 1 after Enter Lab
+  - action: call_method
+    node: Main
+    method: grb_pg_state
+    label: state_after
+  - action: screenshot
+    label: hud_after
+  - action: screenshot_diff
+    a: hud_before
+    b: hud_after
+    issue_title: Expected HUD screenshot to change after the state action
+  - action: check_errors
+    label: hud_state_errors
