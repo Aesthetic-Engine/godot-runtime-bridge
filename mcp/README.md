@@ -133,9 +133,18 @@ npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/proje
 
 - `verify:grb2:shape` runs the repo's full-clone GRB 2.0 product-shape check
   from `../tools/verify_grb2_product_shape.mjs`. It does not launch Godot.
-- `verify:versions` checks version parity across the addon and MCP package
+- `verify:versions` checks version parity across:
+  - `mcp/package.json`
+  - `mcp/package-lock.json`
+  - `addons/godot-runtime-bridge/plugin.cfg`
+  - `addons/godot-runtime-bridge/runtime_bridge/EditorDock.gd`
+  - `mcp/index.js` server version and startup banner
 - `verify:grb` runs the live release smoke sequence
 - `verify:release` runs version parity plus the live release smoke sequence
+
+This MCP package lives inside the full repo. Release verification that covers
+GRB 2.0 proof/onboarding truth still depends on a full clone; addon-only export
+or AssetLib installs do not include that repo-level tooling surface.
 
 ## Environment Variables
 

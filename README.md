@@ -520,6 +520,33 @@ CLI/template/tooling surfaces do not drift silently.
 
 `verify:grb` performs a release-grade smoke run: launch, `ping`, `auth_info`, `capabilities`, `runtime_info`, `get_errors`, `screenshot`, and clean `quit`. Artifacts are written to `mcp/reports/release-smoke/`.
 
+#### Release Candidate Checklist
+
+Before tagging a release candidate, run:
+
+- `npm run verify:versions`
+  - does **not** launch Godot
+  - checks version parity across:
+    - `mcp/package.json`
+    - `mcp/package-lock.json`
+    - `addons/godot-runtime-bridge/plugin.cfg`
+    - `addons/godot-runtime-bridge/runtime_bridge/EditorDock.gd`
+    - `mcp/index.js` server version and startup banner
+- `npm run verify:grb2:shape`
+  - does **not** launch Godot
+  - checks GRB 2.0 full-repo product-shape truth such as launcher/docs/template/proving-ground consistency
+- `npm run verify:grb -- --godot-exe "/path/to/godot" --project "/path/to/project"`
+  - **does** require a real Godot executable and a real project
+  - runs the live GRB release smoke sequence
+- `npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"`
+  - **does** require a real Godot executable and a real project
+  - runs version parity plus the live release smoke sequence in one command
+
+Channel reminder:
+
+- export/archive packaging remains addon-oriented
+- GRB 2.0 proof workflow, templates, proving ground, and product-shape verification remain full-repo-clone surfaces
+
 ### GRB 2.0 Proving Ground
 
 A small deterministic Godot project at `examples/grb2-proving-ground/` lets you validate and demo proof workflows without a real game project. It has stable boot, transition, HUD/state, and toggle-panel surfaces.

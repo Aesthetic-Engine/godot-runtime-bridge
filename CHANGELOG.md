@@ -18,6 +18,7 @@
 - **Mission tier defaults** - Missing `tier_required` values now default to `1` before mission launch and reporting.
 - **Release-surface docs** - Synced protocol, security, MCP, and version-check documentation with the current shipped command/tool surface.
 - **Release-candidate verification hardening** - Added a repo-full-clone `verify:grb2:shape` check, wired GRB 2.0 product-shape verification into release smoke, and expanded workflow triggers to cover launch-critical GRB 2.0 CLI/template/tooling surfaces.
+- **Release-candidate checklist / version truth hardening** - Clarified the maintainer-facing release checklist, documented exactly which version surfaces `verify:versions` owns, and reinforced that archive/export packaging remains addon-oriented while GRB 2.0 proof tooling stays full-repo-only.
 
 ## 1.0.6 - 2026-03-28
 
