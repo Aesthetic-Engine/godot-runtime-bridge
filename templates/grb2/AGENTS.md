@@ -49,9 +49,10 @@ Choose a small pattern:
 
 - `transition`: title to gameplay, menu to panel, screen/state change.
 - `toggle`: open/close or hidden/visible UI such as pause, inventory, map, settings.
-- `default`: use when the surface does not clearly fit the first two.
+- `state_check`: HUD label, counter, selected mode/item, or runtime-readable property change.
+- `default`: use when the surface does not clearly fit one of the named patterns.
 
-Customize the goal, one interaction step, and human handoff before claiming proof. Prefer one clear before/after surface over broad exploratory automation.
+Customize the goal, one interaction step, and human handoff before claiming proof. For `state_check`, also replace the TODO runtime state reads with one `call_method` or `get_property` source. Prefer one clear before/after surface over broad exploratory automation.
 
 ## Proof Language
 

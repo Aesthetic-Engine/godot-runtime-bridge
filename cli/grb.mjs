@@ -44,6 +44,7 @@ Examples:
   node cli/grb.mjs mission scaffold pause_menu --project C:\\path\\to\\YourGodotProject
   node cli/grb.mjs mission scaffold title_to_gameplay --project C:\\path\\to\\YourGodotProject --pattern transition
   node cli/grb.mjs mission scaffold inventory_panel --project C:\\path\\to\\YourGodotProject --pattern toggle
+  node cli/grb.mjs mission scaffold hud_counter --project C:\\path\\to\\YourGodotProject --pattern state_check
   node cli/grb.mjs mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
   node cli/grb.mjs mission run scene_transition --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
   node cli/grb.mjs mission run smoke_boot --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe --compare-to latest
@@ -121,7 +122,12 @@ async function main() {
     console.log("");
     console.log("Customize first:");
     console.log("  - Replace the TODO goal with the exact project surface this mission proves.");
-    console.log(`  - Replace the ${result.pattern} placeholder interaction with one small real action.`);
+    if (result.pattern === "state_check") {
+      console.log("  - Replace the TODO state reads with one call_method or get_property source.");
+      console.log("  - Replace the state_check placeholder interaction with one small real action.");
+    } else {
+      console.log(`  - Replace the ${result.pattern} placeholder interaction with one small real action.`);
+    }
     console.log("  - Update human_handoff so a reviewer knows what to inspect.");
     console.log("");
     console.log("Then run:");

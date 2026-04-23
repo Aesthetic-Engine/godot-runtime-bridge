@@ -248,19 +248,22 @@ You can choose a small starter pattern:
 
 - `--pattern transition`: use for title -> gameplay, menu -> panel, screen/state change, or any bounded before/after transition.
 - `--pattern toggle`: use for open/close or hidden/visible UI surfaces like pause menu, inventory, map, or settings.
-- omit `--pattern` or use `--pattern default`: use when your mission does not clearly fit transition or toggle yet.
+- `--pattern state_check`: use when a HUD label, score/counter, selected mode, weapon, or runtime-readable property should change and visible UI should match it.
+- omit `--pattern` or use `--pattern default`: use when your mission does not clearly fit one of the named patterns yet.
 
 Examples:
 
 ```bash
 node C:\path\to\grb-main\cli\grb.mjs mission scaffold title_to_gameplay --project C:\path\to\YourGodotProject --pattern transition
 node C:\path\to\grb-main\cli\grb.mjs mission scaffold inventory_panel --project C:\path\to\YourGodotProject --pattern toggle
+node C:\path\to\grb-main\cli\grb.mjs mission scaffold hud_counter --project C:\path\to\YourGodotProject --pattern state_check
 ```
 
 Customize these first:
 
 - `goal`: the exact behavior or surface the mission is meant to prove
 - the placeholder interaction step: for example `press_button`, `click`, or `key`
+- for `state_check`, the TODO runtime state reads: use one `call_method` or `get_property` source
 - `human_handoff`: what screenshot/report a reviewer should inspect next
 
 Then run it:

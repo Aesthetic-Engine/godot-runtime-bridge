@@ -3,7 +3,7 @@ import path from "path";
 import { resolveProjectDir } from "./paths.mjs";
 import { parseSimpleYaml } from "./simple_yaml.mjs";
 
-export const VALID_MISSION_PATTERNS = ["default", "transition", "toggle"];
+export const VALID_MISSION_PATTERNS = ["default", "transition", "toggle", "state_check"];
 
 function isDirectory(filePath) {
   try {
@@ -224,9 +224,94 @@ steps:
 `;
 }
 
+function renderStateCheckMission({ missionId, recipe }) {
+  const title = titleCaseFromId(missionId);
+  return `# GRB mission scaffold pattern: state_check.
+# Use when a HUD label, counter, mode, selected item, or runtime-readable state should change.
+# Replace TODO node/method/property placeholders with project-specific state access.
+# This captures evidence; it does not prove product correctness by itself.
+
+id: ${missionId}
+name: ${title}
+goal: TODO prove one bounded state check, such as a HUD label, score/counter, selected mode, weapon, or runtime value change.
+recipe: ${recipe}
+targeted_proof_tier: R
+compare_expectation: change_expected
+tier_required: 2
+estimated_time_sec: 20
+
+blocked_proof:
+  what_blocked_higher_proof: This mission can capture before/after state evidence, but a human must decide whether the value and UI are correct.
+  artifact_to_inspect: mission_runner/${missionId}/after_state.png
+  human_should_check_next: Inspect before/after screenshots and captured runtime values, then confirm the state change is intended.
+  unresolved_question: Did the runtime value and visible state change to the intended result?
+
+human_handoff:
+  artifact_to_inspect: mission_runner/${missionId}/after_state.png
+  check_next: Confirm the after screenshot and captured state show the intended value, then add project-specific expected values.
+  unresolved_question: What exact runtime value or HUD state should this mission assert in future runs?
+
+steps:
+  - action: runtime_info
+  - action: screenshot
+    label: before_state
+
+  # TODO state read: replace with one project-specific runtime state source.
+  # This can be a safe method that returns a value or small dictionary.
+  - action: call_method
+    node: TODO_NodePath
+    method: TODO_state_method
+    label: state_before
+  # If a direct property is the clearer proof surface, replace the call_method step with:
+  # - action: get_property
+  #   node: TODO_NodePath
+  #   property: TODO_property
+  #   label: state_before
+
+  # TODO interaction: replace this with one small action that changes the state.
+  # Examples:
+  # - action: press_button
+  #   name: ModeButton
+  # - action: click
+  #   x: 480
+  #   y: 270
+  # - action: key
+  #   args:
+  #     action: ui_accept
+  - action: wait
+    ms: 300
+
+  # TODO state read: repeat the same call_method/get_property source used above.
+  - action: call_method
+    node: TODO_NodePath
+    method: TODO_state_method
+    label: state_after
+  # If using get_property above, repeat the matching get_property step here.
+  # - action: get_property
+  #   node: TODO_NodePath
+  #   property: TODO_property
+  #   label: state_after
+
+  # TODO optional expected-value check after state_after is captured.
+  # - action: assert_property
+  #   label: state_after
+  #   expected: TODO_expected_value
+
+  - action: screenshot
+    label: after_state
+  - action: screenshot_diff
+    a: before_state
+    b: after_state
+    issue_title: TODO expected state/UI change did not appear
+  - action: check_errors
+    label: state_check_errors
+`;
+}
+
 function renderMission({ missionId, recipe, pattern }) {
   if (pattern === "transition") return renderTransitionMission({ missionId, recipe });
   if (pattern === "toggle") return renderToggleMission({ missionId, recipe });
+  if (pattern === "state_check") return renderStateCheckMission({ missionId, recipe });
   return renderDefaultMission({ missionId, recipe });
 }
 
