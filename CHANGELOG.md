@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+_No unreleased changes yet. Add new entries above the current RC section as
+later Sprint 13 slices land; promote them into the next RC (e.g.
+`2.0.0-rc.1`) when that RC is cut._
+
 ## 2.0.0-rc.0 — 2026-04-22
 
 First GRB 2.0 release candidate. Version surfaces across `mcp/package.json`,
