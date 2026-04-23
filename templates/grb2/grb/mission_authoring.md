@@ -6,6 +6,10 @@ This doc owns mission authoring only: choosing a small pattern, replacing scaffo
 
 A good mission is small: one surface, one action, one before/after question. It captures evidence and names what still needs human judgment.
 
+If a mission may later become a regression surface, author it with stable
+evidence in mind from the start. Compare is only as trustworthy as the mission's
+capture discipline.
+
 ## Pick a Pattern
 
 - `default`: use when the mission does not fit a named pattern yet.
@@ -37,6 +41,35 @@ Choose the smallest action that reaches the proof surface:
 Keep TODO placeholders until you know the real node names, methods, inputs, and expected values. Do not claim R-tier or higher from a mission that still contains project-meaning TODOs.
 
 For `state_check` missions, read `grb/runtime_proof_hooks.md` before adding helper methods. It explains how to expose small, stable runtime state that supports proof without turning project internals into the proof contract.
+
+## Stable Capture Slots
+
+When a mission may later be used with compare, treat screenshot labels as
+intentional capture slots:
+
+- use stable labels such as `title_before`, `panel_open`, or `hud_after`
+- keep those labels consistent across reruns once the mission becomes a compare
+  surface
+- avoid renaming screenshot labels casually, because compare pairs artifacts by
+  stable surface rather than deep semantic understanding
+- prefer one clear before/after evidence shape over a noisy exploratory burst of
+  screenshots
+
+Good:
+
+- `title_before` -> `gameplay_after`
+- `panel_closed` -> `panel_open`
+- `hud_before` -> `hud_after`
+
+Less useful for regression authoring:
+
+- `screen_1` -> `screen_2` -> `screen_3`
+- renaming `panel_open` to `menu_open` to `pause_visible` across reruns without
+  saying the capture surface changed
+
+If you need to change capture-slot names later, do it intentionally and note
+that the regression surface changed. Compare can still help, but its continuity
+got weaker because the authoring surface moved.
 
 ## Write Honest Handoff Text
 
@@ -81,6 +114,9 @@ steps:
 
 Human review still needs to confirm the panel is the right panel, readable, and acceptable.
 
+This mission shape is also a good lightweight regression surface because the
+capture slots stay stable: `panel_closed` and `panel_open`.
+
 ### Title To Gameplay
 
 Use `transition` when one action should move to a new screen or state.
@@ -105,6 +141,9 @@ steps:
 ```
 
 Human review still needs to confirm the destination state is the intended one.
+
+This works well as a regression surface when the same transition keeps the same
+capture slots across reruns.
 
 ### HUD Or Runtime State Change
 
@@ -141,6 +180,9 @@ steps:
 ```
 
 If the exact value is not stable yet, skip `assert_property` and make the unresolved question explicit in `human_handoff`.
+
+This becomes a stronger regression surface once both the screenshot slots and
+the runtime-readable state shape stay stable across reruns.
 
 ## What Automation Proves
 

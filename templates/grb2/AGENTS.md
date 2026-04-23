@@ -72,6 +72,11 @@ When a `state_check` mission needs project-specific runtime state, use `grb/runt
 
 After a small mission passes, read `grb/regression_workflow.md` before using compare. A passing run is only a baseline candidate after `summary.md`, the named artifact, the mission report, and any runtime state have been inspected.
 
+If you create or edit a mission that may later be used for regression review,
+preserve stable screenshot labels and other evidence-surface names unless you
+also say the compare surface changed. Treat screenshot labels as capture slots,
+not disposable wording.
+
 ## Proof Language
 
 - W: wiring proof, launch/connect/runtime inspection/errors.

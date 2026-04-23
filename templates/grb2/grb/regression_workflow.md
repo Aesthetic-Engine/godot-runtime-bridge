@@ -6,6 +6,9 @@ This doc does not replace `grb/mission_authoring.md`. Finish the mission first, 
 
 A regression surface is a narrow, repeatable proof target: one mission, one behavior surface, and a small set of artifacts that can be compared later. Good examples are a title-to-gameplay transition, a pause panel opening, or a HUD value changing.
 
+A good regression surface also has stable authoring discipline. Compare is only
+as trustworthy as the mission's evidence surfaces.
+
 ## Baseline Candidates
 
 A passing run is a baseline candidate when:
@@ -17,6 +20,28 @@ A passing run is a baseline candidate when:
 - the run is not blocked, corrupt, or based on unresolved TODO meaning
 
 A baseline is not magical truth. It is a prior run you intentionally decide is good enough to compare against. If the baseline has a hidden bug, compare can preserve that bug.
+
+## Stable Evidence Surfaces
+
+For a mission to become a trustworthy lightweight regression surface, keep its
+artifact shape stable across reruns:
+
+- use stable screenshot labels as intentional capture slots
+- keep the same core before/after evidence structure once the mission becomes a
+  compare surface
+- keep runtime-readable labels stable when they are part of the review surface
+- avoid needless churn in screenshot names, capture count, or artifact roles
+
+Why this matters:
+
+- compare pairs artifacts by stable surface, not by deep semantic understanding
+- changing `panel_open` to `pause_visible` or `title_before` to `screen_1`
+  weakens comparison continuity
+- adding lots of exploratory screenshots can make the mission noisier without
+  making the regression surface more trustworthy
+
+If you intentionally rename capture slots or reshape the evidence, say so. That
+does not make the mission invalid, but it does mean the compare surface changed.
 
 ## Minimum Honesty Bar
 
@@ -31,6 +56,15 @@ Before using compare, inspect:
 Only treat the run as a baseline candidate after you know what it proves and what still needs human review.
 
 Passing proof summaries may call a run a baseline candidate, but that is conditional on this inspection step.
+
+Also confirm that the mission is stable enough to compare honestly:
+
+- the screenshot labels still describe the same capture slots as prior reruns
+- the mission is not drifting between exploratory capture shapes
+- the runtime-readable state shape is still small and intentional
+
+If those surfaces are still moving around, the mission may be useful for proof,
+but it is not a strong regression surface yet.
 
 ## First Compare Workflow
 
@@ -57,6 +91,9 @@ Passing proof summaries may call a run a baseline candidate, but that is conditi
    ```
 
 Use `comparison.md` as a decision aid. It should tell you what the comparison supports, what it does not prove, and what human judgment remains.
+
+If the candidate mission changed its capture-slot naming or evidence shape, say
+that before trusting compare continuity.
 
 ## Which Compare Flow To Use
 
@@ -97,6 +134,20 @@ When comparison is blocked, open `comparison.md` and read the baseline selection
 - `change_expected`: use when the mission itself intentionally creates a before/after difference inside the run, such as a transition, toggle, or state change.
 
 This field is guidance for comparison classification. It is not a complete policy system, and it does not prove product correctness.
+
+## When A Mission Is Not Ready For Regression Use
+
+A mission may still be too noisy or unstable to act as a good regression
+surface. Common signs:
+
+- screenshot labels are still being renamed or reshuffled often
+- the mission keeps gaining or losing exploratory screenshots
+- the runtime state shape is still changing every rerun
+- the before/after question is not yet clear
+- the mission proves a broad wandering flow instead of one bounded surface
+
+In that state, keep using the mission for proof and review, but do not overstate
+what compare can tell you yet.
 
 ## What Compare Can And Cannot Prove
 
