@@ -29,5 +29,6 @@ Rules:
 - Use existing GRB runtime commands and the mission runner.
 - Keep screenshots stable enough for comparison and human review.
 - Be explicit when proof is evidence-only and still needs a human check.
+- For first compare practice, use stable `smoke_boot` reruns before change-expected missions.
 - Before using compare, inspect the passing run and read `grb/regression_workflow.md`.
 - Prefer clarifying existing surfaces over adding new missions or UI.

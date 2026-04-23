@@ -448,9 +448,11 @@ node cli/grb.mjs mission run hud_state_check --project examples/grb2-proving-gro
 A simple compare practice run once a baseline exists:
 
 ```bash
-node cli/grb.mjs mission run scene_transition --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
-node cli/grb.mjs mission run scene_transition --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
+node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
 ```
+
+Start with `smoke_boot` for compare practice because it is a stable rerun surface. Then use `scene_transition`, `toggle_panel`, or `hud_state_check` once you want to practice change-expected missions.
 
 The example keeps the canonical addon source under `addons/godot-runtime-bridge`; its local synced addon copy, `.godot/`, and `grb_reports/` are ignored.
 

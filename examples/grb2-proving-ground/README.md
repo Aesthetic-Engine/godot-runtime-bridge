@@ -73,17 +73,27 @@ Proof bundles land under `grb_reports/<run-id>/`.
 
 Screenshots are evidence surfaces, not automatic visual correctness claims. E-tier still requires a human to confirm that the visible behavior is meaningful and acceptable.
 
-## Comparison Example
+## Comparison Practice
 
-After one passing mission has been inspected and accepted as a baseline candidate, rerun it with comparison. For example:
+Start compare practice with `smoke_boot`. It is the simplest mental model: the title/HUD boot surface should stay stable across reruns, and its mission uses `compare_expectation: no_unintended_change`.
+
+First create and inspect a baseline candidate:
 
 ```bash
-node cli/grb.mjs mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
+node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
 ```
 
-This should select the latest passing `hud_state_check` bundle as the baseline, pair matching screenshots by capture slot, compare runtime/error surfaces, and write comparison output under the candidate bundle's `comparison/` folder.
+If `summary.md`, `boot_screen.png`, and the mission report look trustworthy, rerun with comparison:
 
-Comparison can say the deterministic artifacts matched. It still does not claim that the UI is good, fun, or product-correct.
+```bash
+node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
+```
+
+This should select the latest passing `smoke_boot` bundle as the baseline, pair matching screenshots by capture slot, compare runtime/error surfaces, and write comparison output under the candidate bundle's `comparison/` folder.
+
+After that, use `scene_transition`, `toggle_panel`, or `hud_state_check` as the second compare layer. Those missions intentionally create before/after changes inside the run and use `compare_expectation: change_expected`, so they are useful bounded regression surfaces after you understand the basic baseline loop.
+
+Comparison can say deterministic artifacts matched or changed as expected. It still does not claim that the UI is good, fun, or product-correct.
 
 ## How To Use This For GRB Work
 
@@ -93,6 +103,7 @@ Use this project when changing GRB proof or comparison behavior and you need a s
 2. Inspect the proof bundle summary and primary screenshot.
 3. Run one small project-specific mission: `scene_transition`, `toggle_panel`, or `hud_state_check`.
 4. Inspect its artifacts and handoff.
-5. If comparison behavior is relevant, read `grb/regression_workflow.md`, accept one passing run as a baseline candidate, then rerun `hud_state_check --compare-to latest`.
+5. If comparison behavior is relevant, read `grb/regression_workflow.md`, accept one passing `smoke_boot` run as a baseline candidate, then rerun `smoke_boot --compare-to latest`.
+6. Move to `scene_transition`, `toggle_panel`, or `hud_state_check` comparison only after the stable-surface loop is clear.
 
 For real game claims, use the target game project. This proving ground is a reference surface, not evidence that another project works.

@@ -2,11 +2,14 @@
 
 Use this proving ground to practice turning a small passing mission into a lightweight regression surface.
 
-The proving ground has three useful compare surfaces:
+The proving ground has two compare teaching layers:
 
-- `scene_transition`: title state to lab state
-- `toggle_panel`: closed panel to open panel
-- `hud_state_check`: visible counter/runtime state change
+1. Stable rerun surface: `smoke_boot`
+2. Change-within-the-run surfaces: `scene_transition`, `toggle_panel`, and `hud_state_check`
+
+Start with `smoke_boot` because it has the cleanest baseline mental model: stable title/HUD boot state across reruns with `compare_expectation: no_unintended_change`.
+
+Then use the other missions once you understand the baseline loop. They intentionally create a before/after change inside the run and use `compare_expectation: change_expected`.
 
 Each mission captures screenshots and runtime evidence, but none of them claims product correctness or E-tier experience.
 
@@ -19,24 +22,26 @@ A proving-ground run is a baseline candidate only after you inspect:
 - the named screenshots
 - captured runtime values such as `state_before`, `state_after`, `counter_before`, or `counter_after`
 
-For example, `hud_state_check` is trustworthy as a baseline candidate only if the report shows `counter_before` is `0`, `counter_after` is `1`, and the screenshots visibly agree.
+For first compare practice, a `smoke_boot` run is trustworthy as a baseline candidate only if the summary passes and `boot_screen.png` shows the stable title/HUD boot surface.
+
+For later change-expected practice, `hud_state_check` is trustworthy as a baseline candidate only if the report shows `counter_before` is `0`, `counter_after` is `1`, and the screenshots visibly agree.
 
 If the proof summary says the run may be a baseline candidate, read that as conditional on this inspection.
 
-## First Practice Flow
+## First Practice Flow: Stable Surface
 
 From the repo root:
 
 ```bash
-node cli/grb.mjs mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
 ```
 
-Inspect the resulting `summary.md`, `hud_after.png`, and mission report. If the run is passing and the HUD/runtime state looks right, treat it as a baseline candidate.
+Inspect the resulting `summary.md`, `boot_screen.png`, and mission report. If the run is passing and the stable boot surface looks right, treat it as a baseline candidate.
 
 Then rerun with compare:
 
 ```bash
-node cli/grb.mjs mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
+node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
 ```
 
 Inspect:
@@ -46,6 +51,17 @@ grb_reports/<candidate-run-id>/comparison/comparison.md
 ```
 
 Use `comparison.md` as the review artifact. It should tell you what the proving-ground comparison supports, what it does not prove, and what human judgment remains.
+
+## Second Practice Flow: Change-Expected Surfaces
+
+After the stable `smoke_boot` loop is clear, practice with one bounded mission that intentionally changes state inside the run:
+
+```bash
+node cli/grb.mjs mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+node cli/grb.mjs mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
+```
+
+Use the same baseline-candidate rule: inspect the first passing run before trusting it. For change-expected missions, the review question includes whether the before/after change is intended and still readable.
 
 ## Explicit Compare Practice
 
