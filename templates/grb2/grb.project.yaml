@@ -8,6 +8,7 @@ read_first:
   - grb/proof_policy.yaml
   - grb/mission_authoring.md
   - grb/runtime_proof_hooks.md
+  - grb/regression_workflow.md
   - grb/missions/smoke_boot.yaml
   - grb/gotchas.md
 expected_first_run:

@@ -69,6 +69,7 @@ function renderDefaultMission({ missionId, recipe }) {
   return `# GRB mission scaffold.
 # Customize the TODOs before relying on this as proof.
 # Keep this mission small: one feature surface, one clear before/after.
+# After a trustworthy pass, read grb/regression_workflow.md before using compare.
 
 id: ${missionId}
 name: ${title}
@@ -126,6 +127,7 @@ function renderTransitionMission({ missionId, recipe }) {
 # Use for title -> gameplay, menu -> panel, screen/state change, or one bounded before/after transition.
 # Replace the TODO interaction with the smallest action that causes the transition.
 # This captures evidence; it does not prove product correctness by itself.
+# After a trustworthy pass, read grb/regression_workflow.md before using compare.
 
 id: ${missionId}
 name: ${title}
@@ -182,6 +184,7 @@ function renderToggleMission({ missionId, recipe }) {
 # Use for open/close or hidden/visible UI surfaces: pause menu, inventory, map, settings, debug panel.
 # Replace the TODO interaction with the smallest action that toggles the surface.
 # This captures evidence; it does not prove product correctness by itself.
+# After a trustworthy pass, read grb/regression_workflow.md before using compare.
 
 id: ${missionId}
 name: ${title}
@@ -238,6 +241,7 @@ function renderStateCheckMission({ missionId, recipe }) {
 # Use when a HUD label, counter, mode, selected item, or runtime-readable state should change.
 # Replace TODO node/method/property placeholders with project-specific state access.
 # This captures evidence; it does not prove product correctness by itself.
+# After a trustworthy pass, read grb/regression_workflow.md before using compare.
 
 id: ${missionId}
 name: ${title}

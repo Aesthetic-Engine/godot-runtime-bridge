@@ -10,6 +10,7 @@ Customize the TODOs before relying on this contract for larger work.
 - `grb/proof_policy.yaml`
 - `grb/mission_authoring.md`
 - `grb/runtime_proof_hooks.md`
+- `grb/regression_workflow.md`
 - `grb/missions/smoke_boot.yaml`
 - `grb/gotchas.md`
 
@@ -61,6 +62,10 @@ Customize the goal, one interaction step, and human handoff before claiming proo
 When replacing scaffold TODOs, use `grb/mission_authoring.md` as the local cookbook. It explains when to use `press_button`, `click`, `key`, `call_method`, `get_property`, `assert_property`, `screenshot_diff`, and `check_errors`.
 
 When a `state_check` mission needs project-specific runtime state, use `grb/runtime_proof_hooks.md` before adding helper methods. Keep hooks small, stable, safe, and product-facing.
+
+## Regression Surface
+
+After a small mission passes, read `grb/regression_workflow.md` before using compare. A passing run is only a baseline candidate after `summary.md`, the named artifact, the mission report, and any runtime state have been inspected.
 
 ## Proof Language
 

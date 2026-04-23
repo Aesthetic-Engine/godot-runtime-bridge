@@ -8,6 +8,7 @@ purpose: Validate and demo GRB 2.0 proof workflows without requiring a real game
 read_first:
   - AGENTS.md
   - grb/proof_policy.yaml
+  - grb/regression_workflow.md
   - grb/gotchas.md
 
 primary_surfaces:

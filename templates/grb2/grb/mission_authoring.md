@@ -145,3 +145,7 @@ If the exact value is not stable yet, skip `assert_property` and make the unreso
 Automation can prove wiring, capture screenshots, collect runtime values, detect engine errors, and compare evidence surfaces.
 
 Automation does not prove that the UI is good, fun, accessible, readable, balanced, or product-correct. Put those claims in `human_handoff` until a human confirms them.
+
+## After The First Pass
+
+When this mission passes and the artifacts look trustworthy, read `grb/regression_workflow.md`. It explains when a passing run is a baseline candidate, when `--compare-to latest` is meaningful, and when explicit bundle-to-bundle compare is safer.

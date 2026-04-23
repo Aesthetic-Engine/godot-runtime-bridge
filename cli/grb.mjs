@@ -90,6 +90,7 @@ async function main() {
     console.log("  grb/proof_policy.yaml");
     console.log("  grb/mission_authoring.md");
     console.log("  grb/runtime_proof_hooks.md");
+    console.log("  grb/regression_workflow.md");
     console.log("");
     console.log("Then run the first trustworthy proof mission:");
     console.log(`  node ${process.argv[1]} mission run smoke_boot --project "${result.projectDir}" --exe <godot_exe>`);
@@ -139,6 +140,9 @@ async function main() {
     console.log("");
     console.log("Then run:");
     console.log(`  node ${process.argv[1]} mission run ${result.missionId} --project "${result.projectDir}" --exe <godot_exe>`);
+    console.log("");
+    console.log("After a trustworthy pass:");
+    console.log("  Read grb/regression_workflow.md before treating the run as a baseline candidate.");
     console.log("");
     console.log("Optional:");
     console.log(`  Add ${result.missionId} to grb.project.yaml if you keep a mission list there.`);

@@ -8,8 +8,9 @@ Authority order:
 
 1. The mission files in `grb/missions/`
 2. `grb/proof_policy.yaml`
-3. This file
-4. General repo docs
+3. `grb/regression_workflow.md`
+4. This file
+5. General repo docs
 
 Rules:
 
@@ -20,4 +21,5 @@ Rules:
 - Use existing GRB runtime commands and the mission runner.
 - Keep screenshots stable enough for comparison and human review.
 - Be explicit when proof is evidence-only and still needs a human check.
+- Before using compare, inspect the passing run and read `grb/regression_workflow.md`.
 - Prefer clarifying existing surfaces over adding new missions or UI.

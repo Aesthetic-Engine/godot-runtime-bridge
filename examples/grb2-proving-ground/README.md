@@ -32,6 +32,8 @@ Godot_v4.6-stable_win64_console.exe --headless --editor --quit --path examples/g
 
 The synced `addons/`, `.godot/`, and `grb_reports/` folders are local validation artifacts and are ignored by git.
 
+For compare practice after a passing mission, read `grb/regression_workflow.md`.
+
 ## Run Missions
 
 From the GRB repo root:
@@ -71,13 +73,13 @@ Screenshots are evidence surfaces, not automatic visual correctness claims. E-ti
 
 ## Comparison Example
 
-After one passing `scene_transition` run exists, rerun it with comparison:
+After one passing mission has been inspected and accepted as a baseline candidate, rerun it with comparison. For example:
 
 ```bash
-node cli/grb.mjs mission run scene_transition --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
+node cli/grb.mjs mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
 ```
 
-This should select the latest passing `scene_transition` bundle as the baseline, pair `title_before` and `lab_after` screenshots by capture slot, and write comparison output under the candidate bundle's `comparison/` folder.
+This should select the latest passing `hud_state_check` bundle as the baseline, pair matching screenshots by capture slot, compare runtime/error surfaces, and write comparison output under the candidate bundle's `comparison/` folder.
 
 Comparison can say the deterministic artifacts matched. It still does not claim that the UI is good, fun, or product-correct.
 
@@ -89,6 +91,6 @@ Use this project when changing GRB proof or comparison behavior and you need a s
 2. Run `scene_transition`.
 3. Run `toggle_panel`.
 4. Run `hud_state_check`.
-5. If comparison behavior is relevant, rerun `scene_transition --compare-to latest`.
+5. If comparison behavior is relevant, inspect a passing run, then rerun `hud_state_check --compare-to latest`.
 
 For real game claims, use the target game project. This proving ground is a reference surface, not evidence that another project works.

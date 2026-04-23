@@ -192,6 +192,7 @@ grb.project.yaml
 grb/proof_policy.yaml
 grb/mission_authoring.md
 grb/runtime_proof_hooks.md
+grb/regression_workflow.md
 grb/missions/smoke_boot.yaml
 grb/gotchas.md
 ```
@@ -282,6 +283,8 @@ node C:\path\to\grb-main\cli\grb.mjs mission run pause_menu --project C:\path\to
 
 The scaffold gives you a bounded proof surface. It does not magically know whether your UI is correct; it captures before/after evidence and asks for the remaining human judgment explicitly.
 
+After a small mission passes, read `grb/regression_workflow.md` before treating the run as a baseline candidate. It explains the minimum honesty bar and how to use compare without pretending the baseline is magical truth.
+
 ### Current Limits (Honest)
 
 - R-tier screenshots are evidence, not automatic visual validation.
@@ -291,6 +294,8 @@ The scaffold gives you a bounded proof surface. It does not magically know wheth
 - The generated scaffold is a starter contract. Customize project-specific expectations before asking agents to claim higher proof.
 
 ## Optional: Compare Runs Over Time
+
+For project-local guidance, start with `grb/regression_workflow.md` after your first small mission passes.
 
 After a proof run passes and its `summary.md` looks trustworthy, that run becomes a **baseline candidate** — a prior passing bundle you intentionally use as the reference for the next run. A baseline is not magic truth; it's a known-good snapshot.
 
