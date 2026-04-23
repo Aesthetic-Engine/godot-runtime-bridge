@@ -44,7 +44,7 @@ function comparisonStats(comparison) {
 function resultMeaning(result) {
   switch (result) {
     case "matched":
-      return "Compared artifacts matched within the current GRB checks; this does not claim E-tier experience.";
+      return "Compared artifacts matched within the current GRB checks.";
     case "difference_detected":
       return "Differences were detected and need review; they may be intended changes or regressions.";
     case "regression_suspected":
@@ -58,14 +58,51 @@ function resultMeaning(result) {
   }
 }
 
+function resultSupport(result) {
+  switch (result) {
+    case "matched":
+      return "This supports treating the candidate as consistent with the selected baseline for the paired artifacts.";
+    case "difference_detected":
+      return "This supports a focused review of changed screenshots, runtime summaries, or error surfaces.";
+    case "regression_suspected":
+      return "This supports holding the candidate as suspect until a human confirms the change is intended or fixes it.";
+    case "blocked":
+      return "This supports no regression conclusion yet because comparison did not complete trustworthily.";
+    case "human_review_required":
+      return "This supports a human review decision before trusting the candidate.";
+    default:
+      return "This supports review only after reading the comparison artifacts.";
+  }
+}
+
+function nextAction(result, fallback) {
+  switch (result) {
+    case "matched":
+      return "Inspect comparison.md and the primary artifacts; if they cover the surface you care about, continue normal review.";
+    case "difference_detected":
+      return "Inspect changed pairs and runtime/error deltas, then decide whether the difference was intended.";
+    case "regression_suspected":
+      return "Review the changed evidence before accepting the candidate; fix the regression or update the expectation/baseline only if the change is intentional.";
+    case "blocked":
+      return "Create or choose a trustworthy baseline, then compare again.";
+    case "human_review_required":
+      return oneLine(fallback || "Inspect comparison.md, then decide whether the candidate is acceptable.");
+    default:
+      return oneLine(fallback || "Inspect comparison.md before drawing a conclusion.");
+  }
+}
+
 export function printComparisonCloseout(comparison, comparisonMdPath, comparisonJsonPath, log = console.log) {
   const stats = comparison.stats || comparisonStats(comparison);
   const selected = comparison.baseline_selection?.selected;
+  const action = nextAction(comparison.result, comparison.human_next_step);
 
   log("");
   log("Comparison closeout:");
   log(`  Result: ${String(comparison.result || "unknown").toUpperCase()}`);
   log(`  Meaning: ${resultMeaning(comparison.result)}`);
+  log(`  Supports: ${resultSupport(comparison.result)}`);
+  log("  Does not prove: product correctness, design intent, or E-tier experience.");
   log(`  Baseline: ${comparison.baseline?.run_id || "none"}`);
   log(`  Candidate: ${comparison.candidate?.run_id || "unknown"}`);
   log(`  Baseline mode: ${comparison.baseline_selection?.requested_mode || "unknown"} -> ${comparison.baseline_selection?.effective_mode || "unknown"}`);
@@ -73,7 +110,7 @@ export function printComparisonCloseout(comparison, comparisonMdPath, comparison
   log(`  Screenshot pairs: ${stats.screenshot_matched} matched, ${stats.screenshot_changed} changed, ${stats.screenshot_missing} missing`);
   log(`  Runtime differences: ${stats.runtime_differences}`);
   log(`  Issue delta: ${stats.issue_delta ?? "unknown"}; stderr changed: ${stats.stderr_changed ? "yes" : "no"}`);
-  log(`  Next: ${oneLine(comparison.human_next_step)}`);
+  log(`  Next: ${action}`);
   log(`  Open: ${comparisonMdPath}`);
   log(`  JSON: ${comparisonJsonPath}`);
 }
@@ -107,6 +144,7 @@ function updateCandidateSummary(candidateRunDir, comparison) {
   if (!fs.existsSync(summaryPath)) return;
 
   const current = fs.readFileSync(summaryPath, "utf-8");
+  const action = nextAction(comparison.result, comparison.human_next_step);
   const section = [
     SUMMARY_START,
     "## Comparison",
@@ -116,7 +154,9 @@ function updateCandidateSummary(candidateRunDir, comparison) {
     `- Baseline mode: ${comparison.baseline_selection.requested_mode}`,
     `- Human review required: ${comparison.human_review_required ? "yes" : "no"}`,
     `- Meaning: ${resultMeaning(comparison.result)}`,
-    `- Next step: ${comparison.human_next_step}`,
+    `- Supports: ${resultSupport(comparison.result)}`,
+    "- Does not prove: product correctness, design intent, or E-tier experience.",
+    `- Next step: ${action}`,
     `- Summary: \`comparison/comparison.md\``,
     `- JSON: \`comparison/comparison.json\``,
     SUMMARY_END,

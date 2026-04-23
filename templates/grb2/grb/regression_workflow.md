@@ -54,6 +54,8 @@ Passing proof summaries may call a run a baseline candidate, but that is conditi
    grb_reports/<candidate-run-id>/comparison/comparison.md
    ```
 
+Use `comparison.md` as a decision aid. It should tell you what the comparison supports, what it does not prove, and what human judgment remains.
+
 ## Which Compare Flow To Use
 
 Use `--compare-to latest` when:

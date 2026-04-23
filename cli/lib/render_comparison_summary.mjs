@@ -1,14 +1,34 @@
 export function renderComparisonSummary(comparison) {
   const stats = comparison.stats || {};
   const meaning = comparison.result === "matched"
-    ? "Compared artifacts matched within the current GRB checks; this does not claim E-tier experience."
+    ? "Compared artifacts matched within the current GRB checks."
     : comparison.result === "blocked"
       ? "No trustworthy comparison was completed; fix baseline selection or choose an explicit baseline."
       : comparison.result === "regression_suspected"
         ? "A difference conflicts with the comparison expectation and should be treated as a suspected regression until reviewed."
         : comparison.result === "difference_detected"
           ? "Differences were detected and need review; they may be intended changes or regressions."
-          : "Review this comparison before drawing a conclusion.";
+          : comparison.result === "human_review_required"
+            ? "Automation found evidence that needs human judgment before the result can be trusted."
+            : "Review this comparison before drawing a conclusion.";
+  const support = comparison.result === "matched"
+    ? "The candidate appears consistent with the selected baseline for the screenshot/runtime/error surfaces GRB compared."
+    : comparison.result === "difference_detected"
+      ? "The candidate differs from the baseline in at least one compared surface, giving reviewers a focused place to inspect."
+      : comparison.result === "regression_suspected"
+        ? "The candidate should be treated as suspect until the changed evidence is reviewed or the baseline/expectation is intentionally updated."
+        : comparison.result === "blocked"
+          ? "No regression conclusion is supported yet because the baseline or comparison setup was not trustworthy."
+          : "The comparison supports human review, not an automated correctness claim.";
+  const nextAction = comparison.result === "matched"
+    ? "Inspect the primary artifacts and confirm they cover the behavior you care about before treating this as acceptable."
+    : comparison.result === "difference_detected"
+      ? "Inspect changed screenshot pairs, runtime deltas, and error/log changes; decide whether the difference is intended."
+      : comparison.result === "regression_suspected"
+        ? "Do not accept the candidate on automation alone; fix the regression or explicitly confirm the change is intended."
+        : comparison.result === "blocked"
+          ? "Create or choose a trustworthy baseline, then compare again."
+          : comparison.human_next_step;
 
   const lines = [
     `# GRB Run Comparison: ${comparison.mission_name}`,
@@ -31,7 +51,19 @@ export function renderComparisonSummary(comparison) {
     `- Screenshot pairs: ${stats.screenshot_matched ?? "unknown"} matched, ${stats.screenshot_changed ?? "unknown"} changed, ${stats.screenshot_missing ?? "unknown"} missing`,
     `- Runtime differences: ${stats.runtime_differences ?? "unknown"}`,
     `- Issue delta: ${stats.issue_delta ?? "unknown"}`,
-    `- Next step: ${comparison.human_next_step}`,
+    `- Next step: ${nextAction}`,
+    "",
+    "## What This Comparison Supports",
+    "",
+    `- ${support}`,
+    "- It can support regression review for the artifacts GRB paired and summarized.",
+    "- It does not prove product correctness, design intent, accessibility, fun, or E-tier experience.",
+    "",
+    "## Still Needs Human Judgment",
+    "",
+    `- ${comparison.unresolved_question}`,
+    "- Whether the selected baseline was actually a trustworthy reference for this surface.",
+    "- Whether the mission covers the behavior users actually care about.",
     "",
     "## Baseline Selection",
     "",

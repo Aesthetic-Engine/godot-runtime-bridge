@@ -45,6 +45,8 @@ Inspect:
 grb_reports/<candidate-run-id>/comparison/comparison.md
 ```
 
+Use `comparison.md` as the review artifact. It should tell you what the proving-ground comparison supports, what it does not prove, and what human judgment remains.
+
 ## Explicit Compare Practice
 
 Use explicit compare when you want to choose both bundles yourself:

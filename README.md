@@ -329,7 +329,7 @@ Possible outcomes:
 - `blocked` — comparison did not run because baseline selection or bundle loading was not trustworthy.
 - `human_review_required` — automation found evidence that needs judgment.
 
-Comparison output is written into the candidate bundle under `comparison/`, and the candidate `summary.md` gets a comparison section.
+Comparison output is written into the candidate bundle under `comparison/`, and the candidate `summary.md` gets a comparison section. Use `comparison/comparison.md` as the decision aid: it explains what the result supports, what it does not prove, and what human review remains.
 
 `--compare-to latest` resolves to the newest previous passing run with the same `mission_id`. The candidate run is never eligible as its own baseline, and blocked/corrupt/mismatched automatic candidates are rejected with reasons in `comparison/comparison.md`.
 
