@@ -43,6 +43,32 @@ You don't have to use the proof path to get value from GRB. It's there for when 
 3. **Open that project folder in your coding agent's editor** (e.g. Cursor, or the editor your Claude Code / Codex / Antigravity setup uses). It should be the folder that contains `project.godot`.
 4. **Know where your Godot executable is.** GRB needs that path later as `GODOT_PATH` so your coding agent can launch your game.
 
+## Choose the Right Install Path
+
+GRB currently has a few different distribution and usage channels. They are not
+all equivalent.
+
+- **Addon-only / AssetLib path**: gives you the runtime bridge inside your
+  Godot project. This is enough for the in-project addon, editor dock, and the
+  bridge runtime itself.
+- **Full repo clone**: gives you the repo-level tooling surfaces too, including
+  `mcp/`, `cli/grb.mjs`, `templates/grb2/`, `examples/grb2-proving-ground/`,
+  and `tools/`.
+- **MCP helper path**: uses the full repo's `mcp/` folder plus the addon in
+  your Godot project.
+- **GRB 2.0 proof workflow**: also requires the full repo path, because it uses
+  the CLI, templates, proving ground, and repo-side docs/tools.
+
+In short:
+
+- **Just want the runtime bridge inside Godot?** The addon-only path is enough.
+- **Want MCP, CLI, proof workflow, templates, or the proving ground?** Use a
+  full repo clone.
+
+Current export/archive packaging is addon-oriented. Do not assume every
+repo-documented workflow is available from an addon-only install or export
+archive.
+
 ## Quick Start: Connect Cursor to Your Game
 
 > The setup below is for **Cursor**. If you're using **Claude Code**, **Codex**, **Antigravity**, or another agent client, see [`mcp/README.md`](mcp/README.md) for client-specific instructions. The Godot-side addon install (Step 1) is the same for every client.
@@ -74,6 +100,11 @@ Download this repo and copy the `addons/godot-runtime-bridge/` folder into your 
 
 Then go to **Project → Project Settings → Plugins** and enable **Godot Runtime Bridge**. When enabled, GRB adds its runtime server automatically — you do **not** need to wire anything by hand.
 
+> **Channel note:** this addon install gives you the runtime bridge inside your
+> Godot project. The MCP helper, `node cli/grb.mjs`, project scaffolds, proving
+> ground, and other GRB 2.0 repo tooling still require a full clone of this
+> repository.
+
 ---
 
 #### Step 2 — Install Node.js (one-time)
@@ -97,6 +128,9 @@ npm install
 ```
 
 This downloads the helper and installs its dependencies. You only need to do this once.
+
+This is a **full-repo** path. The MCP helper lives under `mcp/`; it is not part
+of an addon-only or AssetLib install.
 
 ---
 
@@ -158,6 +192,10 @@ See [`mcp/README.md`](mcp/README.md) for Claude Code setup (and other agent clie
 ## Optional: Prove Your Game Actually Works (GRB 2.0)
 
 GRB 2.0 adds a **proof workflow**: a reproducible way to run your game, collect evidence, and get a report that distinguishes what was verified by automation from what still needs you to look at it.
+
+This is a **full-repo workflow**, not an addon-only workflow. It depends on
+repo-level surfaces such as `cli/grb.mjs`, `templates/grb2/`,
+`examples/grb2-proving-ground/`, and repo-side docs/tools.
 
 A few plain-English terms first:
 
