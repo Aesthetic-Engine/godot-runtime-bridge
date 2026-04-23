@@ -1,6 +1,8 @@
 # Runtime Proof Hooks
 
-Use this when a `state_check` mission needs a stable runtime value to read with `call_method` or `get_property`.
+Use this only when a `state_check` mission needs a stable runtime value to read with `call_method` or `get_property`.
+
+Skip this doc for missions that can be proven with launch, input, screenshots, `screenshot_diff`, and `check_errors` alone.
 
 A proof hook is a small, safe piece of project code that exposes product truth for proof runs. It should help answer a narrow question like "which screen is active?", "is the pause panel visible?", or "what HUD mode is shown?"
 

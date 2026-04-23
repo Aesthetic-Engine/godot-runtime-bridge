@@ -4,13 +4,13 @@ Read this first when working in this example project.
 
 This project exists to validate GRB proof workflows. Keep it small, deterministic, and easy to judge.
 
-Authority order:
+Stage routing:
 
-1. The mission files in `grb/missions/`
-2. `grb/proof_policy.yaml`
-3. `grb/regression_workflow.md`
-4. This file
-5. General repo docs
+1. Read this file and `grb.project.yaml` to understand the fixture purpose.
+2. Use `grb/proof_policy.yaml` for proof language and claim limits.
+3. Use `grb/missions/` as the source of truth for each runnable proof surface.
+4. Use `grb/regression_workflow.md` only after a mission has a passing run you have inspected.
+5. Use the root README for general GRB setup and CLI context.
 
 Rules:
 

@@ -170,6 +170,19 @@ A few plain-English terms first:
 
 GRB reports never claim **E** on your behalf.
 
+### The GRB 2.0 Path
+
+Use the proof workflow in stages:
+
+1. Understand the addon and install/enable it in your Godot project.
+2. Run `grb init` to create the project contract.
+3. Review the first-read docs: `AGENTS.md`, `grb.project.yaml`, `grb/proof_policy.yaml`, and `grb/missions/smoke_boot.yaml`.
+4. Run `smoke_boot` and inspect `grb_reports/<run-id>/summary.md`.
+5. After `smoke_boot` passes, scaffold one small project-specific mission.
+6. Use `grb/runtime_proof_hooks.md` only if that mission needs stable runtime-readable state.
+7. After a small mission passes, use `grb/regression_workflow.md` before treating the run as a baseline candidate.
+8. Use compare honestly: it can support regression review, but it does not prove product correctness or E-tier experience.
+
 ### How to Run a Proof Mission
 
 **The easy way:** in your coding agent's chat, say *"Run the GRB smoke_boot proof mission on my project and show me the summary."* Your agent already knows how.
@@ -184,17 +197,20 @@ One-time: initialize your project. This creates a starter contract of config fil
 node C:\path\to\grb-main\cli\grb.mjs init --project C:\path\to\YourGodotProject
 ```
 
-Review and customize the generated files:
+Review the generated files in stages:
 
 ```text
-AGENTS.md
-grb.project.yaml
-grb/proof_policy.yaml
-grb/mission_authoring.md
-grb/runtime_proof_hooks.md
-grb/regression_workflow.md
-grb/missions/smoke_boot.yaml
-grb/gotchas.md
+Read now:
+  AGENTS.md
+  grb.project.yaml
+  grb/proof_policy.yaml
+  grb/missions/smoke_boot.yaml
+  grb/gotchas.md
+
+Use when needed:
+  grb/mission_authoring.md       after smoke_boot passes
+  grb/runtime_proof_hooks.md     only for runtime-readable state proof
+  grb/regression_workflow.md     after a small mission passes
 ```
 
 Then run the starter proof mission:

@@ -1,6 +1,8 @@
 # Regression Workflow
 
-Use this after a small mission passes and you want to turn it into a lightweight regression surface.
+Use this after a small project-specific mission passes and you want to turn it into a lightweight regression surface.
+
+This doc does not replace `grb/mission_authoring.md`. Finish the mission first, then use this checklist before treating a passing run as a baseline candidate.
 
 A regression surface is a narrow, repeatable proof target: one mission, one behavior surface, and a small set of artifacts that can be compared later. Good examples are a title-to-gameplay transition, a pause panel opening, or a HUD value changing.
 

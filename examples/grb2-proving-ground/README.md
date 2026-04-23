@@ -32,7 +32,7 @@ Godot_v4.6-stable_win64_console.exe --headless --editor --quit --path examples/g
 
 The synced `addons/`, `.godot/`, and `grb_reports/` folders are local validation artifacts and are ignored by git.
 
-For compare practice after a passing mission, read `grb/regression_workflow.md`.
+For compare practice after a passing mission, read `grb/regression_workflow.md`. Do not start there; first create or inspect a passing mission run.
 
 ## Run Missions
 
@@ -85,12 +85,12 @@ Comparison can say the deterministic artifacts matched. It still does not claim 
 
 ## How To Use This For GRB Work
 
-Use this project when changing GRB proof or comparison behavior and you need a small target with known surfaces. A good quick validation pass is:
+Use this project when changing GRB proof or comparison behavior and you need a small target with known surfaces. It mirrors the staged GRB 2.0 path in a tiny fixture:
 
 1. Run `smoke_boot`.
-2. Run `scene_transition`.
-3. Run `toggle_panel`.
-4. Run `hud_state_check`.
-5. If comparison behavior is relevant, inspect a passing run, then rerun `hud_state_check --compare-to latest`.
+2. Inspect the proof bundle summary and primary screenshot.
+3. Run one small project-specific mission: `scene_transition`, `toggle_panel`, or `hud_state_check`.
+4. Inspect its artifacts and handoff.
+5. If comparison behavior is relevant, read `grb/regression_workflow.md`, accept one passing run as a baseline candidate, then rerun `hud_state_check --compare-to latest`.
 
 For real game claims, use the target game project. This proving ground is a reference surface, not evidence that another project works.

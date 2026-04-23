@@ -6,8 +6,12 @@ proof_reports_dir: grb_reports
 purpose: Validate and demo GRB 2.0 proof workflows without requiring a real game project.
 
 read_first:
+  - README.md
   - AGENTS.md
+  - grb.project.yaml
   - grb/proof_policy.yaml
+  - grb/missions/smoke_boot.yaml
+  # Use after a passing mission run when practicing compare.
   - grb/regression_workflow.md
   - grb/gotchas.md
 

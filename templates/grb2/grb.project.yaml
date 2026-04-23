@@ -5,12 +5,14 @@ missions:
   - smoke_boot
 read_first:
   - AGENTS.md
+  - grb.project.yaml
   - grb/proof_policy.yaml
+  - grb/missions/smoke_boot.yaml
+  - grb/gotchas.md
+  # Stage-specific docs; AGENTS.md explains when to use each one.
   - grb/mission_authoring.md
   - grb/runtime_proof_hooks.md
   - grb/regression_workflow.md
-  - grb/missions/smoke_boot.yaml
-  - grb/gotchas.md
 expected_first_run:
   scene_or_state: TODO describe the first visible state after launch
   primary_human_check: TODO describe what the boot screenshot should show

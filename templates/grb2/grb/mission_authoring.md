@@ -2,6 +2,8 @@
 
 Use this after `smoke_boot` passes and after you run `grb mission scaffold <mission_id>`.
 
+This doc owns mission authoring only: choosing a small pattern, replacing scaffold TODOs, and writing honest handoff text. Use `grb/runtime_proof_hooks.md` only when the mission needs runtime-readable project state. Use `grb/regression_workflow.md` only after the mission has a trustworthy passing run.
+
 A good mission is small: one surface, one action, one before/after question. It captures evidence and names what still needs human judgment.
 
 ## Pick a Pattern
@@ -146,6 +148,6 @@ Automation can prove wiring, capture screenshots, collect runtime values, detect
 
 Automation does not prove that the UI is good, fun, accessible, readable, balanced, or product-correct. Put those claims in `human_handoff` until a human confirms them.
 
-## After The First Pass
+## After This Mission Passes
 
-When this mission passes and the artifacts look trustworthy, read `grb/regression_workflow.md`. It explains when a passing run is a baseline candidate, when `--compare-to latest` is meaningful, and when explicit bundle-to-bundle compare is safer.
+When this mission passes and the artifacts look trustworthy, move to `grb/regression_workflow.md`. Do not treat a run as a baseline candidate until you inspect the summary, primary artifacts, mission report, runtime state if present, and human handoff.

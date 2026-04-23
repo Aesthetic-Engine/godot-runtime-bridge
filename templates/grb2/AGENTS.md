@@ -4,15 +4,20 @@ This project uses Godot Runtime Bridge 2.0 proof workflows. Treat this file as t
 
 Customize the TODOs before relying on this contract for larger work.
 
-## Read First
+## Stage Routing
 
-- `grb.project.yaml`
-- `grb/proof_policy.yaml`
-- `grb/mission_authoring.md`
-- `grb/runtime_proof_hooks.md`
-- `grb/regression_workflow.md`
-- `grb/missions/smoke_boot.yaml`
-- `grb/gotchas.md`
+Read in this order:
+
+1. `grb.project.yaml` for project name, default recipe, report path, and expected first run truth.
+2. `grb/proof_policy.yaml` for W/R/E claim rules and review expectations.
+3. `grb/missions/smoke_boot.yaml` before the first proof run.
+4. `grb/gotchas.md` for project-specific traps before changing code.
+
+Use later, only when the stage calls for it:
+
+- `grb/mission_authoring.md` after `smoke_boot` passes and you are creating the next small mission.
+- `grb/runtime_proof_hooks.md` only when a `state_check` or runtime-readable proof needs a stable project state read.
+- `grb/regression_workflow.md` only after a small mission passes and you are deciding whether the run is a baseline candidate.
 
 ## Working Rules
 
@@ -40,7 +45,7 @@ After the run, inspect:
 - the primary screenshot listed in the summary
 - `grb_reports/<run-id>/run.json` when another tool needs machine-readable proof
 
-## Second Mission
+## Second Mission Stage
 
 After `smoke_boot` passes, create one small project-specific mission for the next feature surface:
 
@@ -59,11 +64,11 @@ Repo examples: `transition` -> `examples/grb2-proving-ground/grb/missions/scene_
 
 Customize the goal, one interaction step, and human handoff before claiming proof. For `state_check`, also replace the TODO runtime state reads with one `call_method` or `get_property` source. Prefer one clear before/after surface over broad exploratory automation.
 
-When replacing scaffold TODOs, use `grb/mission_authoring.md` as the local cookbook. It explains when to use `press_button`, `click`, `key`, `call_method`, `get_property`, `assert_property`, `screenshot_diff`, and `check_errors`.
+When replacing scaffold TODOs, use `grb/mission_authoring.md` as the local cookbook. It owns second-mission authoring guidance.
 
-When a `state_check` mission needs project-specific runtime state, use `grb/runtime_proof_hooks.md` before adding helper methods. Keep hooks small, stable, safe, and product-facing.
+When a `state_check` mission needs project-specific runtime state, use `grb/runtime_proof_hooks.md` before adding helper methods. Skip it for missions that only need screenshots or simple interaction.
 
-## Regression Surface
+## Regression Stage
 
 After a small mission passes, read `grb/regression_workflow.md` before using compare. A passing run is only a baseline candidate after `summary.md`, the named artifact, the mission report, and any runtime state have been inspected.
 
