@@ -14,6 +14,21 @@ const targets = [
     readVersion: (text) => JSON.parse(text).version,
   },
   {
+    label: "package-lock.json root",
+    path: path.join(__dirname, "package-lock.json"),
+    readVersion: (text) => {
+      const parsed = JSON.parse(text);
+      const rootVersion = parsed.version;
+      const packageVersion = parsed.packages?.[""]?.version;
+      if (!rootVersion) throw new Error("Could not find package-lock root version");
+      if (!packageVersion) throw new Error("Could not find package-lock packages[\"\"] version");
+      if (rootVersion !== packageVersion) {
+        throw new Error(`package-lock root version ${rootVersion} does not match packages[\"\"] version ${packageVersion}`);
+      }
+      return rootVersion;
+    },
+  },
+  {
     label: "plugin.cfg",
     path: path.join(repoRoot, "addons", "godot-runtime-bridge", "plugin.cfg"),
     readVersion: (text) => matchRequired(text, /version="([^"]+)"/, "plugin.cfg version"),

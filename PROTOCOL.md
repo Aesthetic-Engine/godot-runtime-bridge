@@ -56,6 +56,10 @@ GDRB_READY:{"proto":"grb/1","port":54321,"token":"xK9m...","tier_default":1}
 
 The MCP launcher parses this line to discover the port and token.
 
+The server only starts when the runtime has the `grb`, `debug`, or `editor`
+feature tag and either `GDRB_TOKEN` or `GODOT_DEBUG_SERVER=1` is set. All
+commands require the bearer token once the server is running.
+
 ## Commands Reference
 
 ### Tier 0 — Observe
@@ -99,6 +103,13 @@ Returns `{"value": ...}`.
 #### runtime_info
 No args. Returns engine version, FPS, frame count, current scene, node count.
 
+#### get_errors
+| Arg | Type | Default | Description |
+|-----|------|---------|-------------|
+| `since_index` | int | 0 | Return logged engine/runtime errors and warnings at or after this index |
+
+Returns captured engine/runtime error state, including error and warning counts.
+
 #### wait_for
 | Arg | Type | Default | Description |
 |-----|------|---------|-------------|
@@ -108,6 +119,17 @@ No args. Returns engine version, FPS, frame count, current scene, node count.
 | `timeout_ms` | int | 5000 | Max wait time |
 
 Polls each frame until `node.property == value` or timeout. Returns `{"matched": true/false, "elapsed_ms": ...}`.
+
+#### audio_state
+No args. Returns audio bus names, volumes, mute state, bus count, and mix rate.
+
+#### network_state
+No args. Returns the bridge's current network-state placeholder:
+`{"multiplayer": false, "message": "no multiplayer"}`.
+
+#### grb_performance
+No args. Returns available performance counters such as FPS, process timing,
+object counts, render draw calls, primitives, and video memory fields.
 
 #### find_nodes
 | Arg | Type | Default | Description |
@@ -163,6 +185,16 @@ Press at `from`, move to `to`, release on next frame.
 | `y` | int | 0 | Scroll position Y |
 | `delta` | float | -3.0 | Scroll amount (negative = down, positive = up) |
 
+#### gesture
+| Arg | Type | Default | Description |
+|-----|------|---------|-------------|
+| `type` | string | | `"pinch"` or `"swipe"` |
+| `params.center` | [x, y] | [0, 0] | Gesture position |
+| `params.scale` | float | 1.1 | Magnify factor for `"pinch"` |
+| `params.delta` | [x, y] | [0, 0] | Pan delta for `"swipe"` |
+
+Injects `InputEventMagnifyGesture` or `InputEventPanGesture`.
+
 #### gamepad
 | Arg | Type | Default | Description |
 |-----|------|---------|-------------|
@@ -187,6 +219,8 @@ For `"button"`: injects press + auto-release after 100ms. For `"axis"`: injects 
 | `property` | string | Property name |
 | `value` | any | New value |
 
+Dangerous properties such as `script` are blocked with `forbidden`.
+
 #### call_method
 | Arg | Type | Description |
 |-----|------|-------------|
@@ -194,7 +228,21 @@ For `"button"`: injects press + auto-release after 100ms. For `"axis"`: injects 
 | `method` | string | Method name |
 | `args` | array | Arguments (optional, default `[]`) |
 
-Returns `{"result": ...}`.
+Returns `{"result": ...}`. Dangerous method names such as process execution,
+file access helpers, and script loading helpers are blocked with `forbidden`.
+
+#### quit
+No args. Requests `get_tree().quit()` via `call_deferred` and returns a short
+confirmation message.
+
+#### run_custom_command
+| Arg | Type | Description |
+|-----|------|-------------|
+| `name` | string | Name registered on the `GRBCommands` autoload |
+| `args` | array | Optional positional arguments passed to the registered callable |
+
+Returns `{"result": ...}`. Requires the optional `GRBCommands` autoload and a
+registered command name.
 
 ### Tier 3 — Danger
 

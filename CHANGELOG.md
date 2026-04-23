@@ -4,12 +4,19 @@
 
 ### Added
 
-- **GRB 2.0 Sprint 1 proof CLI** - Added a minimal Node CLI for `init` and `mission run smoke_boot`, project scaffold templates, runtime YAML-to-mission translation, and project-local proof bundles under `grb_reports/<run-id>/`.
+- **GRB 2.0 proof CLI** - Added `node cli/grb.mjs init`, `mission scaffold`, `mission run <mission_id>`, and `compare` flows for project-local proof work.
+- **Project contract scaffolds** - Added GRB 2.0 templates for `AGENTS.md`, `grb.project.yaml`, proof policy, missions, recipes, gotchas, mission authoring guidance, runtime proof hooks, and regression workflow guidance.
+- **Mission scaffold patterns** - Added `default`, `transition`, `toggle`, and `state_check` starter patterns with honest TODOs and references to runnable proving-ground examples.
+- **Proof bundles** - Added project-local proof bundles under `grb_reports/<run-id>/` with `summary.md`, `run.json`, evidence references, W/R/E proof reporting, blocked-proof reporting, primary review artifacts, and human handoff fields.
+- **Compare and baseline review** - Added bundle-to-bundle compare and `--compare-to latest` flows with same-mission baseline selection, rejected-baseline explanations, comparison summaries, and trust-boundary guidance.
+- **GRB 2.0 proving ground** - Added `examples/grb2-proving-ground/`, a tiny deterministic Godot project with `smoke_boot`, `scene_transition`, `toggle_panel`, and `hud_state_check` missions.
+- **Product-shape verification** - Added `tools/verify_grb2_product_shape.mjs` to check high-value GRB 2.0 proof/onboarding summary surfaces without launching Godot.
 
 ### Changed
 
 - **Mission runner output directory** - `missions/run_mission.mjs` now accepts `--output-dir` while preserving the existing `missions/reports` default.
 - **Mission tier defaults** - Missing `tier_required` values now default to `1` before mission launch and reporting.
+- **Release-surface docs** - Synced protocol, security, MCP, and version-check documentation with the current shipped command/tool surface.
 
 ## 1.0.6 - 2026-03-28
 
