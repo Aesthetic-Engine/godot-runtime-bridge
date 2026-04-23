@@ -146,6 +146,9 @@ This MCP package lives inside the full repo. Release verification that covers
 GRB 2.0 proof/onboarding truth still depends on a full clone; addon-only export
 or AssetLib installs do not include that repo-level tooling surface.
 
+For the compact GRB 2.0 release-candidate readiness summary, see
+`../docs/grb2-release-candidate-readiness.md`.
+
 ## Environment Variables
 
 | Variable | Description |

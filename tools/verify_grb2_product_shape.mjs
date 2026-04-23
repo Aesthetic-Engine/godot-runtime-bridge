@@ -338,6 +338,7 @@ function checkDoctorReadiness() {
 
 function checkChannelAndDocTruth() {
   const readme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf-8");
+  const readinessDoc = fs.readFileSync(path.join(repoRoot, "docs", "grb2-release-candidate-readiness.md"), "utf-8");
   const legacyMissions = fs.readFileSync(path.join(repoRoot, "missions", "README.md"), "utf-8");
   const ciDoc = fs.readFileSync(path.join(repoRoot, "docs", "ci.md"), "utf-8");
   const authoring = fs.readFileSync(path.join(repoRoot, "templates", "grb2", "grb", "mission_authoring.md"), "utf-8");
@@ -366,7 +367,21 @@ function checkChannelAndDocTruth() {
   assertIncludes(readme, "`./grb ...` on POSIX", "README launcher truth");
   assertIncludes(readme, "Run `grb doctor`", "README doctor truth");
   assertIncludes(readme, "doctor` is a no-launch preflight check", "README doctor truth");
+  assertIncludes(readme, "docs/grb2-release-candidate-readiness.md", "README readiness-doc truth");
   assert(!readme.includes("node C:\\path\\to\\grb-main\\cli\\grb.mjs"), "README should not primarily teach raw cli/grb.mjs path");
+
+  assertIncludes(readinessDoc, "npm run verify:versions", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "npm run verify:grb2:shape", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "npm run verify:grb", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "npm run verify:release", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "support release-candidate confidence", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "do **not** prove", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "experiential quality or E-tier proof", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "addon/archive/export packaging is addon-oriented", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "the GRB 2.0 proof workflow requires a full repo clone", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "final version/tag decision", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "final release changelog section", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "final release smoke on the intended release target", "release-candidate readiness doc");
 
   assertIncludes(legacyMissions, "# Legacy Built-In Mission Pack", "legacy mission doc");
   assertIncludes(legacyMissions, "project-local proof workflow", "legacy mission doc");
@@ -402,11 +417,13 @@ function checkChannelAndDocTruth() {
 
 function checkContributorReadmeTruth() {
   const readme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf-8");
+  const mcpReadme = fs.readFileSync(path.join(repoRoot, "mcp", "README.md"), "utf-8");
   assertIncludes(readme, "### CLI Exit Codes", "README contributor closeout");
   assertIncludes(readme, "`mission run` exits:", "README contributor closeout");
   assertIncludes(readme, "`compare` exits:", "README contributor closeout");
   assertIncludes(readme, "compatible GRB proof bundle directories", "README contributor closeout");
   assertIncludes(readme, "This still does not prove product correctness", "README contributor closeout");
+  assertIncludes(mcpReadme, "../docs/grb2-release-candidate-readiness.md", "MCP README readiness-doc truth");
 }
 
 function main() {

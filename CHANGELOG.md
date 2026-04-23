@@ -19,6 +19,7 @@
 - **Release-surface docs** - Synced protocol, security, MCP, and version-check documentation with the current shipped command/tool surface.
 - **Release-candidate verification hardening** - Added a repo-full-clone `verify:grb2:shape` check, wired GRB 2.0 product-shape verification into release smoke, and expanded workflow triggers to cover launch-critical GRB 2.0 CLI/template/tooling surfaces.
 - **Release-candidate checklist / version truth hardening** - Clarified the maintainer-facing release checklist, documented exactly which version surfaces `verify:versions` owns, and reinforced that archive/export packaging remains addon-oriented while GRB 2.0 proof tooling stays full-repo-only.
+- **Release-candidate readiness handoff** - Added a compact GRB 2.0 readiness doc that states what checks support release-candidate confidence, what they do not prove, and what remains deferred to Sprint 13.
 
 ## 1.0.6 - 2026-03-28
 

@@ -522,6 +522,10 @@ CLI/template/tooling surfaces do not drift silently.
 
 #### Release Candidate Checklist
 
+See [`docs/grb2-release-candidate-readiness.md`](docs/grb2-release-candidate-readiness.md)
+for the compact GRB 2.0 release-candidate readiness surface and Sprint 13
+handoff truth.
+
 Before tagging a release candidate, run:
 
 - `npm run verify:versions`

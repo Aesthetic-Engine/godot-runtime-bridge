@@ -1,0 +1,114 @@
+# GRB 2.0 Release-Candidate Readiness
+
+This document is the compact release-candidate readiness surface for GRB 2.0.
+
+Use it when you need to answer:
+
+- what is currently release-candidate ready
+- which checks are required before tagging
+- what those checks support
+- what those checks do not prove
+- what remains deferred to Sprint 13
+
+## What Is Currently Release-Candidate Ready
+
+The repo is currently release-candidate ready for the following GRB 2.0 surfaces:
+
+- repo-root GRB launchers for the full-repo workflow:
+  - `grb.cmd`
+  - `./grb`
+- GRB 2.0 project initialization and local repo-linkage stamping
+- no-launch readiness checking via `doctor`
+- first trustworthy proof-run flow:
+  - `init`
+  - `doctor`
+  - `mission run smoke_boot`
+- project-local proof bundles and compare/baseline workflow
+- deterministic proving-ground reference project
+- lightweight GRB 2.0 product-shape verification
+- release smoke that now includes GRB 2.0 product-shape verification
+
+## Required Checks
+
+From `mcp/`:
+
+```bash
+npm run verify:versions
+npm run verify:grb2:shape
+npm run verify:grb -- --godot-exe "/path/to/godot" --project "/path/to/project"
+npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"
+```
+
+What each check does:
+
+- `verify:versions`
+  - does **not** launch Godot
+  - checks version parity across:
+    - `mcp/package.json`
+    - `mcp/package-lock.json`
+    - `addons/godot-runtime-bridge/plugin.cfg`
+    - `addons/godot-runtime-bridge/runtime_bridge/EditorDock.gd`
+    - `mcp/index.js` server version and startup banner
+- `verify:grb2:shape`
+  - does **not** launch Godot
+  - checks GRB 2.0 product-shape truth such as launcher/docs/template/proving-ground consistency
+- `verify:grb`
+  - **does** require a real Godot executable and a real project
+  - runs the live GRB release smoke sequence
+- `verify:release`
+  - **does** require a real Godot executable and a real project
+  - runs version parity plus the live release smoke sequence in one command
+
+## What These Checks Support
+
+Together, these checks support release-candidate confidence that:
+
+- version surfaces agree
+- the repo-root launcher and full-repo GRB 2.0 path still exist
+- README, templates, proving-ground docs, and project-shape truth have not drifted
+- `init` still stamps repo linkage
+- `doctor` still reports readiness shape honestly
+- the live bridge can still launch, connect, observe, capture, and quit on a real smoke target
+
+## What These Checks Do Not Prove
+
+These checks do **not** prove:
+
+- product correctness
+- gameplay correctness
+- design intent correctness
+- experiential quality or E-tier proof
+- that every distribution channel provides the same tooling surface
+
+They support release-candidate confidence.
+They do not replace human judgment.
+
+## Distribution / Channel Truth
+
+Current channel truth remains:
+
+- addon/archive/export packaging is addon-oriented
+- the GRB 2.0 proof workflow requires a full repo clone
+- templates, proving ground, repo-root launchers, and product-shape verification are full-repo surfaces
+
+Do not treat addon-only or AssetLib delivery as equivalent to the full-repo GRB 2.0 workflow.
+
+## Deferred To Sprint 13
+
+Sprint 13 should own the final launch/release decision surfaces, including:
+
+- final version/tag decision
+- final release changelog section
+- final release smoke on the intended release target
+- any final release-channel or packaging decision beyond current addon-oriented archive truth
+
+## Intentionally Out Of Scope For GRB 2.0 Launch
+
+The following remain intentionally out of scope unless a later sprint explicitly changes that:
+
+- PATH/global install polish
+- packaging overhaul
+- addon-only delivery of the full GRB 2.0 proof/tooling surface
+- schema redesign
+- runtime/protocol redesign
+- compare or proof-semantics redesign
