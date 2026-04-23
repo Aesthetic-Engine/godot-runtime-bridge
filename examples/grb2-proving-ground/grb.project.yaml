@@ -1,33 +1,24 @@
-project_name: GRB 2.0 Proving Ground
-project_type: deterministic_validation_fixture
+name: GRB 2.0 Proving Ground
+grb_version: "2.0"
 default_recipe: default
-proof_reports_dir: grb_reports
-
-purpose: Validate and demo GRB 2.0 proof workflows without requiring a real game project.
-
+missions:
+  - smoke_boot
+  - scene_transition
+  - toggle_panel
+  - hud_state_check
 read_first:
   - README.md
   - AGENTS.md
   - grb.project.yaml
   - grb/proof_policy.yaml
   - grb/missions/smoke_boot.yaml
-  # Use after a passing mission run when practicing compare.
-  - grb/regression_workflow.md
   - grb/gotchas.md
-
-primary_surfaces:
-  - boot_title
-  - scene_transition_state
-  - visible_hud_state
-  - toggleable_proof_panel
-
-setup:
-  addon_sync: tools/sync_grb_addon.mjs
-  reports_ignored: true
-  addon_copy_committed: false
-
-missions:
-  smoke_boot: Launch, connect, capture boot screenshot, scene tree, and runtime state.
-  scene_transition: Trigger title-to-lab state change and capture before/after evidence.
-  toggle_panel: Trigger proof panel visibility and capture before/after evidence.
-  hud_state_check: Assert a visible HUD counter change and capture matching runtime state evidence.
+  # Stage-specific docs; AGENTS.md explains when to use each one.
+  - grb/regression_workflow.md
+expected_first_run:
+  scene_or_state: stable title/boot surface
+  primary_human_check: boot screenshot shows the GRB 2.0 Proving Ground title, HUD labels, and deterministic title state
+proof_reports_dir: grb_reports
+first_trustworthy_proof_run:
+  command: node ../../cli/grb.mjs mission run smoke_boot --exe <godot_exe>
+  inspect: grb_reports/<run-id>/summary.md

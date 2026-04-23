@@ -4,6 +4,14 @@ Read this first when working in this example project.
 
 This project exists to validate GRB proof workflows. Keep it small, deterministic, and easy to judge.
 
+Fixture context:
+
+- Type: deterministic validation fixture.
+- Purpose: validate and demo GRB 2.0 proof workflows without requiring a real game project.
+- Primary surfaces: boot/title, title-to-lab transition, visible HUD state, toggleable proof panel.
+- Setup helper: `tools/sync_grb_addon.mjs`.
+- Reports, synced addon copy, and Godot metadata are local artifacts and should stay ignored.
+
 Stage routing:
 
 1. Read this file and `grb.project.yaml` to understand the fixture purpose.
