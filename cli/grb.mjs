@@ -4,7 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { initProject } from "./lib/init.mjs";
 import { scaffoldMission, VALID_MISSION_PATTERNS } from "./lib/mission_scaffold.mjs";
-import { runProjectMission } from "./lib/smoke_boot.mjs";
+import { runProjectDoctor, runProjectMission } from "./lib/smoke_boot.mjs";
 import { compareRuns, printComparisonCloseout } from "./lib/compare_runs.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -53,6 +53,7 @@ function printHelp() {
 
 Usage:
   ${process.platform === "win32" ? "grb.cmd" : "./grb"} init [--project <path>]
+  ${process.platform === "win32" ? "grb.cmd" : "./grb"} doctor [--project <path>] [--exe <godot_exe>]
   ${process.platform === "win32" ? "grb.cmd" : "./grb"} mission scaffold <mission_id> [--project <path>] [--recipe <recipe_id>] [--pattern <pattern_id>]
   ${process.platform === "win32" ? "grb.cmd" : "./grb"} mission run <mission_id> [--project <path>] --exe <godot_exe>
   ${process.platform === "win32" ? "grb.cmd" : "./grb"} compare <baseline-run-dir> <candidate-run-dir>
@@ -60,6 +61,7 @@ Usage:
 Examples:
   # From the GRB repo root on Windows
   grb.cmd init --project C:\\path\\to\\YourGodotProject
+  grb.cmd doctor --project C:\\path\\to\\YourGodotProject --exe C:\\path\\to\\Godot_console.exe
   grb.cmd mission scaffold pause_menu --project C:\\path\\to\\YourGodotProject
   grb.cmd mission scaffold title_to_gameplay --project C:\\path\\to\\YourGodotProject --pattern transition
   grb.cmd mission scaffold inventory_panel --project C:\\path\\to\\YourGodotProject --pattern toggle
@@ -70,6 +72,7 @@ Examples:
 
   # From the GRB repo root on POSIX
   ./grb init --project /path/to/YourGodotProject
+  ./grb doctor --project /path/to/YourGodotProject --exe /path/to/Godot_console
   ./grb mission run smoke_boot --project /path/to/YourGodotProject --exe /path/to/Godot_console
 
   # From another directory, call the repo-root launcher directly
@@ -77,6 +80,7 @@ Examples:
 
 Environment:
   GODOT_EXE may be used instead of --exe for mission runs.
+  doctor checks project readiness without launching Godot.
 
 Repo-root launchers:
   Windows: grb.cmd
@@ -121,17 +125,20 @@ async function main() {
     console.log("     - grb/proof_policy.yaml");
     console.log("     - grb/missions/smoke_boot.yaml");
     console.log("");
-    console.log("  2. Run the first trustworthy proof mission:");
+    console.log("  2. Check project readiness without launching Godot:");
+    console.log(`     ${quotedRepoRootLauncherPath()} doctor --project "${result.projectDir}" --exe <godot_exe>`);
+    console.log("");
+    console.log("  3. Run the first trustworthy proof mission:");
     console.log(`     ${result.repoLinkage.firstProofCommand}`);
     console.log("");
-    console.log("  3. Inspect the proof bundle summary:");
+    console.log("  4. Inspect the proof bundle summary:");
     console.log(`     ${result.projectDir}\\grb_reports\\<run-id>\\summary.md`);
     console.log("");
-    console.log("  4. After smoke_boot passes:");
+    console.log("  5. After smoke_boot passes:");
     console.log("     - Use grb/mission_authoring.md to scaffold one small project-specific mission.");
     console.log("     - Use grb/runtime_proof_hooks.md only when that mission needs runtime-readable state.");
     console.log("");
-    console.log("  5. After a small mission passes:");
+    console.log("  6. After a small mission passes:");
     console.log("     - Use grb/regression_workflow.md before treating the run as a baseline candidate.");
     console.log("");
     console.log("Proof bundles will be written to:");
@@ -147,6 +154,14 @@ async function main() {
       mode: flags.mode,
       allowBootErrors: Boolean(flags["allow-boot-errors"]),
       compareTo: flags["compare-to"] || flags.compareTo,
+    });
+    process.exit(result.exitCode);
+  }
+
+  if (command === "doctor") {
+    const result = runProjectDoctor({
+      projectDir: flags.project || process.cwd(),
+      exe: flags.exe || flags["godot-exe"] || process.env.GODOT_EXE,
     });
     process.exit(result.exitCode);
   }

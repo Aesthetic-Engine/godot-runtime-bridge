@@ -215,11 +215,12 @@ Use the proof workflow in stages:
 1. Understand the addon and install/enable it in your Godot project.
 2. Run `grb init` to create the project contract.
 3. Review the first-read docs: `AGENTS.md`, `grb.project.yaml`, `grb/proof_policy.yaml`, and `grb/missions/smoke_boot.yaml`.
-4. Run `smoke_boot` and inspect `grb_reports/<run-id>/summary.md`.
-5. After `smoke_boot` passes, scaffold one small project-specific mission.
-6. Use `grb/runtime_proof_hooks.md` only if that mission needs stable runtime-readable state.
-7. After a small mission passes, use `grb/regression_workflow.md` before treating the run as a baseline candidate.
-8. Use compare honestly: it can support regression review, but it does not prove product correctness or E-tier experience.
+4. Run `grb doctor` and fix any missing setup before `smoke_boot`.
+5. Run `smoke_boot` and inspect `grb_reports/<run-id>/summary.md`.
+6. After `smoke_boot` passes, scaffold one small project-specific mission.
+7. Use `grb/runtime_proof_hooks.md` only if that mission needs stable runtime-readable state.
+8. After a small mission passes, use `grb/regression_workflow.md` before treating the run as a baseline candidate.
+9. Use compare honestly: it can support regression review, but it does not prove product correctness or E-tier experience.
 
 ### How to Run a Proof Mission
 
@@ -261,6 +262,16 @@ Use when needed:
   grb/runtime_proof_hooks.md     only for runtime-readable state proof
   grb/regression_workflow.md     after a small mission passes
 ```
+
+Then check readiness without launching Godot:
+
+```bash
+C:\path\to\grb-main\grb.cmd doctor --project C:\path\to\YourGodotProject --exe C:\path\to\Godot_v4.5_or_later_console.exe
+```
+
+`doctor` is a no-launch preflight check. It tells you whether the project
+contract, repo linkage, addon, mission file, metadata, and Godot executable are
+ready for the first GRB 2.0 proof run.
 
 Then run the starter proof mission:
 

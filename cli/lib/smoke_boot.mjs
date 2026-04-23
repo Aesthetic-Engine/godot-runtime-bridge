@@ -48,6 +48,287 @@ function isDirectory(filePath) {
   }
 }
 
+function currentRepoLauncherName() {
+  return process.platform === "win32" ? "grb.cmd" : "grb";
+}
+
+function resolveRecordedRepoRoot(projectDir, rawValue) {
+  const text = String(rawValue || "").trim();
+  if (!text) return null;
+  return path.isAbsolute(text) ? text : path.resolve(projectDir, text);
+}
+
+function looksLikePlaceholder(text) {
+  return String(text || "").includes("<set-by-grb-init>") || String(text || "").includes("<path-to-grb-main>");
+}
+
+function quoteArg(value) {
+  return `"${String(value)}"`;
+}
+
+function makeDoctorCommand(projectDir, launcherPath, exePath) {
+  if (!launcherPath || !exePath) return null;
+  return `${quoteArg(launcherPath)} doctor --project ${quoteArg(projectDir)} --exe ${quoteArg(exePath)}`;
+}
+
+function makeSmokeBootCommand(projectDir, launcherPath, exePath) {
+  if (!launcherPath || !exePath) return null;
+  return `${quoteArg(launcherPath)} mission run smoke_boot --project ${quoteArg(projectDir)} --exe ${quoteArg(exePath)}`;
+}
+
+function addCheck(checks, status, label, detail, fix) {
+  checks.push({ status, label, detail, fix });
+}
+
+export function inspectProjectReadiness(options = {}) {
+  const projectDir = resolveProjectDir(options.projectDir);
+  const checks = [];
+  let contract = null;
+  let launcherPath = null;
+  let exePath = null;
+
+  if (!isDirectory(projectDir)) {
+    addCheck(
+      checks,
+      "fail",
+      "project directory",
+      `Project path not found or not a directory: ${projectDir}`,
+      "Run from inside a Godot project, or pass --project <path-to-project>."
+    );
+    return {
+      ready: false,
+      projectDir,
+      launcherPath: null,
+      exePath: null,
+      checks,
+      smokeBootCommand: null,
+      doctorCommand: null,
+    };
+  }
+
+  const projectGodotPath = path.join(projectDir, "project.godot");
+  if (isFile(projectGodotPath)) {
+    addCheck(checks, "pass", "godot project", `Found project.godot in ${projectDir}`);
+  } else {
+    addCheck(
+      checks,
+      "fail",
+      "godot project",
+      `No project.godot found in: ${projectDir}`,
+      "Run doctor from the Godot project root, or pass --project <path-to-project>."
+    );
+  }
+
+  const contractPath = path.join(projectDir, "grb.project.yaml");
+  if (!isFile(contractPath)) {
+    addCheck(
+      checks,
+      "fail",
+      "project contract",
+      `Missing GRB project contract: ${contractPath}`,
+      "Run grb init from the GRB full clone you want this project to use."
+    );
+  } else {
+    addCheck(checks, "pass", "project contract", `Found ${contractPath}`);
+    try {
+      contract = parseSimpleYaml(fs.readFileSync(contractPath, "utf-8"));
+    } catch (err) {
+      addCheck(
+        checks,
+        "fail",
+        "project contract",
+        `Could not read grb.project.yaml: ${err.message}`,
+        "Fix grb.project.yaml so GRB can read the local project contract."
+      );
+    }
+  }
+
+  if (!contract) {
+    addCheck(
+      checks,
+      "fail",
+      "repo linkage",
+      "No readable grb.project.yaml was available, so GRB repo linkage could not be checked.",
+      "Run grb init or repair grb.project.yaml before the first proof run."
+    );
+  } else if (!contract.grb_repo_root) {
+    addCheck(
+      checks,
+      "fail",
+      "repo linkage",
+      "grb.project.yaml is missing grb_repo_root.",
+      "Rerun grb init from the intended GRB full clone, or add grb_repo_root to grb.project.yaml."
+    );
+  } else if (looksLikePlaceholder(contract.grb_repo_root)) {
+    addCheck(
+      checks,
+      "fail",
+      "repo linkage",
+      `grb_repo_root still uses a placeholder value: ${contract.grb_repo_root}`,
+      "Rerun grb init from the intended GRB full clone so this project records a real repo linkage."
+    );
+  } else {
+    const resolvedRepoRoot = resolveRecordedRepoRoot(projectDir, contract.grb_repo_root);
+    if (!isDirectory(resolvedRepoRoot)) {
+      addCheck(
+        checks,
+        "fail",
+        "repo linkage",
+        `Recorded grb_repo_root does not exist: ${resolvedRepoRoot}`,
+        "Update grb_repo_root to the correct GRB full clone, or rerun grb init from that clone."
+      );
+    } else {
+      addCheck(checks, "pass", "repo linkage", `Using recorded GRB repo root: ${resolvedRepoRoot}`);
+      launcherPath = path.join(resolvedRepoRoot, currentRepoLauncherName());
+      if (!isFile(launcherPath)) {
+        addCheck(
+          checks,
+          "fail",
+          "repo launcher",
+          `Recorded repo launcher not found: ${launcherPath}`,
+          "Make sure this project points at a real GRB full clone with the repo-root launcher."
+        );
+      } else {
+        addCheck(checks, "pass", "repo launcher", `Found repo-root launcher: ${launcherPath}`);
+      }
+    }
+  }
+
+  const firstProofCommand = contract?.first_trustworthy_proof_run?.command;
+  if (!firstProofCommand) {
+    addCheck(
+      checks,
+      "fail",
+      "first proof command",
+      "grb.project.yaml is missing first_trustworthy_proof_run.command.",
+      "Rerun grb init or add the first proof command to grb.project.yaml."
+    );
+  } else if (looksLikePlaceholder(firstProofCommand)) {
+    addCheck(
+      checks,
+      "fail",
+      "first proof command",
+      `first_trustworthy_proof_run.command still uses a placeholder value: ${firstProofCommand}`,
+      "Rerun grb init so the project contract records a concrete first proof command."
+    );
+  } else {
+    addCheck(checks, "pass", "first proof command", `Recorded command: ${oneLine(firstProofCommand)}`);
+  }
+
+  const smokeBootMissionPath = path.join(projectDir, "grb", "missions", "smoke_boot.yaml");
+  if (isFile(smokeBootMissionPath)) {
+    addCheck(checks, "pass", "smoke_boot mission", `Found ${smokeBootMissionPath}`);
+  } else {
+    addCheck(
+      checks,
+      "fail",
+      "smoke_boot mission",
+      `Missing mission file: ${smokeBootMissionPath}`,
+      "Run grb init or restore grb/missions/smoke_boot.yaml."
+    );
+  }
+
+  const addonDir = path.join(projectDir, "addons", "godot-runtime-bridge");
+  if (isDirectory(addonDir)) {
+    addCheck(checks, "pass", "GRB addon", `Found ${addonDir}`);
+  } else {
+    addCheck(
+      checks,
+      "fail",
+      "GRB addon",
+      `GRB addon not found: ${addonDir}`,
+      "Install and enable the GRB addon in this Godot project before running smoke_boot."
+    );
+  }
+
+  const godotMetadataDir = path.join(projectDir, ".godot");
+  if (isDirectory(godotMetadataDir)) {
+    addCheck(checks, "pass", "Godot metadata", `Found ${godotMetadataDir}`);
+  } else {
+    addCheck(
+      checks,
+      "fail",
+      "Godot metadata",
+      `Godot metadata not found: ${godotMetadataDir}`,
+      "Open this project once in Godot so imports/plugins are ready, then rerun doctor."
+    );
+  }
+
+  const exeValue = options.exe || process.env.GODOT_EXE;
+  if (!exeValue) {
+    addCheck(
+      checks,
+      "fail",
+      "Godot executable",
+      "No Godot executable was provided.",
+      "Pass --exe <path-to-godot> or set GODOT_EXE before running smoke_boot."
+    );
+  } else {
+    exePath = path.resolve(exeValue);
+    if (!isFile(exePath)) {
+      addCheck(
+        checks,
+        "fail",
+        "Godot executable",
+        `Godot executable not found: ${exePath}`,
+        "Pass --exe <path-to-godot> or set GODOT_EXE to a valid executable."
+      );
+    } else {
+      addCheck(checks, "pass", "Godot executable", `Using ${exePath}`);
+    }
+  }
+
+  const failures = checks.filter((item) => item.status === "fail");
+  return {
+    ready: failures.length === 0,
+    projectDir,
+    contractPath,
+    launcherPath,
+    exePath,
+    checks,
+    smokeBootCommand: makeSmokeBootCommand(projectDir, launcherPath, exePath),
+    doctorCommand: makeDoctorCommand(projectDir, launcherPath, exePath),
+  };
+}
+
+export function printDoctorCloseout(result, log = console.log) {
+  log(`GRB doctor for: ${result.projectDir}`);
+  log(`Readiness: ${result.ready ? "READY" : "NOT READY"}`);
+  log("");
+  log("Checks:");
+  for (const check of result.checks) {
+    const prefix = check.status === "pass" ? "PASS" : "FAIL";
+    log(`  [${prefix}] ${check.label}: ${oneLine(check.detail)}`);
+  }
+
+  if (result.ready) {
+    log("");
+    log("Next:");
+    log("  Project looks ready for the first GRB 2.0 proof mission.");
+    if (result.smokeBootCommand) {
+      log(`  Run: ${result.smokeBootCommand}`);
+    }
+  } else {
+    const fixes = result.checks
+      .filter((item) => item.status === "fail")
+      .map((item) => item.fix)
+      .filter(Boolean);
+    if (fixes.length > 0) {
+      log("");
+      log("Fix next:");
+      for (const fix of fixes) {
+        log(`  - ${oneLine(fix)}`);
+      }
+    }
+  }
+}
+
+export function runProjectDoctor(options = {}) {
+  const result = inspectProjectReadiness(options);
+  printDoctorCloseout(result);
+  return { exitCode: result.ready ? 0 : 2, result };
+}
+
 function defaultMission(missionId = "smoke_boot") {
   return {
     id: missionId,

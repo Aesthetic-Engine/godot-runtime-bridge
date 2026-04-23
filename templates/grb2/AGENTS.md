@@ -45,6 +45,10 @@ Prefer the project-local truth in `grb.project.yaml` over reconstructing GRB
 paths from memory. `grb init` records the expected full-repo launcher linkage
 there for this specific project.
 
+Before `smoke_boot`, run the repo-root `doctor` command if readiness is
+uncertain. It checks the local project contract, addon, metadata, mission file,
+and Godot executable path without launching Godot.
+
 After the run, inspect:
 
 - `grb_reports/<run-id>/summary.md`

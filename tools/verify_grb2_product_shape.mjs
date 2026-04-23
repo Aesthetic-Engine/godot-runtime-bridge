@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import { baselineBlockedText, baselineReasonText, blockedNextStep } from "../cli/lib/baseline_reason_text.mjs";
 import { renderComparisonSummary } from "../cli/lib/render_comparison_summary.mjs";
 import { initProject } from "../cli/lib/init.mjs";
+import { inspectProjectReadiness } from "../cli/lib/smoke_boot.mjs";
 import { writeProofBundle } from "../cli/lib/proof_bundle.mjs";
 import { parseSimpleYaml } from "../cli/lib/simple_yaml.mjs";
 
@@ -302,6 +303,39 @@ function checkInitRepoLinkagePatchSafety() {
   }
 }
 
+function checkDoctorReadiness() {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "grb2-doctor-"));
+
+  try {
+    const readyProject = path.join(tempRoot, "ready");
+    fs.mkdirSync(readyProject, { recursive: true });
+    writeFile(path.join(readyProject, "project.godot"), "; ready project\n");
+    initProject({ projectDir: readyProject });
+    fs.mkdirSync(path.join(readyProject, "addons", "godot-runtime-bridge"), { recursive: true });
+    fs.mkdirSync(path.join(readyProject, ".godot"), { recursive: true });
+    const fakeExe = path.join(tempRoot, "Godot_console.exe");
+    writeFile(fakeExe, "fake exe");
+
+    const ready = inspectProjectReadiness({ projectDir: readyProject, exe: fakeExe });
+    assert(ready.ready, "doctor should report a fully prepared synthetic project as ready");
+    assert(ready.launcherPath && ready.launcherPath.endsWith(process.platform === "win32" ? "grb.cmd" : "grb"), "doctor should resolve the repo launcher path");
+    assertIncludes(ready.smokeBootCommand, "mission run smoke_boot", "doctor ready command");
+
+    const blockedProject = path.join(tempRoot, "blocked");
+    fs.mkdirSync(blockedProject, { recursive: true });
+    writeFile(path.join(blockedProject, "project.godot"), "; blocked project\n");
+    initProject({ projectDir: blockedProject });
+
+    const blocked = inspectProjectReadiness({ projectDir: blockedProject });
+    assert(!blocked.ready, "doctor should report missing addon/metadata/exe setup as not ready");
+    assert(blocked.checks.some((item) => item.label === "GRB addon" && item.status === "fail"), "doctor should flag a missing addon");
+    assert(blocked.checks.some((item) => item.label === "Godot metadata" && item.status === "fail"), "doctor should flag missing .godot metadata");
+    assert(blocked.checks.some((item) => item.label === "Godot executable" && item.status === "fail"), "doctor should flag a missing Godot executable");
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+}
+
 function checkChannelAndDocTruth() {
   const readme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf-8");
   const legacyMissions = fs.readFileSync(path.join(repoRoot, "missions", "README.md"), "utf-8");
@@ -330,6 +364,8 @@ function checkChannelAndDocTruth() {
   assertIncludes(readme, "This is a **full-repo workflow**, not an addon-only workflow.", "README proof channel truth");
   assertIncludes(readme, "grb.cmd ...` on Windows", "README launcher truth");
   assertIncludes(readme, "`./grb ...` on POSIX", "README launcher truth");
+  assertIncludes(readme, "Run `grb doctor`", "README doctor truth");
+  assertIncludes(readme, "doctor` is a no-launch preflight check", "README doctor truth");
   assert(!readme.includes("node C:\\path\\to\\grb-main\\cli\\grb.mjs"), "README should not primarily teach raw cli/grb.mjs path");
 
   assertIncludes(legacyMissions, "# Legacy Built-In Mission Pack", "legacy mission doc");
@@ -349,6 +385,7 @@ function checkChannelAndDocTruth() {
   assertIncludes(agents, "grb.project.yaml", "agent launcher contract");
   assertIncludes(agents, "grb_repo_root", "agent launcher contract");
   assertIncludes(agents, "local GRB repo linkage", "agent launcher contract");
+  assertIncludes(agents, "repo-root `doctor` command", "agent doctor contract");
   assert(!agents.includes("node <path-to-grb-main>/cli/grb.mjs"), "AGENTS should not primarily teach raw cli/grb.mjs path");
   assertIncludes(projectYaml, "grb_repo_root", "project yaml launcher contract");
   assertIncludes(projectYaml, "<set-by-grb-init>", "project yaml launcher contract");
@@ -358,6 +395,8 @@ function checkChannelAndDocTruth() {
   assert(!provingGround.includes("node cli/grb.mjs mission run smoke_boot"), "proving ground README should not primarily teach raw cli/grb.mjs path");
   assertIncludes(cliHelp, "grb.cmd init", "CLI help launcher truth");
   assertIncludes(cliHelp, "./grb init", "CLI help launcher truth");
+  assertIncludes(cliHelp, "grb.cmd doctor", "CLI help doctor truth");
+  assertIncludes(cliHelp, "doctor checks project readiness without launching Godot.", "CLI help doctor truth");
   assertIncludes(readme, "grb init` also records the full-repo GRB linkage", "README init linkage truth");
 }
 
@@ -388,6 +427,9 @@ function main() {
 
   checkInitRepoLinkagePatchSafety();
   console.log("ok init linkage patch safety");
+
+  checkDoctorReadiness();
+  console.log("ok doctor readiness");
 
   checkChannelAndDocTruth();
   console.log("ok channel and doc truth");
