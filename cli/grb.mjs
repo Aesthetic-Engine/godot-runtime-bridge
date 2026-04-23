@@ -110,6 +110,10 @@ async function main() {
       console.log("  Run init from a Godot project root, or pass --project <path-to-project>.");
       console.log("");
     }
+    console.log("Recorded local GRB repo linkage in grb.project.yaml:");
+    console.log(`  grb_repo_root: ${result.repoLinkage.repoRoot}`);
+    console.log(`  launcher: ${result.repoLinkage.launcherPath}`);
+    console.log("");
     console.log("GRB 2.0 staged path:");
     console.log("  1. Read now:");
     console.log("     - AGENTS.md");
@@ -118,7 +122,7 @@ async function main() {
     console.log("     - grb/missions/smoke_boot.yaml");
     console.log("");
     console.log("  2. Run the first trustworthy proof mission:");
-    console.log(`     ${quotedRepoRootLauncherPath()} mission run smoke_boot --project "${result.projectDir}" --exe <godot_exe>`);
+    console.log(`     ${result.repoLinkage.firstProofCommand}`);
     console.log("");
     console.log("  3. Inspect the proof bundle summary:");
     console.log(`     ${result.projectDir}\\grb_reports\\<run-id>\\summary.md`);

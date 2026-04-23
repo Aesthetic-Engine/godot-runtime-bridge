@@ -9,6 +9,8 @@ Customize the TODOs before relying on this contract for larger work.
 Read in this order:
 
 1. `grb.project.yaml` for project name, default recipe, report path, and expected first run truth.
+   It also records the local GRB repo linkage (`grb_repo_root`) and the first
+   proof command shape for this project.
 2. `grb/proof_policy.yaml` for W/R/E claim rules and review expectations.
 3. `grb/missions/smoke_boot.yaml` before the first proof run.
 4. `grb/gotchas.md` for project-specific traps before changing code.
@@ -39,6 +41,10 @@ Use later, only when the stage calls for it:
 
 Run `grb/missions/smoke_boot.yaml` before making larger changes. A passing smoke boot targets W-tier wiring proof. It can provide R-tier screenshot evidence, but it does not prove visual correctness by itself. E-tier still needs human review.
 
+Prefer the project-local truth in `grb.project.yaml` over reconstructing GRB
+paths from memory. `grb init` records the expected full-repo launcher linkage
+there for this specific project.
+
 After the run, inspect:
 
 - `grb_reports/<run-id>/summary.md`
@@ -50,12 +56,12 @@ After the run, inspect:
 After `smoke_boot` passes, create one small project-specific mission for the next feature surface:
 
 ```bash
-C:\path\to\grb-main\grb.cmd mission scaffold todo_mission_id --project <project> --pattern transition
+<use the launcher path recorded in grb.project.yaml> mission scaffold todo_mission_id --project <project> --pattern transition
 ```
 
-From the GRB repo root, prefer the repo-root launcher directly: `grb.cmd ...`
-on Windows or `./grb ...` on POSIX shells. This is a full-repo path, not an
-addon-only path.
+`grb.project.yaml` is the local source of truth for that launcher linkage. From
+the GRB repo root, the launcher is `grb.cmd ...` on Windows or `./grb ...` on
+POSIX shells. This remains a full-repo path, not an addon-only path.
 
 Choose a small pattern:
 

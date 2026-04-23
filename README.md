@@ -241,6 +241,11 @@ One-time: initialize your project. This creates a starter contract of config fil
 C:\path\to\grb-main\grb.cmd init --project C:\path\to\YourGodotProject
 ```
 
+`grb init` also records the full-repo GRB linkage it used into
+`grb.project.yaml`, including `grb_repo_root` and a concrete first proof
+command. Later agents should read that local contract instead of guessing where
+the GRB clone lives.
+
 Review the generated files in stages:
 
 ```text

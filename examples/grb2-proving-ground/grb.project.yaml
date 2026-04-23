@@ -1,5 +1,6 @@
 name: GRB 2.0 Proving Ground
 grb_version: "2.0"
+grb_repo_root: ../..
 default_recipe: default
 missions:
   - smoke_boot
@@ -20,5 +21,6 @@ expected_first_run:
   primary_human_check: boot screenshot shows the GRB 2.0 Proving Ground title, HUD labels, and deterministic title state
 proof_reports_dir: grb_reports
 first_trustworthy_proof_run:
-  command: node ../../cli/grb.mjs mission run smoke_boot --exe <godot_exe>
+  # Repo-internal example: from this project, use the repo-root launcher for your shell.
+  command: ../../grb mission run smoke_boot --project <project> --exe <godot_exe>
   inspect: grb_reports/<run-id>/summary.md

@@ -6,6 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { baselineBlockedText, baselineReasonText, blockedNextStep } from "../cli/lib/baseline_reason_text.mjs";
 import { renderComparisonSummary } from "../cli/lib/render_comparison_summary.mjs";
+import { initProject } from "../cli/lib/init.mjs";
 import { writeProofBundle } from "../cli/lib/proof_bundle.mjs";
 import { parseSimpleYaml } from "../cli/lib/simple_yaml.mjs";
 
@@ -183,7 +184,7 @@ function checkProofBundleSummary() {
 }
 
 function checkContractShape() {
-  const required = ["name", "default_recipe", "missions", "read_first", "proof_reports_dir"];
+  const required = ["name", "grb_repo_root", "default_recipe", "missions", "read_first", "proof_reports_dir"];
   const files = [
     "templates/grb2/grb.project.yaml",
     "examples/grb2-proving-ground/grb.project.yaml",
@@ -201,6 +202,103 @@ function checkContractShape() {
     assert(Array.isArray(parsed.read_first), `${relPath} read_first must be a list`);
     assert(parsed.read_first.includes("AGENTS.md"), `${relPath} read_first should include AGENTS.md`);
     assert(parsed.read_first.includes("grb.project.yaml"), `${relPath} read_first should include grb.project.yaml`);
+  }
+}
+
+function checkInitStampedRepoLinkage() {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "grb2-init-linkage-"));
+
+  try {
+    writeFile(path.join(tempRoot, "project.godot"), "; synthetic project\n");
+    const result = initProject({ projectDir: tempRoot });
+    const contractPath = path.join(tempRoot, "grb.project.yaml");
+    const contractText = fs.readFileSync(contractPath, "utf-8");
+    const parsed = parseSimpleYaml(contractText);
+    const expectedLauncher = process.platform === "win32"
+      ? `${repoRoot}\\grb.cmd`
+      : `${repoRoot}/grb`;
+
+    assert(parsed.grb_repo_root === repoRoot, "init should stamp actual grb_repo_root into generated contract");
+    assertIncludes(
+      parsed.first_trustworthy_proof_run.command,
+      `"${expectedLauncher}" mission run smoke_boot --project "${tempRoot}" --exe <godot_exe>`,
+      "init-stamped first proof command"
+    );
+    assert(!contractText.includes("<set-by-grb-init>"), "generated contract should not keep repo-linkage placeholders after init");
+    assert(result.repoLinkage.repoRoot === repoRoot, "init result should expose recorded repo root");
+    assert(result.repoLinkage.launcherPath === expectedLauncher, "init result should expose recorded launcher path");
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+}
+
+function checkInitRepoLinkagePatchSafety() {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "grb2-init-linkage-patch-"));
+
+  try {
+    const placeholderProject = path.join(tempRoot, "placeholder");
+    fs.mkdirSync(placeholderProject, { recursive: true });
+    writeFile(path.join(placeholderProject, "project.godot"), "; placeholder project\n");
+    writeFile(
+      path.join(placeholderProject, "grb.project.yaml"),
+      [
+        'name: Existing Project',
+        'grb_version: "2.0"',
+        'default_recipe: default',
+        'missions:',
+        '  - smoke_boot',
+        'read_first:',
+        '  - AGENTS.md',
+        '  - grb.project.yaml',
+        'proof_reports_dir: grb_reports',
+        'first_trustworthy_proof_run:',
+        '  command: C:\\path\\to\\grb-main\\grb.cmd mission run smoke_boot --project <project> --exe <godot_exe>',
+        '  inspect: grb_reports/<run-id>/summary.md',
+        '',
+      ].join("\n")
+    );
+
+    initProject({ projectDir: placeholderProject });
+    const patched = parseSimpleYaml(fs.readFileSync(path.join(placeholderProject, "grb.project.yaml"), "utf-8"));
+    assert(patched.grb_repo_root === repoRoot, "init should patch placeholder contracts with the active repo root");
+    assertIncludes(
+      patched.first_trustworthy_proof_run.command,
+      `"${process.platform === "win32" ? `${repoRoot}\\grb.cmd` : `${repoRoot}/grb`}" mission run smoke_boot --project "${placeholderProject}" --exe <godot_exe>`,
+      "patched placeholder contract"
+    );
+
+    const preservedProject = path.join(tempRoot, "preserved");
+    fs.mkdirSync(preservedProject, { recursive: true });
+    writeFile(path.join(preservedProject, "project.godot"), "; preserved project\n");
+    writeFile(
+      path.join(preservedProject, "grb.project.yaml"),
+      [
+        'name: Existing Project',
+        'grb_version: "2.0"',
+        'grb_repo_root: "D:\\Custom\\grb-main"',
+        'default_recipe: default',
+        'missions:',
+        '  - smoke_boot',
+        'read_first:',
+        '  - AGENTS.md',
+        '  - grb.project.yaml',
+        'proof_reports_dir: grb_reports',
+        'first_trustworthy_proof_run:',
+        "  command: '\"D:\\Custom\\grb-main\\grb.cmd\" mission run smoke_boot --project \"D:\\Games\\Proj\" --exe <godot_exe>'",
+        '  inspect: grb_reports/<run-id>/summary.md',
+        '',
+      ].join("\n")
+    );
+
+    initProject({ projectDir: preservedProject });
+    const preserved = parseSimpleYaml(fs.readFileSync(path.join(preservedProject, "grb.project.yaml"), "utf-8"));
+    assert(preserved.grb_repo_root === "D:\\Custom\\grb-main", "init should preserve a real custom grb_repo_root");
+    assert(
+      preserved.first_trustworthy_proof_run.command === '"D:\\Custom\\grb-main\\grb.cmd" mission run smoke_boot --project "D:\\Games\\Proj" --exe <godot_exe>',
+      "init should preserve a real custom first proof command"
+    );
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 }
 
@@ -248,15 +346,19 @@ function checkChannelAndDocTruth() {
   assertIncludes(regression, "## Stable Evidence Surfaces", "regression workflow contract");
   assertIncludes(regression, "not a strong regression surface yet", "regression workflow contract");
   assertIncludes(agents, "Treat screenshot labels as capture slots", "agent contract");
-  assertIncludes(agents, "C:\\path\\to\\grb-main\\grb.cmd mission scaffold", "agent launcher contract");
+  assertIncludes(agents, "grb.project.yaml", "agent launcher contract");
+  assertIncludes(agents, "grb_repo_root", "agent launcher contract");
+  assertIncludes(agents, "local GRB repo linkage", "agent launcher contract");
   assert(!agents.includes("node <path-to-grb-main>/cli/grb.mjs"), "AGENTS should not primarily teach raw cli/grb.mjs path");
-  assertIncludes(projectYaml, "grb.cmd mission run smoke_boot", "project yaml launcher contract");
+  assertIncludes(projectYaml, "grb_repo_root", "project yaml launcher contract");
+  assertIncludes(projectYaml, "<set-by-grb-init>", "project yaml launcher contract");
   assert(!projectYaml.includes("node <path-to-grb-main>/cli/grb.mjs"), "grb.project.yaml should not primarily teach raw cli/grb.mjs path");
   assertIncludes(provingGround, "grb.cmd mission run smoke_boot", "proving ground launcher truth");
   assertIncludes(provingGround, "..\\..\\grb.cmd mission run smoke_boot", "proving ground launcher truth");
   assert(!provingGround.includes("node cli/grb.mjs mission run smoke_boot"), "proving ground README should not primarily teach raw cli/grb.mjs path");
   assertIncludes(cliHelp, "grb.cmd init", "CLI help launcher truth");
   assertIncludes(cliHelp, "./grb init", "CLI help launcher truth");
+  assertIncludes(readme, "grb init` also records the full-repo GRB linkage", "README init linkage truth");
 }
 
 function checkContributorReadmeTruth() {
@@ -280,6 +382,12 @@ function main() {
 
   checkContractShape();
   console.log("ok GRB 2.0 contract shape");
+
+  checkInitStampedRepoLinkage();
+  console.log("ok init-stamped repo linkage");
+
+  checkInitRepoLinkagePatchSafety();
+  console.log("ok init linkage patch safety");
 
   checkChannelAndDocTruth();
   console.log("ok channel and doc truth");
