@@ -525,13 +525,13 @@ CLI/template/tooling surfaces do not drift silently.
 
 `verify:grb` performs a release-grade smoke run: launch, `ping`, `auth_info`, `capabilities`, `runtime_info`, `get_errors`, `screenshot`, and clean `quit`. Artifacts are written to `mcp/reports/release-smoke/`.
 
-#### Release Candidate Checklist
+#### Release Verification Checklist
 
 See [`docs/grb2-release-candidate-readiness.md`](docs/grb2-release-candidate-readiness.md)
-for the compact GRB 2.0 release-candidate readiness surface and Sprint 13
-handoff truth.
+for the compact GRB 2.0 release-readiness surface and Sprint 13/14 handoff
+truth.
 
-Before tagging a release candidate, run:
+Before tagging a release, run:
 
 - `npm run verify:versions`
   - does **not** launch Godot
