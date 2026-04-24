@@ -61,6 +61,11 @@ On Windows, the launcher prefers a companion `*_console.exe` when it exists so
 launch diagnostics and parse errors stay visible in stdout/stderr. You can also
 set `GODOT_CONSOLE_PATH` explicitly.
 
+`grb_launch` is for **windowed runtime sessions with a real render context**.
+Do not treat automated GRB proof as Godot `--headless`. Reserve Godot
+`--headless` for project-specific nonvisual editor, import, or precompile tasks
+that do not need meaningful viewport screenshots.
+
 ## Tool Surface
 
 Once configured, your AI assistant can use these tools.
@@ -120,17 +125,24 @@ Once configured, your AI assistant can use these tools.
 Danger-tier access is deliberately separate. It is not needed for normal proof
 or gameplay automation flows.
 
+For the current local-development security model and trust boundary, see
+[`../SECURITY.md`](../SECURITY.md). GRB's runtime surface is raw localhost TCP,
+not HTTP or WebSocket, and it should not be exposed to public networks.
+
 ## Release Verification
 
 From `mcp/`:
 
 ```bash
 npm run verify:versions
+npm run verify:security
 npm run verify:grb2:shape
 npm run verify:grb -- --godot-exe "/path/to/godot" --project "/path/to/project"
 npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"
 ```
 
+- `verify:security` runs the repo's static GRB security-shape check from
+  `../tools/verify_grb_security_shape.mjs`. It does not launch Godot.
 - `verify:grb2:shape` runs the repo's full-clone GRB 2.0 product-shape check
   from `../tools/verify_grb2_product_shape.mjs`. It does not launch Godot.
 - `verify:versions` checks version parity across:

@@ -278,6 +278,12 @@ Then check readiness without launching Godot:
 contract, repo linkage, addon, mission file, metadata, and Godot executable are
 ready for the first GRB 2.0 proof run.
 
+Terminology note: an automated GRB proof run is still a **windowed runtime
+session with a real render context**. Do **not** add Godot `--headless` when
+you need screenshots or other viewport evidence. Reserve `--headless` for
+project-specific nonvisual editor, import, or precompile tasks where rendered
+proof is not expected.
+
 Then run the starter proof mission:
 
 ```bash
@@ -439,6 +445,13 @@ experience. It only makes the CLI and compare workflow easier to reason about.
 
 ## Background Testing
 
+For GRB runtime proof, "automated" or "unattended" does **not** mean Godot
+`--headless`. Screenshot-capable proof sessions should launch the normal or
+console Godot executable with a real render context. Reserve Godot
+`--headless` for nonvisual project-specific tasks such as editor imports,
+cache warm-up, or dedicated precompile modes that do not need meaningful
+viewport screenshots.
+
 By default (`GDRB_INPUT_MODE=synthetic`), input commands inject Godot `InputEvent` objects without touching the OS cursor. In this mode, real mouse and keyboard events from your hardware are **blocked from reaching game nodes entirely** — the bridge intercepts them at the viewport level so only GRB-injected events get through. Your mouse and keyboard remain yours.
 
 If you need OS-level input (rare edge cases), set `GDRB_INPUT_MODE=os`.
@@ -449,7 +462,8 @@ For projects configured with fullscreen display settings, set `GDRB_FORCE_WINDOW
 
 ## Security
 
-The bridge is designed with security-first defaults:
+GRB is a security-conscious **local development bridge** with secure-by-default
+local development defaults:
 
 - **Off by default** — does nothing without activation env vars
 - **Localhost only** — binds to `127.0.0.1`, never exposed to network
@@ -458,7 +472,10 @@ The bridge is designed with security-first defaults:
 - **Capability tiers** — commands grouped by risk (observe/input/control/danger)
 - **eval disabled by default** — requires two explicit opt-ins
 
-See [SECURITY.md](SECURITY.md) for the full threat model and recommendations.
+See [SECURITY.md](SECURITY.md) for the current transport architecture, trust
+boundaries, dangerous modes, and what GRB does **not** protect against. That
+document is intentionally local-development-scoped; GRB is not independently
+audited and should not be exposed to public networks.
 
 ## Reference
 
@@ -513,10 +530,16 @@ From the `mcp/` folder:
 
 ```bash
 npm run verify:versions
+npm run verify:security
 npm run verify:grb2:shape
 npm run verify:grb -- --godot-exe "/path/to/godot" --project "/path/to/project"
 npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"
 ```
+
+`verify:security` runs a static security-shape check from
+`tools/verify_grb_security_shape.mjs`. It does not launch Godot. It verifies
+the documented local transport / trust-boundary truth and refuses broad
+security-marketing claims.
 
 `verify:grb2:shape` runs the repo's lightweight GRB 2.0 product-shape check
 from `tools/verify_grb2_product_shape.mjs`. It does not launch Godot.
@@ -541,6 +564,10 @@ Before tagging a release, run:
     - `addons/godot-runtime-bridge/plugin.cfg`
     - `addons/godot-runtime-bridge/runtime_bridge/EditorDock.gd`
     - `mcp/index.js` server version and startup banner
+- `npm run verify:security`
+  - does **not** launch Godot
+  - checks the current local transport, auth, bind, danger-tier, and
+    security-doc truth surfaces
 - `npm run verify:grb2:shape`
   - does **not** launch Godot
   - checks GRB 2.0 full-repo product-shape truth such as launcher/docs/template/proving-ground consistency
@@ -574,6 +601,11 @@ grb.cmd mission run scene_transition --project examples/grb2-proving-ground --ex
 grb.cmd mission run toggle_panel --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
 grb.cmd mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
 ```
+
+That `--headless --editor --quit` command is only for a nonvisual
+editor/import metadata pass. Do **not** use Godot `--headless` for the proof
+mission commands below. GRB screenshot and runtime proof runs should use the
+normal or console Godot executable with a real render context.
 
 A simple compare practice run once a baseline exists:
 

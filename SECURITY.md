@@ -1,131 +1,186 @@
-# Security Model - Godot Runtime Bridge
+# Security Model
 
-## Threat Model
+GRB 2.0 is a security-conscious **local development bridge**, not a hardened
+remote automation platform. Its defaults are designed to keep day-to-day Godot
+development and proof runs reasonably bounded on a developer machine.
 
-The Godot Runtime Bridge runs a TCP server inside your game process. This is
-powerful for automation but requires careful defaults to prevent misuse.
+GRB is **not independently audited**. Do not expose it to public networks or
+treat it as an enterprise deployment surface.
 
-### Risks Addressed
+## Architecture and Trust Boundary
 
-1. **Localhost CSRF attacks** - Malicious websites can send HTTP requests to
-   `localhost` ports. If the debug server accepts unauthenticated commands, a
-   website could inject input or execute arbitrary code.
-2. **Unintended exposure** - If bound to `0.0.0.0` or a predictable port, the
-   server could be accessible to other machines on the network.
-3. **Arbitrary code execution** - The `eval` command can execute any GDScript
-   expression, including file operations and OS calls.
+GRB currently has two linked transport layers:
 
-## Security Defaults
+1. **Agent client -> MCP helper** via stdio
+2. **MCP helper -> Godot runtime** via raw localhost TCP using newline-delimited
+   JSON (`grb/1`)
 
-| Protection | Default | Override |
-|-----------|---------|----------|
-| **Export safety** | Requires `grb`, `debug`, or `editor` feature tag | Server is inert in retail export presets |
-| **Bind address** | `127.0.0.1` (localhost only) | Not configurable - always localhost |
-| **Port** | Random (OS-assigned via port 0) | `GDRB_PORT=9999` for fixed port |
-| **Authentication** | Required - token on every command | `GDRB_TOKEN=your_token` or launcher-generated token |
-| **Session tier** | Tier 1 (observe + input) | `GDRB_TIER=0\|1\|2\|3` |
-| **eval command** | Disabled | Requires both `GDRB_ENABLE_DANGER=1` and tier 3 auth |
-| **Activation** | Off by default | Only runs when a qualifying feature tag is present and `GDRB_TOKEN` is set or `GODOT_DEBUG_SERVER=1` |
-| **Input mode** | Synthetic (no OS cursor) | `GDRB_INPUT_MODE=os` for real cursor |
-| **Threading** | I/O on background thread | SceneTree access on main thread only |
+Today there is **no HTTP or WebSocket runtime server surface** in the Godot
+bridge. The Godot-side runtime uses `TCPServer`, binds to `127.0.0.1`, and
+speaks one JSON request per line / one JSON response per line over TCP.
 
-## Export Safety Toggle
+That means GRB's main trust boundary is:
 
-The server requires one of these Godot feature tags to be present at runtime:
+- **local machine**
+- **same user account**
+- **trusted MCP client / coding agent / terminal environment**
 
-- `debug` - Present in editor runs and debug export builds
-- `editor` - Present when running inside the Godot editor
-- `grb` - Custom feature tag for QA export presets
+GRB is meant for local development only.
 
-Retail export presets will never have these features, so the server cannot
-accidentally start in a build shipped to players.
+## Secure-By-Default Local Development Defaults
 
-### Setting up a QA Export Preset
+| Protection | Current behavior |
+|---|---|
+| Activation | Off by default |
+| Runtime bind | `127.0.0.1` only |
+| Runtime port | Random by default (`0` / OS-assigned) |
+| Protocol | Raw newline-delimited JSON over TCP |
+| Auth | Bearer token required on every command |
+| Default session tier | Tier 1 (`input`) |
+| Danger tier | `eval` disabled unless `GDRB_ENABLE_DANGER=1` and tier 3 |
+| MCP transport | stdio between client and Node helper |
+| Exported-build activation | Requires feature-tag gate plus activation env |
 
-1. In Godot, go to **Project -> Export**
-2. Create a new export preset (for example, "QA Build")
-3. Under **Resources -> Features**, add `grb`
-4. Export with this preset for internal testing
-5. Your retail preset, without `grb`, will have no bridge activation path
+### Activation Gates
 
-## Additional Protections
+The runtime bridge only activates when **both** conditions are true:
 
-| Protection | Detail |
-|------------|--------|
-| **call_method denylist** | Blocks dangerous method names such as process execution, file access, and script-loading helpers |
-| **set_property denylist** | Blocks dangerous properties such as `script` to prevent script injection |
-| **eval pattern filter** | Rejects expressions containing `OS.`, `Engine.`, `FileAccess.`, `load(`, `save(`, and similar dangerous patterns |
-| **Read buffer limits** | Total buffer capped at 1 MB, max line 64 KB to prevent memory exhaustion |
-| **Connection hijacking prevention** | Only one client at a time; later connections are rejected while a client is active |
-| **Screenshot rate limit** | Max 10 screenshots per second to prevent screenshot spam |
+1. Godot runtime has one of the feature tags:
+   - `grb`
+   - `debug`
+   - `editor`
+2. Launch environment provides:
+   - `GDRB_TOKEN`
+   - or legacy `GODOT_DEBUG_SERVER=1`
 
-## Session Behavior
+Without both gates:
 
-- **Single active client** - Only one authenticated client may stay connected
-  at a time. Additional connections are rejected until that client disconnects.
-- **Token on every command** - There are no anonymous probe commands. `ping`,
-  `auth_info`, and every other request require the bearer token.
-- **Main-thread scene access** - Socket I/O stays off the main thread, but
-  SceneTree reads and writes are marshalled back onto the main thread.
+- no TCP server starts
+- no port opens
+- no bridge thread runs
+- the addon stays inert
+
+This is why exported retail builds remain inert unless someone explicitly
+creates a GRB-capable export mode.
+
+## Current Transport and Runtime Surface
+
+GRB 2.0 currently documents and ships:
+
+- Godot runtime bridge in
+  [`addons/godot-runtime-bridge/runtime_bridge/DebugServer.gd`](addons/godot-runtime-bridge/runtime_bridge/DebugServer.gd)
+- raw `grb/1` protocol in [PROTOCOL.md](PROTOCOL.md)
+- MCP helper in [`mcp/index.js`](mcp/index.js) using `StdioServerTransport`
+  toward the AI client and Node `net.Socket` toward Godot
+
+This pass does **not** add:
+
+- TLS
+- HTTP server mode
+- WebSocket server mode
+- Host / Origin validation
+- named pipes / Unix sockets
+
+Those are intentionally out of scope for GRB 2.0.1.
 
 ## Capability Tiers
 
-Commands are grouped by risk level. The server rejects any command above the
-session tier.
+Commands are grouped by risk:
 
-| Tier | Name | Commands | Risk |
-|------|------|----------|------|
-| 0 | **Observe** | ping, auth_info, capabilities, screenshot, scene_tree, get_property, runtime_info, get_errors, wait_for, audio_state, network_state, grb_performance, find_nodes | Read-only evidence capture and runtime inspection. |
-| 1 | **Input** | click, key, press_button, drag, scroll, gesture, gamepad | Simulates bounded player input without direct state mutation. |
-| 2 | **Control** | set_property, call_method, quit, run_custom_command | Direct state manipulation and project-registered hooks. Can break game invariants. |
-| 3 | **Danger** | eval | Arbitrary GDScript execution. Can access filesystem and OS. |
+| Tier | Purpose | Commands |
+|---|---|---|
+| 0 | Observe | `ping`, `auth_info`, `capabilities`, `screenshot`, `scene_tree`, `get_property`, `runtime_info`, `get_errors`, `wait_for`, `audio_state`, `network_state`, `grb_performance`, `find_nodes` |
+| 1 | Input | `click`, `key`, `press_button`, `drag`, `scroll`, `gesture`, `gamepad` |
+| 2 | Control | `set_property`, `call_method`, `quit`, `run_custom_command` |
+| 3 | Danger | `eval` |
 
-## Authentication Flow
+Tier 1 is the current default. That is enough for normal screenshot-capable
+automation without opening direct mutation surfaces like `set_property`,
+`call_method`, or `run_custom_command`.
 
-1. The launcher generates or supplies a token and passes it to Godot via
-   `GDRB_TOKEN`.
-2. Godot prints `GDRB_READY:{"port":XXXXX,"token":"..."}` to stdout on
-   startup.
-3. The launcher parses this line to discover the port and confirm the token.
-4. Every command must include the token in the request JSON, including `ping`
-   and `auth_info`.
-5. Requests with missing or invalid tokens are rejected with `bad_token`.
+## Dangerous Commands and Modes
 
-## The Two-Key Rule for eval
+These are the main surfaces that can break project invariants or widen trust:
 
-The `eval` command requires two independent conditions to be true:
+- `eval`
+  - arbitrary GDScript expression execution
+  - requires **both** tier 3 and `GDRB_ENABLE_DANGER=1`
+- `set_property`
+  - direct state mutation
+  - dangerous properties like `script` are blocked
+- `call_method`
+  - direct node method calls
+  - dangerous method names are blocked, but project code still decides what a
+    permitted method can do
+- `run_custom_command`
+  - runs project-registered command hooks
+  - safety depends entirely on the game project's registered commands
+- `GDRB_INPUT_MODE=os`
+  - allows real OS cursor movement / OS-facing input behavior
+  - use only when synthetic input is insufficient
+- fixed ports via `GDRB_PORT`
+  - reduce unpredictability
+  - acceptable for controlled setups, but less conservative than random ports
 
-1. `GDRB_ENABLE_DANGER=1` must be set at launch
-2. Session tier must be 3 (`GDRB_TIER=3`)
+## What GRB Does Not Protect Against
 
-This prevents accidental exposure. A developer must make a conscious, explicit
-decision to enable arbitrary code execution.
+GRB does **not** protect you from:
 
-## Production Builds
+- malicious same-user local processes on the same machine
+- a compromised MCP client or compromised coding-agent environment
+- a leaked local bearer token
+- prompt-injected agents using IDE, terminal, shell, git, or file-edit tools
+  outside GRB
+- destructive source edits or shell commands performed outside the bridge
+- unsafe user-created custom commands
+- intentional public-network exposure through tunneling, port forwarding, or
+  host firewall misconfiguration
 
-The server requires two independent gates to activate:
+If another local process can read your environment, files, stdout logs, IDE
+state, or MCP configuration, it may be able to recover the token or act through
+other local tools anyway. GRB's protections are primarily about safe defaults,
+not defense against a hostile same-user local environment.
 
-1. **Feature tag gate** - `grb`, `debug`, or `editor` must be present
-2. **Environment variable gate** - `GDRB_TOKEN` or `GODOT_DEBUG_SERVER=1` must
-   be set
+## Exports and Production-Like Builds
 
-Even if a player somehow sets the environment variable, the feature-tag gate
-still blocks activation. In production builds:
+Current repo truth:
 
-- No TCP server is created
-- No thread is spawned
-- No port is opened
-- No CPU overhead is added
-- No network exposure is introduced
+- addon/runtime code may ship in exports
+- bridge activation is still gated
+- retail exports without the right feature tags stay inert
 
-There is no need to remove the addon for release builds - it cannot activate
-without both gates.
+That does **not** make GRB a public deployment surface. "Safe to ship in
+production builds" here means **inert by default when not activated**, not
+"safe for enterprise deployment" or "safe to expose remotely."
 
 ## Recommendations
 
-- Never set `GDRB_ENABLE_DANGER=1` in CI/CD pipelines unless it is truly needed
-- Never use a fixed, guessable token - let the launcher generate one
-- Never expose the debug port to the network; the server enforces
-  `127.0.0.1` binding
-- Use the lowest tier that accomplishes your testing goals
-- In CI, tier 0 is usually enough for screenshot and runtime-state evidence
+- Keep GRB on localhost only
+- Prefer random ports over fixed ports unless you truly need determinism
+- Use the lowest session tier that does the job
+- Leave `eval` disabled unless you explicitly need it
+- Treat `run_custom_command` as project-owned code, not a trusted sandbox
+- Prefer synthetic input over OS input
+- Do not expose GRB to public or semi-public networks
+- Read [PROTOCOL.md](PROTOCOL.md) and this file together before changing the
+  transport or security posture
+
+## Security Verification
+
+For a lightweight static check of the current security shape:
+
+```bash
+cd mcp
+npm run verify:security
+```
+
+This verifier is static only. It does **not** launch Godot. It checks a small
+set of credibility-critical truths such as:
+
+- runtime bridge still uses `TCPServer`
+- bind address remains `127.0.0.1`
+- protocol docs still describe newline-delimited JSON over TCP
+- MCP still uses stdio plus raw TCP sockets, not HTTP/WebSocket runtime servers
+- default port remains random
+- default tier remains non-danger
+- `eval` still needs `GDRB_ENABLE_DANGER=1`

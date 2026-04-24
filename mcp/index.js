@@ -310,7 +310,7 @@ const TOOLS = [
   {
     name: "grb_launch",
     description:
-      "Launch a Godot game with the Runtime Bridge enabled. Parses the GDRB_READY line to auto-discover port and token.",
+      "Launch a windowed Godot runtime session with the Runtime Bridge enabled. Parses the GDRB_READY line to auto-discover port and token. Use this for screenshot-capable proof and gameplay automation, not Godot --headless.",
     inputSchema: {
       type: "object",
       properties: {
@@ -333,7 +333,7 @@ const TOOLS = [
         window_size: {
           type: "string",
           description:
-            'Test window size as "WxH" (default: "960x540"). Use "minimized" to hide the window entirely. Viewport resolution is unaffected.',
+            'Test window size as "WxH" (default: "960x540"). GRB proof runs should keep a real window/render context; do not use Godot --headless for screenshot-capable sessions. Use "minimized" only if your project tolerates Godot minimized-window throttling. Viewport resolution is unaffected.',
         },
       },
       required: ["project_path"],
@@ -1124,7 +1124,7 @@ function errResult(r) {
 // ── MCP server setup ──
 
 const mcpServer = new Server(
-  { name: "godot-runtime-bridge", version: "2.0.0" },
+  { name: "godot-runtime-bridge", version: "2.0.1" },
   { capabilities: { tools: {} } }
 );
 
@@ -1150,7 +1150,7 @@ await mcpServer.connect(transport);
 // Startup notice — visible in Cursor's MCP output panel (Settings → Tools & MCP → godot-runtime-bridge → Logs)
 // If GRB tools are not appearing in Cursor, the most common cause is the server not being enabled.
 process.stderr.write(
-  "[GRB] MCP server started (godot-runtime-bridge v2.0.0)\n" +
+  "[GRB] MCP server started (godot-runtime-bridge v2.0.1)\n" +
   "[GRB] If tools are not appearing in Cursor:\n" +
   "[GRB]   1. Open Cursor → Settings → Tools & MCP\n" +
   "[GRB]   2. Find 'godot-runtime-bridge' under Installed MCP Servers\n" +

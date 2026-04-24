@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.0.1 — 2026-04-24
+
+### Changed
+
+- **Security clarity hardening** — `SECURITY.md` now documents the current
+  local-development transport and trust boundary more explicitly: stdio MCP
+  helper -> Node TCP socket -> Godot runtime over raw localhost
+  newline-delimited JSON, with no current HTTP/WebSocket runtime surface.
+- **Security verifier** — Added `tools/verify_grb_security_shape.mjs` plus
+  `npm run verify:security` to statically verify current bind/auth/danger-tier
+  defaults and refuse inflated security-marketing claims in the main docs.
+- **Patch-release scope clarity** — This is a documentation/verifier/security-
+  posture patch only. There are no runtime, protocol, or transport-behavior
+  changes in `2.0.1`.
+
 ## 2.0.0 — 2026-04-24
 
 First GRB 2.0 release. Version surfaces across `mcp/package.json`,
