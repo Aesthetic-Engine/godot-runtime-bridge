@@ -1,14 +1,15 @@
 # Changelog
 
-## 2.0.0-rc.0 — 2026-04-22
+## 2.0.0 — 2026-04-24
 
-First GRB 2.0 release candidate. Version surfaces across `mcp/package.json`,
+First GRB 2.0 release. Version surfaces across `mcp/package.json`,
 `mcp/package-lock.json`, `addons/godot-runtime-bridge/plugin.cfg`,
 `addons/godot-runtime-bridge/runtime_bridge/EditorDock.gd`, and the MCP server
-name/startup banner in `mcp/index.js` now agree on `2.0.0-rc.0`. Prior RC
-iterations are expected before a final `2.0.0` tag.
+name/startup banner in `mcp/index.js` now agree on `2.0.0`. The previously
+staged `2.0.0-rc.0` identity was not published; this entry replaces it and
+covers the same repaired surfaces verified by the final release-gate smoke.
 
-This RC covers the full-repo GRB 2.0 proof workflow. Addon/archive/export
+This release covers the full-repo GRB 2.0 proof workflow. Addon/archive/export
 packaging remains addon-oriented; the GRB 2.0 CLI, templates, proving ground,
 and product-shape verification still require a full repo clone.
 
@@ -55,8 +56,9 @@ and product-shape verification still require a full repo clone.
   and product-shape tooling. The README channel section and
   `docs/grb2-release-candidate-readiness.md` were updated to match.
 - **Release identity** — All authoritative GRB version surfaces bumped from
-  `1.0.6` to `2.0.0-rc.0`. The product-shape check's startup-banner regex in
-  `mcp/check_versions.mjs` now accepts pre-release suffixes.
+  `1.0.6` to `2.0.0`. The product-shape check's startup-banner regex in
+  `mcp/check_versions.mjs` now accepts pre-release suffixes as well as the
+  final release identity.
 - **`verify:release` aggregate** — The `mcp/` npm script now runs
   `verify:grb2:shape` in addition to the existing versions+live-smoke chain.
   The legacy versions+live-smoke-only behavior is preserved under a new
