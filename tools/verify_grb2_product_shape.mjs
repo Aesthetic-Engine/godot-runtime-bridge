@@ -438,7 +438,10 @@ function checkChannelAndDocTruth() {
   assertIncludes(readinessDoc, "experiential quality or E-tier proof", "release-candidate readiness doc");
   assertIncludes(readinessDoc, "addon/archive/export packaging is addon-oriented", "release-candidate readiness doc");
   assertIncludes(readinessDoc, "the GRB 2.0 proof workflow requires a full repo clone", "release-candidate readiness doc");
-  assertIncludes(readinessDoc, "2.0.0", "release-candidate readiness doc");
+  // Use the dated release heading as the needle so this check fails if the
+  // doc ever drifts back to RC-only mentions. Plain "2.0.0" would be a
+  // substring of "2.0.0-rc.0" and silently pass.
+  assertIncludes(readinessDoc, "2.0.0 — 2026-04-24", "release-candidate readiness doc");
   assertIncludes(readinessDoc, "verify:release:live", "release-candidate readiness doc");
   assertIncludes(readinessDoc, "final release smoke on the intended release target", "release-candidate readiness doc");
 
