@@ -475,24 +475,52 @@ function checkChannelAndDocTruth() {
 }
 
 function checkLauncherDoctrineSurfaces() {
-  const surfaces = [
-    "templates/grb2/grb/regression_workflow.md",
-    "templates/grb2/grb/mission_authoring.md",
-    "templates/grb2/grb/runtime_proof_hooks.md",
-    "templates/grb2/grb/gotchas.md",
-    "templates/grb2/AGENTS.md",
-    "missions/README.md",
-    "docs/ci.md",
-    "examples/grb2-proving-ground/tools/sync_grb_addon.mjs",
-    "cli/lib/mission_scaffold.mjs",
-  ];
+  // Walk user-facing teaching surfaces and refuse the raw `node ... cli/grb.mjs`
+  // invocation form anywhere in them. The allow-list is intentionally narrow:
+  // only files whose job is to *describe* or *detect* the forbidden pattern
+  // (this verifier itself, the init placeholder-detector, and frozen
+  // historical Sprint closeouts) may legitimately contain it.
+  const SCAN_DIRS = ["templates", "examples", "docs", "missions", "cli", "mcp", "addons"];
+  const SCAN_EXTS = new Set([".md", ".mjs"]);
+  const SKIP_DIR_NAMES = new Set(["node_modules", ".godot", "grb_reports", "reports"]);
+  const ROOT_FILES = ["README.md", "CHANGELOG.md", "PROTOCOL.md", "SECURITY.md"];
+  const ALLOW_FILES = new Set([
+    "cli/lib/init.mjs",
+  ]);
+  const ALLOW_PATTERNS = [/^docs\/grb_2_Sprint\d+_closeout\.md$/];
 
-  for (const relPath of surfaces) {
-    const fullPath = path.join(repoRoot, relPath);
-    if (!fs.existsSync(fullPath)) continue;
-    const text = fs.readFileSync(fullPath, "utf-8");
-    assertNoRawNodeGrbMjs(text, relPath);
+  let scanned = 0;
+  const isAllowed = (rel) => ALLOW_FILES.has(rel) || ALLOW_PATTERNS.some((re) => re.test(rel));
+
+  function check(absPath, rel) {
+    scanned++;
+    if (isAllowed(rel)) return;
+    const text = fs.readFileSync(absPath, "utf-8");
+    assertNoRawNodeGrbMjs(text, rel);
   }
+
+  function walk(dirAbs, dirRel) {
+    if (!fs.existsSync(dirAbs)) return;
+    for (const entry of fs.readdirSync(dirAbs, { withFileTypes: true })) {
+      if (entry.name.startsWith(".")) continue;
+      if (SKIP_DIR_NAMES.has(entry.name)) continue;
+      const abs = path.join(dirAbs, entry.name);
+      const rel = dirRel ? `${dirRel}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        walk(abs, rel);
+      } else if (entry.isFile() && SCAN_EXTS.has(path.extname(entry.name))) {
+        check(abs, rel);
+      }
+    }
+  }
+
+  for (const dir of SCAN_DIRS) walk(path.join(repoRoot, dir), dir);
+  for (const file of ROOT_FILES) {
+    const abs = path.join(repoRoot, file);
+    if (fs.existsSync(abs)) check(abs, file);
+  }
+
+  assert(scanned > 0, "launcher-doctrine guard scanned zero surfaces; check SCAN_DIRS/ROOT_FILES");
 
   const classifier = fs.readFileSync(path.join(repoRoot, "cli", "lib", "regression_classifier.mjs"), "utf-8");
   assertNoSprintEraLanguage(classifier, "cli/lib/regression_classifier.mjs");

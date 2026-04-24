@@ -486,10 +486,15 @@ const MISSIONS_REL := "missions"
 func _resolve_missions_dir() -> String:
 	var project_root := ProjectSettings.globalize_path("res://")
 	var parent := path_join(project_root, "..")
+	# Sibling-folder fallbacks resolve when this addon is installed inside a
+	# Godot project that lives next to a GRB clone. Both clone-name shapes are
+	# accepted: `godot-runtime-bridge` is what `git clone` produces (canonical),
+	# `grb-main` is what GitHub's "Download ZIP" extracts to (archive shape).
 	var json_candidates: PackedStringArray = [
 		path_join(project_root, MISSIONS_REL, "missions.json"),
 		path_join(parent, MISSIONS_REL, "missions.json"),
 		path_join(project_root, "missions", "missions.json"),
+		path_join(path_join(parent, "godot-runtime-bridge"), "missions", "missions.json"),
 		path_join(path_join(parent, "grb-main"), "missions", "missions.json"),
 	]
 	for p in json_candidates:

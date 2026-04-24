@@ -30,10 +30,11 @@ If the proof summary says the run may be a baseline candidate, read that as cond
 
 ## First Practice Flow: Stable Surface
 
-From the repo root:
+From the GRB repo root. Use `grb.cmd ...` on Windows or `./grb ...` on POSIX
+shells.
 
 ```bash
-node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+grb.cmd mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
 ```
 
 Inspect the resulting `summary.md`, `boot_screen.png`, and mission report. If the run is passing and the stable boot surface looks right, treat it as a baseline candidate.
@@ -41,7 +42,7 @@ Inspect the resulting `summary.md`, `boot_screen.png`, and mission report. If th
 Then rerun with compare:
 
 ```bash
-node cli/grb.mjs mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
+grb.cmd mission run smoke_boot --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
 ```
 
 Inspect:
@@ -57,8 +58,8 @@ Use `comparison.md` as the review artifact. It should tell you what the proving-
 After the stable `smoke_boot` loop is clear, practice with one bounded mission that intentionally changes state inside the run:
 
 ```bash
-node cli/grb.mjs mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
-node cli/grb.mjs mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
+grb.cmd mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe
+grb.cmd mission run hud_state_check --project examples/grb2-proving-ground --exe C:\path\to\Godot_console.exe --compare-to latest
 ```
 
 Use the same baseline-candidate rule: inspect the first passing run before trusting it. For change-expected missions, the review question includes whether the before/after change is intended and still readable.
@@ -68,7 +69,7 @@ Use the same baseline-candidate rule: inspect the first passing run before trust
 Use explicit compare when you want to choose both bundles yourself:
 
 ```bash
-node cli/grb.mjs compare examples/grb2-proving-ground/grb_reports/<baseline-run-id> examples/grb2-proving-ground/grb_reports/<candidate-run-id>
+grb.cmd compare examples/grb2-proving-ground/grb_reports/<baseline-run-id> examples/grb2-proving-ground/grb_reports/<candidate-run-id>
 ```
 
 This is better than `--compare-to latest` when you are reviewing a specific pair or when automatic baseline selection is blocked.

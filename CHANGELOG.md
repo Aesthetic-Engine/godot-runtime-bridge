@@ -1,30 +1,5 @@
 # Changelog
 
-## Unreleased
-
-### Changed
-
-- **Agent-agnostic addon default behavior** — enabling the GRB plugin no
-  longer silently writes `res://.cursor/rules/grb.mdc` into the user's
-  project. `runtime_bridge_plugin.gd` only wires the `GRBServer` autoload
-  and the Runtime Bridge dock now.
-- **Archive/channel truth** — `.gitattributes` now states explicitly that
-  archive exports ship the addon plus the legacy built-in mission pack and
-  deliberately omit the GRB 2.0 CLI, MCP helper, templates, proving ground,
-  and product-shape tooling. The README channel section and
-  `docs/grb2-release-candidate-readiness.md` were updated to match.
-
-### Added
-
-- **Opt-in Cursor rules install/refresh** — the Runtime Bridge dock exposes
-  an explicit "Install Cursor rules" / "Refresh Cursor rules" action so
-  Cursor users can still write `res://.cursor/rules/grb.mdc` on demand. The
-  status label distinguishes `absent`, `up to date`, and `differs from the
-  shipped rules` without ever overwriting silently.
-- **Honest Cursor-rules staleness detection** — staleness is now determined
-  by exact comparison against the GRB-shipped rules content instead of the
-  prior single-keyword (`grb_stop`) heuristic.
-
 ## 2.0.0-rc.0 — 2026-04-22
 
 First GRB 2.0 release candidate. Version surfaces across `mcp/package.json`,
@@ -59,9 +34,26 @@ and product-shape verification still require a full repo clone.
   `toggle_panel`, and `hud_state_check` missions.
 - **Product-shape verification** — `tools/verify_grb2_product_shape.mjs` checks
   high-value GRB 2.0 proof/onboarding summary surfaces without launching Godot.
+- **Opt-in Cursor rules install/refresh** — the Runtime Bridge dock exposes
+  an explicit "Install Cursor rules" / "Refresh Cursor rules" action so
+  Cursor users can still write `res://.cursor/rules/grb.mdc` on demand. The
+  status label distinguishes `absent`, `up to date`, and `differs from the
+  shipped rules` without ever overwriting silently.
+- **Honest Cursor-rules staleness detection** — staleness is now determined
+  by exact comparison against the GRB-shipped rules content instead of the
+  prior single-keyword (`grb_stop`) heuristic.
 
 ### Changed
 
+- **Agent-agnostic addon default behavior** — enabling the GRB plugin no
+  longer silently writes `res://.cursor/rules/grb.mdc` into the user's
+  project. `runtime_bridge_plugin.gd` only wires the `GRBServer` autoload
+  and the Runtime Bridge dock now.
+- **Archive/channel truth** — `.gitattributes` now states explicitly that
+  archive exports ship the addon plus the legacy built-in mission pack and
+  deliberately omit the GRB 2.0 CLI, MCP helper, templates, proving ground,
+  and product-shape tooling. The README channel section and
+  `docs/grb2-release-candidate-readiness.md` were updated to match.
 - **Release identity** — All authoritative GRB version surfaces bumped from
   `1.0.6` to `2.0.0-rc.0`. The product-shape check's startup-banner regex in
   `mcp/check_versions.mjs` now accepts pre-release suffixes.
@@ -91,13 +83,6 @@ and product-shape verification still require a full repo clone.
 - **Stale ship-readiness doc** — `missions/SHIP_READINESS_0.1.6.md` removed;
   its filename and body disagreed on the covered version and neither matched
   the current release.
-
-### Notes
-
-Items intentionally deferred to later Sprint 13 slices: CI coverage for the
-live `init` / `doctor` / `mission run smoke_boot` flow, addon-side Cursor-only
-side effects, launcher-doctrine scan expansion, MCP `.godot` guard, placeholder
-detection breadth, archive/channel policy, and YAML parser robustness.
 
 ## 1.0.6 - 2026-03-28
 
