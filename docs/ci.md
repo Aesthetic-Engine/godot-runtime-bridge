@@ -45,7 +45,9 @@ correctness, UX quality, or E-tier experience.
 ## Linux CI and xvfb
 
 Godot still needs a display server for rendered screenshot flows on headless
-Linux runners. Use `xvfb-run` when you need live rendering.
+Linux runners. That is **not** the same thing as launching Godot with
+`--headless`. Use `xvfb-run` when you need live rendering so GRB still gets a
+real render context for screenshots.
 
 Minimal shape:
 

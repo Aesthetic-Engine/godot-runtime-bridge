@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.0.2 — 2026-05-06
+
+### Added
+
+- Added a lightweight informational worktree preflight helper for agentic GRB
+  work.
+- Added project-template guidance for proof harnesses with deterministic probes,
+  JSON debug snapshots, and markdown proof reports.
+- Added a canonical proof report template with before/after worktree state,
+  W/R/E evidence, not-claimed limits, and next-slice guidance.
+
+### Changed
+
+- Tightened agent-facing guidance around preserving existing dirty worktree
+  changes and proving work honestly rather than merely compiling it.
+
+### Notes
+
+- No runtime protocol, bridge behavior, compare logic, security architecture, or
+  packaging behavior changed in this patch.
+
 ## 2.0.1 — 2026-04-24
 
 ### Changed
