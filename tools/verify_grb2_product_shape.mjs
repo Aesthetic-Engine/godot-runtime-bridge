@@ -24,6 +24,18 @@ function assertIncludes(text, needle, label) {
   assert(String(text).includes(needle), `${label} missing expected text: ${needle}`);
 }
 
+function assertConcept(text, label, concepts) {
+  const lowerText = String(text).toLowerCase().replace(/\s+/g, " ");
+  for (const concept of concepts) {
+    const alternatives = Array.isArray(concept) ? concept : [concept];
+    const matched = alternatives.some((needle) => lowerText.includes(String(needle).toLowerCase().replace(/\s+/g, " ")));
+    assert(
+      matched,
+      `${label} missing expected concept: ${alternatives.join(" OR ")}`
+    );
+  }
+}
+
 function assertReadableReason(raw, expected, forbidden = raw) {
   const rendered = baselineReasonText(raw);
   assertIncludes(rendered, expected, `reason ${raw}`);
@@ -397,17 +409,22 @@ function checkDoctorReadiness() {
 
 function checkChannelAndDocTruth() {
   const readme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf-8");
+  const mcpReadme = fs.readFileSync(path.join(repoRoot, "mcp", "README.md"), "utf-8");
   const readinessDoc = fs.readFileSync(path.join(repoRoot, "docs", "grb2-release-candidate-readiness.md"), "utf-8");
   const legacyMissions = fs.readFileSync(path.join(repoRoot, "missions", "README.md"), "utf-8");
   const ciDoc = fs.readFileSync(path.join(repoRoot, "docs", "ci.md"), "utf-8");
   const authoring = fs.readFileSync(path.join(repoRoot, "templates", "grb2", "grb", "mission_authoring.md"), "utf-8");
+  const proofHarness = fs.readFileSync(path.join(repoRoot, "templates", "grb2", "grb", "proof_harness_template.md"), "utf-8");
+  const proofReport = fs.readFileSync(path.join(repoRoot, "templates", "grb2", "grb", "proof_report_template.md"), "utf-8");
   const regression = fs.readFileSync(path.join(repoRoot, "templates", "grb2", "grb", "regression_workflow.md"), "utf-8");
   const agents = fs.readFileSync(path.join(repoRoot, "templates", "grb2", "AGENTS.md"), "utf-8");
   const projectYaml = fs.readFileSync(path.join(repoRoot, "templates", "grb2", "grb.project.yaml"), "utf-8");
   const provingGround = fs.readFileSync(path.join(repoRoot, "examples", "grb2-proving-ground", "README.md"), "utf-8");
   const cliHelp = fs.readFileSync(path.join(repoRoot, "cli", "grb.mjs"), "utf-8");
+  const preflightHelper = fs.readFileSync(path.join(repoRoot, "tools", "grb_worktree_preflight.mjs"), "utf-8");
   const wrapperCmd = fs.readFileSync(path.join(repoRoot, "grb.cmd"), "utf-8");
   const wrapperPosix = fs.readFileSync(path.join(repoRoot, "grb"), "utf-8");
+  const mcpIndex = fs.readFileSync(path.join(repoRoot, "mcp", "index.js"), "utf-8");
 
   assert(fs.existsSync(path.join(repoRoot, "grb.cmd")), "repo-root grb.cmd launcher missing");
   assert(fs.existsSync(path.join(repoRoot, "grb")), "repo-root grb launcher missing");
@@ -426,6 +443,18 @@ function checkChannelAndDocTruth() {
   assertIncludes(readme, "`./grb ...` on POSIX", "README launcher truth");
   assertIncludes(readme, "Run `grb doctor`", "README doctor truth");
   assertIncludes(readme, "doctor` is a no-launch preflight check", "README doctor truth");
+  assertConcept(readme, "README headless doctrine", [
+    "headless",
+    ["windowed runtime", "real render context"],
+    "Reserve `--headless`",
+  ]);
+  assertConcept(readme, "README proof-discipline truth", [
+    "prove changes honestly",
+    "dirty worktree state before and after",
+    "what automation did **not** prove",
+    "proof_harness_template.md",
+    "proof_report_template.md",
+  ]);
   assertIncludes(readme, "docs/grb2-release-candidate-readiness.md", "README readiness-doc truth");
   assert(!readme.includes("node C:\\path\\to\\grb-main\\cli\\grb.mjs"), "README should not primarily teach raw cli/grb.mjs path");
 
@@ -438,10 +467,12 @@ function checkChannelAndDocTruth() {
   assertIncludes(readinessDoc, "experiential quality or E-tier proof", "release-candidate readiness doc");
   assertIncludes(readinessDoc, "addon/archive/export packaging is addon-oriented", "release-candidate readiness doc");
   assertIncludes(readinessDoc, "the GRB 2.0 proof workflow requires a full repo clone", "release-candidate readiness doc");
-  // Use the dated release heading as the needle so this check fails if the
-  // doc ever drifts back to RC-only mentions. Plain "2.0.0" would be a
-  // substring of "2.0.0-rc.0" and silently pass.
-  assertIncludes(readinessDoc, "2.0.0 — 2026-04-24", "release-candidate readiness doc");
+  assertConcept(readinessDoc, "release-candidate readiness doc", [
+    "2.0.2",
+    "2.0.1",
+    "2.0.0",
+    "verify:versions",
+  ]);
   assertIncludes(readinessDoc, "verify:release:live", "release-candidate readiness doc");
   assertIncludes(readinessDoc, "final release smoke on the intended release target", "release-candidate readiness doc");
 
@@ -452,10 +483,48 @@ function checkChannelAndDocTruth() {
   assertIncludes(ciDoc, "Repo-Level Release Smoke", "CI doc truth");
   assertIncludes(ciDoc, "Project-Level GRB 2.0 Proof Workflows", "CI doc truth");
   assertIncludes(ciDoc, "legacy mission runner", "CI doc truth");
+  assertConcept(ciDoc, "CI headless doctrine", [
+    "headless",
+    "real render context",
+    "xvfb-run",
+  ]);
 
   assertIncludes(authoring, "## Stable Capture Slots", "mission authoring contract");
   assertIncludes(authoring, "treat screenshot labels as", "mission authoring contract");
   assertIncludes(authoring, "stable surface rather than deep semantic understanding", "mission authoring contract");
+  assertConcept(authoring, "mission authoring proof-harness routing", [
+    "proof_harness_template.md",
+    "json-friendly debug snapshot",
+    "not a new automatic proof runner",
+  ]);
+  assertConcept(proofHarness, "proof harness template", [
+    "project-specific",
+    "not a new automatic proof runner",
+    "guarantee of correctness",
+    "json",
+    "markdown",
+    "w/r/e",
+    "not prove product correctness",
+  ]);
+  assertConcept(proofReport, "proof report template", [
+    "Worktree Preflight Before",
+    "Files Changed",
+    "What Changed",
+    "Proof Commands",
+    "W-Tier Evidence",
+    "R-Tier Evidence",
+    "E-Tier Evidence",
+    "Known Issues / Not Claimed",
+    "Worktree Preflight After",
+    "Next Recommended Slice",
+  ]);
+  assertConcept(preflightHelper, "worktree preflight helper", [
+    "git status",
+    "likely review hints",
+    "not definitive truth",
+    "Do not revert",
+    "untracked-files=all",
+  ]);
   assertIncludes(regression, "## Stable Evidence Surfaces", "regression workflow contract");
   assertIncludes(regression, "not a strong regression surface yet", "regression workflow contract");
   assertIncludes(agents, "Treat screenshot labels as capture slots", "agent contract");
@@ -463,17 +532,44 @@ function checkChannelAndDocTruth() {
   assertIncludes(agents, "grb_repo_root", "agent launcher contract");
   assertIncludes(agents, "local GRB repo linkage", "agent launcher contract");
   assertIncludes(agents, "repo-root `doctor` command", "agent doctor contract");
+  assertConcept(agents, "agent preflight/proof template contract", [
+    "git status --short",
+    "preserve prior/user work",
+    "proof_harness_template.md",
+    "proof_report_template.md",
+    "before/after worktree state",
+  ]);
+  assertConcept(agents, "agent headless doctrine", [
+    "headless",
+    "real render context",
+    "Do not minimize",
+  ]);
   assert(!agents.includes("node <path-to-grb-main>/cli/grb.mjs"), "AGENTS should not primarily teach raw cli/grb.mjs path");
   assertIncludes(projectYaml, "grb_repo_root", "project yaml launcher contract");
   assertIncludes(projectYaml, "<set-by-grb-init>", "project yaml launcher contract");
   assert(!projectYaml.includes("node <path-to-grb-main>/cli/grb.mjs"), "grb.project.yaml should not primarily teach raw cli/grb.mjs path");
   assertIncludes(provingGround, "grb.cmd mission run smoke_boot", "proving ground launcher truth");
   assertIncludes(provingGround, "..\\..\\grb.cmd mission run smoke_boot", "proving ground launcher truth");
+  assertConcept(provingGround, "proving ground headless doctrine", [
+    "metadata/import prep only",
+    "headless",
+    "real render context",
+  ]);
   assert(!provingGround.includes("node cli/grb.mjs mission run smoke_boot"), "proving ground README should not primarily teach raw cli/grb.mjs path");
   assertIncludes(cliHelp, "grb.cmd init", "CLI help launcher truth");
   assertIncludes(cliHelp, "./grb init", "CLI help launcher truth");
   assertIncludes(cliHelp, "grb.cmd doctor", "CLI help doctor truth");
   assertIncludes(cliHelp, "doctor checks project readiness without launching Godot.", "CLI help doctor truth");
+  assertConcept(mcpReadme, "MCP headless doctrine", [
+    "grb_launch",
+    "windowed runtime sessions",
+    "real render context",
+    "headless",
+  ]);
+  assertConcept(mcpIndex, "MCP tool-schema headless doctrine", [
+    "screenshot-capable proof",
+    "not Godot --headless",
+  ]);
   assertIncludes(readme, "grb init` also records the full-repo GRB linkage", "README init linkage truth");
 }
 

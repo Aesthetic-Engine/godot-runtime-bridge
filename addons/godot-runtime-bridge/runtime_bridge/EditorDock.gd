@@ -3,7 +3,7 @@ extends VBoxContainer
 
 const _Commands := preload("res://addons/godot-runtime-bridge/runtime_bridge/Commands.gd")
 
-const VERSION := "2.0.1"
+const VERSION := "2.0.2"
 const SCREENSHOTS_DIR := "res://debug/screenshots"
 const GRB_COMMANDS_AUTOLOAD_PATH := "res://addons/godot-runtime-bridge/runtime_bridge/GRBCommands.gd"
 

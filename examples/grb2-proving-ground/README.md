@@ -26,11 +26,17 @@ From the GRB repo root, sync the addon into this project:
 node examples/grb2-proving-ground/tools/sync_grb_addon.mjs
 ```
 
-Then open the project once in Godot so `.godot/` metadata is created:
+Then open the project once in Godot so `.godot/` metadata is created. If you
+only need a nonvisual editor/import metadata pass, a command like this can
+work:
 
 ```bash
 Godot_v4.6-stable_win64_console.exe --headless --editor --quit --path examples/grb2-proving-ground
 ```
+
+That command is for metadata/import prep only. Do **not** use Godot
+`--headless` for the proof mission commands below. GRB screenshot/runtime proof
+should use the normal or console Godot executable with a real render context.
 
 The synced `addons/`, `.godot/`, and `grb_reports/` folders are local validation artifacts and are ignored by git.
 

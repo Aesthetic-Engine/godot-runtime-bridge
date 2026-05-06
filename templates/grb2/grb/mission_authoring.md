@@ -10,6 +10,10 @@ If a mission may later become a regression surface, author it with stable
 evidence in mind from the start. Compare is only as trustworthy as the mission's
 capture discipline.
 
+If the mission needs deterministic setup, a JSON-friendly debug snapshot, or a
+small project-specific proof probe, use `grb/proof_harness_template.md`. It is
+an authoring template for your project, not a new automatic proof runner.
+
 ## Pick a Pattern
 
 - `default`: use when the mission does not fit a named pattern yet.

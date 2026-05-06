@@ -20,15 +20,24 @@ Use later, only when the stage calls for it:
 - `grb/mission_authoring.md` after `smoke_boot` passes and you are creating the next small mission.
 - `grb/runtime_proof_hooks.md` only when a `state_check` or runtime-readable proof needs a stable project state read.
 - `grb/regression_workflow.md` only after a small mission passes and you are deciding whether the run is a baseline candidate.
+- `grb/proof_harness_template.md` when a project-specific proof probe needs deterministic setup, JSON debug snapshots, or a small runtime state helper.
+- `grb/proof_report_template.md` when writing a slice closeout that needs before/after worktree state, W/R/E evidence, and explicit not-claimed limits.
 
 ## Working Rules
 
 - Keep implementation slices small enough to prove with one mission when possible.
+- Before editing, inspect dirty state with `git status --short` or the GRB
+  preflight helper. State what was already dirty and which paths you intend to
+  touch.
+- Preserve prior/user work in dirty files. If your slice must overlap an
+  existing dirty file, say so in the handoff.
 - Before claiming a change works, say which proof tier was reached and link the proof bundle.
 - Say what was not proven and what still needs human review.
 - Do not claim experiential proof unless a human has reviewed or played the slice.
 - Put proof bundles under `grb_reports/`.
 - Record recurring project-specific traps in `grb/gotchas.md`.
+- When handing off a slice, include before/after worktree state so unrelated
+  local changes do not get mistaken for proof of your work.
 
 ## Customize First
 
@@ -41,6 +50,12 @@ Use later, only when the stage calls for it:
 
 Run `grb/missions/smoke_boot.yaml` before making larger changes. A passing smoke boot targets W-tier wiring proof. It can provide R-tier screenshot evidence, but it does not prove visual correctness by itself. E-tier still needs human review.
 
+Do not treat automated proof as Godot `--headless`. For screenshot-capable GRB
+runtime proof, launch the normal or console Godot executable with a real render
+context, even when the run is unattended. Reserve `--headless` for
+project-specific nonvisual editor, import, or precompile tasks that do not need
+meaningful viewport screenshots.
+
 Prefer the project-local truth in `grb.project.yaml` over reconstructing GRB
 paths from memory. `grb init` records the expected full-repo launcher linkage
 there for this specific project.
@@ -48,6 +63,11 @@ there for this specific project.
 Before `smoke_boot`, run the repo-root `doctor` command if readiness is
 uncertain. It checks the local project contract, addon, metadata, mission file,
 and Godot executable path without launching Godot.
+
+Do not minimize the proof window when you need reliable runtime evidence.
+Godot throttles hard when minimized. Leave a real window/render context
+available, or rely on the launcher's window sizing and `GDRB_FORCE_WINDOWED`
+behavior instead of forcing `--headless`.
 
 After the run, inspect:
 
@@ -81,6 +101,10 @@ Customize the goal, one interaction step, and human handoff before claiming proo
 When replacing scaffold TODOs, use `grb/mission_authoring.md` as the local cookbook. It owns second-mission authoring guidance.
 
 When a `state_check` mission needs project-specific runtime state, use `grb/runtime_proof_hooks.md` before adding helper methods. Skip it for missions that only need screenshots or simple interaction.
+
+When a mission needs deterministic setup or a JSON-friendly debug snapshot,
+use `grb/proof_harness_template.md` as an authoring guide. It is a
+project-specific proof template, not a new automatic runner.
 
 ## Regression Stage
 

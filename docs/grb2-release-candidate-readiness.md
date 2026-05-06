@@ -114,13 +114,14 @@ Do not treat addon-only or AssetLib delivery as equivalent to the full-repo GRB 
 
 Sprint 13 Slice 1 has now delivered:
 
-- **version/tag decision** — all GRB version surfaces now report
-  `2.0.0`; `verify:versions` enforces this parity. The previously staged
-  `2.0.0-rc.0` identity was not published; the repo promoted directly to
-  `2.0.0` after the final release-gate smoke
+- **version/tag decision** — all authoritative GRB version surfaces now
+  report `2.0.2`; `verify:versions` enforces this parity. `2.0.0` was the
+  initial GRB 2.0 launch, `2.0.1` clarified the security posture, and `2.0.2`
+  is the current patch release for agentic proof discipline documentation and
+  tooling only
 - **release changelog section** — `CHANGELOG.md` now has a real
-  `2.0.0 — 2026-04-24` section in place of the open-ended `Unreleased`
-  bucket
+  `2.0.2 — 2026-05-06` patch section above the prior `2.0.1` patch and the original
+  `2.0.0 — 2026-04-24` launch section
 - **release verification naming** — `verify:release` is now the honest
   aggregate (shape + versions + live smoke); `verify:release:live` preserves
   the prior versions+live-smoke-only behavior

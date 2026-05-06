@@ -200,6 +200,11 @@ This is a **full-repo workflow**, not an addon-only workflow. It depends on the
 repo-root GRB launcher (`grb.cmd` on Windows, `./grb` on POSIX), plus
 `templates/grb2/`, `examples/grb2-proving-ground/`, and repo-side docs/tools.
 
+GRB proof work is meant to help agents prove changes honestly, not merely
+compile code or blur unrelated edits into the same story. For project slices,
+capture dirty worktree state before and after the change, keep proof surfaces
+small, and say what automation did **not** prove.
+
 A few plain-English terms first:
 
 - **Mission** — a short predefined script GRB runs against your game. For example, `smoke_boot` launches the game, waits, takes screenshots, and checks for errors. Missions don't require changes to your game code.
@@ -363,6 +368,11 @@ Use `grb/mission_authoring.md` in your project for short examples of panel toggl
 
 If the mission needs a stable runtime value, use `grb/runtime_proof_hooks.md` for guidance on adding small, safe project helper methods for `call_method` or choosing a clear `get_property` read.
 
+If the mission needs deterministic setup, timestamp/state seeking, JSON debug
+snapshots, or a slice closeout report, use the generated
+`grb/proof_harness_template.md` and `grb/proof_report_template.md` as
+authoring guides.
+
 Then run it:
 
 ```bash
@@ -523,6 +533,17 @@ node tools/verify_grb2_product_shape.mjs
 ```
 
 It does not launch Godot. It checks small deterministic product-layer truths such as readable baseline rejection reasons, blocked comparison summaries, proof-bundle review handoff, and generated/proving-ground contract shape.
+
+For agentic project work, use the informational preflight helper before editing
+or writing a proof closeout:
+
+```bash
+node tools/grb_worktree_preflight.mjs
+```
+
+It classifies dirty files as likely source, docs, generated artifacts, proof
+reports, or suspicious/out-of-scope so prior/user work is visible before the
+slice begins.
 
 ### Release Verification
 
