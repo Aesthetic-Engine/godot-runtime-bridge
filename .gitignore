@@ -12,3 +12,6 @@ missions/reports/
 
 # MCP verification output
 mcp/reports/
+
+# Internal Pro feature notes — not part of the shipped repo
+addons/godot-runtime-bridge/GRB_PRO.md
