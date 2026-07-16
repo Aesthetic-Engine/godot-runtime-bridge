@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added `grb_screenshot_sequence`, an MCP-layer timed capture tool that writes
+  numbered PNG frames plus a hash/timestamp manifest for animation and
+  transient-event review. Capture count, interval, label, and optional inline
+  images are bounded and validated; partial failures retain their manifest.
+
 ## 2.0.2 — 2026-05-06
 
 ### Added
