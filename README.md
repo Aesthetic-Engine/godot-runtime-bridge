@@ -136,7 +136,11 @@ This addon supports **Godot 4.5 and later**.
 Open your project in the Godot editor, click the **AssetLib** tab at the top, search for **"Godot Runtime Bridge"**, and install it.
 
 **Manual:**
-Download this repo and copy the `addons/godot-runtime-bridge/` folder into your project's `addons/` folder.
+Use the GitHub Download ZIP (an addon-only archive) and copy its
+`addons/godot-runtime-bridge/` folder into your project's `addons/` folder.
+When installing from a full clone, build a tracked-file archive first as shown
+in [`INSTALL_FOR_AGENTS.md`](INSTALL_FOR_AGENTS.md); do not copy an arbitrary
+live working-tree directory.
 
 Then go to **Project → Project Settings → Plugins** and enable **Godot Runtime Bridge**. When enabled, GRB adds its runtime server automatically — you do **not** need to wire anything by hand.
 
@@ -592,6 +596,7 @@ From the `mcp/` folder:
 ```bash
 npm run verify:versions
 npm run verify:security
+npm run verify:tool-results
 npm run verify:grb2:shape
 npm run verify:grb -- --godot-exe "/path/to/godot" --project "/path/to/project"
 npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"
@@ -601,6 +606,9 @@ npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/proje
 `tools/verify_grb_security_shape.mjs`. It does not launch Godot. It verifies
 the documented local transport / trust-boundary truth and refuses broad
 security-marketing claims.
+
+`verify:tool-results` covers agent-facing error normalization and honest quit
+status messages without launching Godot.
 
 `verify:grb2:shape` runs the repo's lightweight GRB 2.0 product-shape check
 from `tools/verify_grb2_product_shape.mjs`. It does not launch Godot.
@@ -629,6 +637,9 @@ Before tagging a release, run:
   - does **not** launch Godot
   - checks the current local transport, auth, bind, danger-tier, and
     security-doc truth surfaces
+- `npm run verify:tool-results`
+  - does **not** launch Godot
+  - checks readable launch-error formatting and honest quit-result messages
 - `npm run verify:grb2:shape`
   - does **not** launch Godot
   - checks GRB 2.0 full-repo product-shape truth such as launcher/docs/template/proving-ground consistency
@@ -637,8 +648,9 @@ Before tagging a release, run:
   - runs the live GRB release smoke sequence
 - `npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"`
   - **does** require a real Godot executable and a real project
-  - honest aggregate release gate: runs `verify:grb2:shape` first, then
-    version parity, then the live release smoke sequence in one command
+  - honest aggregate release gate: runs sequence and tool-result unit checks,
+    `verify:grb2:shape`, version parity, then the live release smoke sequence
+    in one command
 - `npm run verify:release:live -- --godot-exe "/path/to/godot" --project "/path/to/project"`
   - **does** require a real Godot executable and a real project
   - version parity plus the live release smoke sequence only; skips the GRB 2.0

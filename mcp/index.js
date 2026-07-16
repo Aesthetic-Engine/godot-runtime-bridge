@@ -20,6 +20,7 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { captureScreenshotSequence } from "./screenshot_sequence.mjs";
+import { formatBridgeError, formatQuitResult } from "./tool_result_messages.mjs";
 
 const HOST = "127.0.0.1";
 const LAUNCH_TIMEOUT_MS = 30000;
@@ -46,14 +47,17 @@ function wrapSessionError(message) {
 }
 
 async function shutdownRunningSession() {
+  const hadSession = Boolean(grbProcess || grbPort);
   if (!grbProcess && !grbPort) {
     clearConnectionState();
-    return;
+    return { hadSession, quitAcknowledged: false };
   }
 
+  let quitAcknowledged = false;
   try {
     if (grbPort && grbToken) {
-      await sendCommand("quit");
+      const result = await sendCommand("quit");
+      quitAcknowledged = result?.ok === true;
     }
   } catch {}
 
@@ -62,6 +66,7 @@ async function shutdownRunningSession() {
     grbProcess = null;
   }
   clearConnectionState();
+  return { hadSession, quitAcknowledged };
 }
 
 function makeLaunchCapture() {
@@ -1116,9 +1121,9 @@ async function handleTool(name, args) {
     }
 
     case "grb_quit": {
-      await shutdownRunningSession();
+      const shutdown = await shutdownRunningSession();
       return {
-        content: [{ type: "text", text: "Game quit successfully." }],
+        content: [{ type: "text", text: formatQuitResult(shutdown) }],
       };
     }
 
@@ -1174,9 +1179,7 @@ async function handleTool(name, args) {
 }
 
 function errResult(r) {
-  const msg = r.error
-    ? `${r.error.code}: ${r.error.message}`
-    : JSON.stringify(r);
+  const msg = formatBridgeError(r);
   return { content: [{ type: "text", text: "Error: " + msg }], isError: true };
 }
 

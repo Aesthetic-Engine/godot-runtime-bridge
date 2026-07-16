@@ -60,10 +60,18 @@ updated. Do not commit `node_modules`.
 
 ### 3. Install or update the Godot addon
 
-Copy this directory recursively:
+Build a clean addon payload from tracked files. Do not recursively copy the
+live working-tree directory, because it may contain ignored or untracked local
+files. From `GRB_REPO`, run:
 
 ```text
-GRB_REPO/addons/godot-runtime-bridge/
+git archive --format=zip --output <TEMP>/grb-addon.zip HEAD addons/godot-runtime-bridge
+```
+
+Extract that archive in a temporary folder, then copy the extracted directory:
+
+```text
+<TEMP>/addons/godot-runtime-bridge/
 ```
 
 to:
@@ -155,6 +163,8 @@ Report W/R/E proof honestly:
 Installation is complete only when:
 
 - the addon exists in the intended Godot project and is enabled;
+- the installed addon came from the tracked-file archive, without ignored or
+  untracked working-tree files;
 - MCP dependencies are installed in the external GRB repo;
 - the client configuration points at the absolute GRB MCP entry point;
 - `grb doctor` passes or every remaining blocker is explicitly reported;
