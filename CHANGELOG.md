@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.1.0 — 2026-07-16
+
+### Added
+
+- Added `grb_screenshot_sequence`, an MCP-layer timed capture tool that writes
+  numbered PNG frames plus a hash/timestamp manifest for animation and
+  transient-event review. Capture count, interval, label, and optional inline
+  images are bounded and validated; partial failures retain their manifest.
+
+- Added an agent-first install/upgrade contract and a one-prompt recommended
+  README path that preserves existing MCP configuration and proves the live
+  connection after reload.
+- The recommended agent path now says `git clone` explicitly; GitHub Download
+  ZIP and AssetLib archives remain addon-oriented and CI verifies that shape.
+
+### Fixed
+
+- Launch failures now render the bridge error code and message directly instead
+  of falling back to a raw JSON object.
+- `grb_quit` now distinguishes a clean acknowledged quit, a locally closed
+  unacknowledged session, and the absence of an active session.
+- Agent-driven addon installs now build from Git-tracked files so ignored or
+  untracked files in a developer checkout cannot leak into user projects.
+
 ## 2.0.2 — 2026-05-06
 
 ### Added

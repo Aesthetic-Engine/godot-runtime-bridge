@@ -15,6 +15,8 @@ on:
       - "missions/**"
       - "README.md"
       - "CHANGELOG.md"
+      - "INSTALL_FOR_AGENTS.md"
+      - ".gitattributes"
   pull_request:
     paths:
       - ".github/workflows/grb-release-smoke.yml"
@@ -29,6 +31,8 @@ on:
       - "missions/**"
       - "README.md"
       - "CHANGELOG.md"
+      - "INSTALL_FOR_AGENTS.md"
+      - ".gitattributes"
   workflow_dispatch:
 
 jobs:
@@ -49,6 +53,24 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb unzip
+
+      - name: Build and verify AssetLib-computed archive shape
+        run: |
+          ASSETLIB_ARCHIVE="$RUNNER_TEMP/godot-runtime-bridge-assetlib.zip"
+          git archive --format=zip --output="$ASSETLIB_ARCHIVE" HEAD
+          unzip -Z1 "$ASSETLIB_ARCHIVE" > "$RUNNER_TEMP/assetlib-archive-entries.txt"
+          if grep -Ev '^addons/$|^addons/godot-runtime-bridge(/|$)|^missions(/|$)' "$RUNNER_TEMP/assetlib-archive-entries.txt"; then
+            echo "ERROR: AssetLib archive contains files outside addon/mission roots." >&2
+            exit 1
+          fi
+          grep -Fx 'addons/godot-runtime-bridge/plugin.cfg' "$RUNNER_TEMP/assetlib-archive-entries.txt"
+
+      - name: Upload verified AssetLib archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-runtime-bridge-assetlib
+          path: ${{ runner.temp }}/godot-runtime-bridge-assetlib.zip
+          if-no-files-found: error
 
       - name: Install MCP dependencies
         working-directory: mcp

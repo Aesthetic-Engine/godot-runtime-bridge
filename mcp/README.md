@@ -5,6 +5,10 @@ game through the Godot Runtime Bridge addon.
 
 ## Install
 
+For the recommended agent-driven full install or upgrade, point your coding
+agent at the GRB source folder and have it follow
+[`../INSTALL_FOR_AGENTS.md`](../INSTALL_FOR_AGENTS.md).
+
 Clone the repo and install from `mcp/`:
 
 ```bash
@@ -86,6 +90,7 @@ Once configured, your AI assistant can use these tools.
 | Tool | Description |
 |------|-------------|
 | `grb_screenshot` | Capture a screenshot from the game viewport |
+| `grb_screenshot_sequence` | Capture 1–60 timed screenshots to numbered PNGs plus a hash/timestamp manifest; optionally return up to 20 frames inline |
 | `grb_scene_tree` | Get the scene tree (node names and types) |
 | `grb_get_property` | Read a property from a node |
 | `grb_runtime_info` | Get engine/runtime summary such as FPS, current scene, and node count |
@@ -134,6 +139,8 @@ not HTTP or WebSocket, and it should not be exposed to public networks.
 From `mcp/`:
 
 ```bash
+npm run verify:sequence
+npm run verify:sequence:live -- --project "/path/to/project" --godot-exe "/path/to/godot"
 npm run verify:versions
 npm run verify:security
 npm run verify:grb2:shape
@@ -141,6 +148,10 @@ npm run verify:grb -- --godot-exe "/path/to/godot" --project "/path/to/project"
 npm run verify:release -- --godot-exe "/path/to/godot" --project "/path/to/project"
 ```
 
+- `verify:sequence` checks sequence option bounds, start-anchored cadence,
+  numbered artifacts, frame hashes, manifest persistence, and partial failure.
+- `verify:sequence:live` starts a fresh stdio MCP server, confirms the tool is
+  advertised, launches a windowed project, captures a sequence, and checks it.
 - `verify:security` runs the repo's static GRB security-shape check from
   `../tools/verify_grb_security_shape.mjs`. It does not launch Godot.
 - `verify:grb2:shape` runs the repo's full-clone GRB 2.0 product-shape check

@@ -1,21 +1,10 @@
 # Normalize line endings for all files that Git considers text files.
 * text=auto eol=lf
 
-# Archive/export scope is deliberately narrow: this is an addon-install
-# surface, not a GRB 2.0 tooling distribution.
-#
-# What archive exports (GitHub "Download ZIP", AssetLib, `git archive`) ship:
-#   - /addons/godot-runtime-bridge/     the runtime bridge addon itself
-#   - /missions/                        the legacy built-in mission pack
-#
-# What archive exports deliberately do NOT ship (GRB 2.0 full workflow):
-#   - cli/, mcp/, templates/grb2/, tools/, examples/grb2-proving-ground/,
-#     docs/, repo-root launchers (grb, grb.cmd), AGENTS.md, and the rest of
-#     the GRB 2.0 product-shape surface.
-#
-# If you need GRB 2.0 (init, doctor, mission run, compare, product-shape
-# verification, proving ground), clone the full repo. Downloading an archive
-# intentionally gives you less than the repo, and that is not a bug.
+# GitHub Download ZIP, AssetLib, and git archive are addon-install
+# surfaces. Keep the MCP/CLI/proof workflow in a full git clone.
+# AssetLib computes its download URL from a commit/tag, so export-ignore
+# is the supported way to keep those computed archives project-safe.
 /**            export-ignore
 /addons        !export-ignore
 /addons/**     !export-ignore

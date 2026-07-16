@@ -19,6 +19,8 @@ import net from "net";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { captureScreenshotSequence } from "./screenshot_sequence.mjs";
+import { formatBridgeError, formatQuitResult } from "./tool_result_messages.mjs";
 
 const HOST = "127.0.0.1";
 const LAUNCH_TIMEOUT_MS = 30000;
@@ -45,14 +47,17 @@ function wrapSessionError(message) {
 }
 
 async function shutdownRunningSession() {
+  const hadSession = Boolean(grbProcess || grbPort);
   if (!grbProcess && !grbPort) {
     clearConnectionState();
-    return;
+    return { hadSession, quitAcknowledged: false };
   }
 
+  let quitAcknowledged = false;
   try {
     if (grbPort && grbToken) {
-      await sendCommand("quit");
+      const result = await sendCommand("quit");
+      quitAcknowledged = result?.ok === true;
     }
   } catch {}
 
@@ -61,6 +66,7 @@ async function shutdownRunningSession() {
     grbProcess = null;
   }
   clearConnectionState();
+  return { hadSession, quitAcknowledged };
 }
 
 function makeLaunchCapture() {
@@ -361,6 +367,38 @@ const TOOLS = [
     name: "grb_screenshot",
     description: "Capture a screenshot from the game viewport.",
     inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "grb_screenshot_sequence",
+    description:
+      "Capture a timed sequence of viewport screenshots for reviewing animation or transient events. Saves numbered PNGs plus a hash/timestamp manifest under <project>/debug/screenshots/. Defaults to 15 frames at 1-second intervals. Requires a session started with grb_launch.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        count: {
+          type: "integer",
+          minimum: 1,
+          maximum: 60,
+          description: "Number of frames (default: 15, max: 60).",
+        },
+        interval_ms: {
+          type: "integer",
+          minimum: 100,
+          maximum: 10000,
+          description: "Milliseconds between scheduled captures (default: 1000).",
+        },
+        label: {
+          type: "string",
+          maxLength: 64,
+          description: "Short filesystem-safe sequence label (default: sequence).",
+        },
+        include_images: {
+          type: "boolean",
+          description:
+            "Include every captured PNG in the MCP response for immediate visual review (default: false, max: 20 frames). Files are always saved.",
+        },
+      },
+    },
   },
   {
     name: "grb_scene_tree",
@@ -812,6 +850,7 @@ async function handleTool(name, args) {
     }
 
     case "grb_connect": {
+      grbProjectPath = null;
       grbPort = args.port;
       grbToken = args.token;
       await sendPing();
@@ -851,6 +890,31 @@ async function handleTool(name, args) {
           { type: "image", data: r.png_base64, mimeType: "image/png" },
         ],
       };
+    }
+
+    case "grb_screenshot_sequence": {
+      const sequence = await captureScreenshotSequence({
+        projectPath: grbProjectPath,
+        options: args,
+        capture: () => sendCommand("screenshot"),
+      });
+      const summary = {
+        ok: sequence.ok,
+        status: sequence.manifest.status,
+        captured_count: sequence.manifest.captured_count,
+        requested_count: sequence.manifest.requested_count,
+        interval_ms: sequence.manifest.interval_ms,
+        sequence_dir: sequence.sequenceDir,
+        manifest_path: sequence.manifestPath,
+        frames: sequence.manifest.frames,
+        error: sequence.manifest.error,
+      };
+      const content = [{ type: "text", text: JSON.stringify(summary, null, 2) }];
+      for (const frame of sequence.inlineImages) {
+        content.push({ type: "text", text: frame.filename });
+        content.push({ type: "image", data: frame.png_base64, mimeType: "image/png" });
+      }
+      return { content, isError: !sequence.ok };
     }
 
     case "grb_scene_tree": {
@@ -1057,9 +1121,9 @@ async function handleTool(name, args) {
     }
 
     case "grb_quit": {
-      await shutdownRunningSession();
+      const shutdown = await shutdownRunningSession();
       return {
-        content: [{ type: "text", text: "Game quit successfully." }],
+        content: [{ type: "text", text: formatQuitResult(shutdown) }],
       };
     }
 
@@ -1115,16 +1179,14 @@ async function handleTool(name, args) {
 }
 
 function errResult(r) {
-  const msg = r.error
-    ? `${r.error.code}: ${r.error.message}`
-    : JSON.stringify(r);
+  const msg = formatBridgeError(r);
   return { content: [{ type: "text", text: "Error: " + msg }], isError: true };
 }
 
 // ── MCP server setup ──
 
 const mcpServer = new Server(
-  { name: "godot-runtime-bridge", version: "2.0.2" },
+  { name: "godot-runtime-bridge", version: "2.1.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -1150,7 +1212,7 @@ await mcpServer.connect(transport);
 // Startup notice — visible in Cursor's MCP output panel (Settings → Tools & MCP → godot-runtime-bridge → Logs)
 // If GRB tools are not appearing in Cursor, the most common cause is the server not being enabled.
 process.stderr.write(
-  "[GRB] MCP server started (godot-runtime-bridge v2.0.2)\n" +
+  "[GRB] MCP server started (godot-runtime-bridge v2.1.0)\n" +
   "[GRB] If tools are not appearing in Cursor:\n" +
   "[GRB]   1. Open Cursor → Settings → Tools & MCP\n" +
   "[GRB]   2. Find 'godot-runtime-bridge' under Installed MCP Servers\n" +
