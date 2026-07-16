@@ -1,6 +1,6 @@
-# GRB 2.0 Release-Candidate Readiness
+# GRB 2.1.0 Release-Candidate Readiness
 
-This document is the compact release-candidate readiness surface for GRB 2.0.
+This document is the compact release-candidate readiness surface for GRB 2.1.0.
 
 Use it when you need to answer:
 
@@ -33,6 +33,10 @@ The repo is currently release-candidate ready for the following GRB 2.0 surfaces
   project, not just file-shape assertions
 - MCP `grb_launch` refuses never-opened projects missing `.godot/` metadata
   with an actionable error instead of a slow launch timeout
+- MCP `grb_screenshot_sequence` captures bounded timed evidence with persisted
+  frame hashes/manifests and partial-failure retention
+- the clone-based agent install/upgrade contract preserves existing work and
+  MCP servers, requires reload, and finishes with live W/R proof
 
 ## Required Checks
 
@@ -100,30 +104,26 @@ They do not replace human judgment.
 
 Current channel truth remains:
 
-- full clones and GitHub source archives ship the complete GRB product surface,
-  including MCP, CLI, launchers, templates, proving ground, and tools
-- the release workflow builds and verifies a dedicated addon-only ZIP from
-  `addons/godot-runtime-bridge/` for AssetLib/addon delivery
-- a future AssetLib version must use a durable GitHub release asset promoted
-  from that verified addon ZIP, never the full GitHub source archive or a
-  temporary Actions-artifact URL
-- agent-driven installation starts from the full source folder and the
-  canonical `INSTALL_FOR_AGENTS.md` contract
-- the GRB 2.0 proof workflow requires the full source surface, whether obtained
-  from a clone or a GitHub source archive
+- a full `git clone` ships MCP, CLI, launchers, templates, proving ground, and tools
+- GitHub Download ZIP, AssetLib, and `git archive` are addon-oriented through
+  `.gitattributes export-ignore`; they ship the runtime addon and legacy missions
+- the release workflow builds and verifies the same computed archive shape
+- agent-driven installation starts from a full clone and the canonical
+  `INSTALL_FOR_AGENTS.md` contract
+- the GRB 2.0 proof workflow requires the full clone surface
 
-Do not treat addon-only or AssetLib delivery as equivalent to the full-source
+Do not treat addon-only or AssetLib delivery as equivalent to the full-clone
 GRB 2.0 workflow.
 
 ## Deferred To Sprint 13
 
 Sprint 13 Slice 1 has now delivered:
 
-- **version/tag decision** — all authoritative GRB version surfaces now
-  report `2.0.2`; `verify:versions` enforces this parity. `2.0.0` was the
-  initial GRB 2.0 launch, `2.0.1` clarified the security posture, and `2.0.2`
-  is the current patch release for agentic proof discipline documentation and
-  tooling only
+- **version/tag history** — `2.0.0` was the initial GRB 2.0 launch, `2.0.1`
+  clarified the security posture, and `2.0.2` delivered agentic proof
+  discipline documentation/tooling. The current `2.1.0` release adds timed
+  screenshot sequences and the agent-first installation contract;
+  `verify:versions` enforces parity across authoritative surfaces
 - **release changelog section** — `CHANGELOG.md` now has a real
   `2.0.2 — 2026-05-06` patch section above the prior `2.0.1` patch and the original
   `2.0.0 — 2026-04-24` launch section
@@ -163,11 +163,10 @@ Sprint 13 Slice 4 additionally delivered:
   comparison against the GRB-shipped rules content instead of the prior
   single-keyword heuristic, so any drift from the current rules surfaces as
   a refresh offer
-- **explicit archive/channel truth** - subsequent install polish supersedes the
-  old addon-oriented source-archive policy: GitHub source archives now carry
-  the full product, while CI builds a separate verified addon-only ZIP
+- **explicit archive/channel truth** - addon-oriented computed archives remain
+  compatible with AssetLib, while CI verifies their exact allow-list
 - **agent-first installation** - `INSTALL_FOR_AGENTS.md` is the canonical safe
-  install/upgrade contract and the README leads with one copy/paste prompt
+  install/upgrade contract and the README leads with a clone-based prompt
 
 Still deferred to Sprint 14:
 
@@ -181,7 +180,7 @@ Still deferred to Sprint 14:
 The following remain intentionally out of scope unless a later sprint explicitly changes that:
 
 - PATH/global install polish
-- package-manager publishing and automatic per-client MCP registration
+- packaging overhaul and automatic per-client MCP registration
 - addon-only delivery of the full GRB 2.0 proof/tooling surface
 - schema redesign
 - runtime/protocol redesign

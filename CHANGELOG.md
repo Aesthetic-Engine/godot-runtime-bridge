@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.1.0 — 2026-07-16
 
 ### Added
 
@@ -12,8 +12,8 @@
 - Added an agent-first install/upgrade contract and a one-prompt recommended
   README path that preserves existing MCP configuration and proves the live
   connection after reload.
-- GitHub source archives now carry the full repo surface; addon-only delivery
-  is produced as an explicit CI artifact instead of via `export-ignore`.
+- The recommended agent path now says `git clone` explicitly; GitHub Download
+  ZIP and AssetLib archives remain addon-oriented and CI verifies that shape.
 
 ## 2.0.2 — 2026-05-06
 

@@ -443,13 +443,8 @@ function checkChannelAndDocTruth() {
   assertIncludes(readme, "Addon-only / AssetLib path", "README channel truth");
   assertIncludes(readme, "Full repo clone", "README channel truth");
   assertIncludes(readme, "GRB 2.0 proof workflow", "README channel truth");
-  assertIncludes(readme, "GitHub source archives now contain the full repo product surface", "README channel truth");
-  assertIncludes(readme, "dedicated addon-only CI artifact", "README channel truth");
-  assertConcept(readme, "README AssetLib publishing truth", [
-    "do not point",
-    "AssetLib",
-    "full source archive",
-  ]);
+  assertIncludes(readme, "GitHub Download ZIP, AssetLib, and `git archive` are intentionally", "README channel truth");
+  assertIncludes(readme, "Use a full `git clone`", "README clone install truth");
   assertConcept(installGuide, "agent install contract", [
     "preserve unrelated and pre-existing changes",
     "merge only the `godot-runtime-bridge` server entry",
@@ -485,14 +480,16 @@ function checkChannelAndDocTruth() {
   assertIncludes(readinessDoc, "support release-candidate confidence", "release-candidate readiness doc");
   assertIncludes(readinessDoc, "do **not** prove", "release-candidate readiness doc");
   assertIncludes(readinessDoc, "experiential quality or E-tier proof", "release-candidate readiness doc");
-  assertIncludes(readinessDoc, "GitHub source archives ship the complete GRB product surface", "release-candidate readiness doc");
-  assertIncludes(readinessDoc, "dedicated addon-only ZIP", "release-candidate readiness doc");
-  assert(!attributes.includes("export-ignore"), "source archives must not hide full-product files via export-ignore");
-  assertIncludes(releaseWorkflow, "godot-runtime-bridge-addon.zip", "dedicated addon archive workflow");
-  assertIncludes(releaseWorkflow, "git archive --format=zip", "dedicated addon archive workflow");
-  assertIncludes(releaseWorkflow, "addons/godot-runtime-bridge/plugin.cfg", "dedicated addon archive workflow");
-  assertIncludes(releaseWorkflow, "^addons/$|^addons/godot-runtime-bridge(/|$)", "dedicated addon archive allow-list");
+  assertIncludes(readinessDoc, "GitHub Download ZIP, AssetLib, and `git archive` are addon-oriented", "release-candidate readiness doc");
+  assertIncludes(attributes, "/**            export-ignore", "AssetLib export-ignore root");
+  assertIncludes(attributes, "/addons/**     !export-ignore", "AssetLib addon allow-list");
+  assertIncludes(attributes, "/missions/**   !export-ignore", "AssetLib mission allow-list");
+  assertIncludes(releaseWorkflow, "godot-runtime-bridge-assetlib.zip", "AssetLib archive workflow");
+  assertIncludes(releaseWorkflow, "git archive --format=zip", "AssetLib archive workflow");
+  assertIncludes(releaseWorkflow, "addons/godot-runtime-bridge/plugin.cfg", "AssetLib archive workflow");
+  assertIncludes(releaseWorkflow, "^missions(/|$)", "AssetLib archive allow-list");
   assertConcept(readinessDoc, "release-candidate readiness doc", [
+    "2.1.0",
     "2.0.2",
     "2.0.1",
     "2.0.0",

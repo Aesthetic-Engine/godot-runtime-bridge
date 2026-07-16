@@ -1,6 +1,12 @@
 # Normalize line endings for all files that Git considers text files.
 * text=auto eol=lf
 
-# GitHub source archives intentionally contain the full GRB product surface.
-# Addon-only distribution is built explicitly by the release workflow from
-# addons/godot-runtime-bridge/ rather than by hiding repo files here.
+# GitHub Download ZIP, AssetLib, and git archive are addon-install
+# surfaces. Keep the MCP/CLI/proof workflow in a full git clone.
+# AssetLib computes its download URL from a commit/tag, so export-ignore
+# is the supported way to keep those computed archives project-safe.
+/**            export-ignore
+/addons        !export-ignore
+/addons/**     !export-ignore
+/missions      !export-ignore
+/missions/**   !export-ignore

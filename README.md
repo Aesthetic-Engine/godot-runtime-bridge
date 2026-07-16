@@ -43,10 +43,9 @@ then point your coding agent at it. The agent can install/update the addon,
 configure MCP without erasing other servers, run GRB's readiness checks, and
 prove the connection in a windowed game.
 
-Requirements: **Godot 4.5+**, **Node.js 18+**, and a full GRB source checkout
-or GitHub source archive.
+Requirements: **Godot 4.5+**, **Node.js 18+**, and a full GRB clone.
 
-1. Clone GRB (or download the full GitHub source archive) to a stable folder.
+1. Clone GRB to a stable folder. GitHub Download ZIP is intentionally addon-only.
 2. Open the Godot project folder - the one containing `project.godot` - in
    Cursor, Claude Code, Codex, or another MCP-capable coding agent.
 3. Paste this prompt, replacing the two paths:
@@ -104,13 +103,11 @@ In short:
 - **Want MCP, CLI, proof workflow, templates, or the proving ground?** Use a
   full repo clone.
 
-GitHub source archives now contain the full repo product surface. AssetLib and
-the dedicated addon-only CI artifact remain intentionally limited to
-`addons/godot-runtime-bridge/`. This keeps the human/agent source-folder path
-complete without copying repo tooling into Godot projects.
-When publishing a new AssetLib version, promote that verified addon ZIP to a
-durable GitHub release asset and use the release-asset URL; do not point
-AssetLib at the full source archive.
+GitHub Download ZIP, AssetLib, and `git archive` are intentionally
+addon-oriented: they contain `addons/godot-runtime-bridge/` plus the legacy
+mission pack, not MCP, CLI, templates, or proof tooling. This matches Godot's
+commit/tag-based AssetLib download model. Use a full `git clone` for the
+agent, MCP, CLI, and GRB 2.0 proof workflows.
 
 ### Quick Start: Connect Cursor to Your Game
 
