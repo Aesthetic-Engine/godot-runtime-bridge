@@ -15,6 +15,8 @@ on:
       - "missions/**"
       - "README.md"
       - "CHANGELOG.md"
+      - "INSTALL_FOR_AGENTS.md"
+      - ".gitattributes"
   pull_request:
     paths:
       - ".github/workflows/grb-release-smoke.yml"
@@ -29,6 +31,8 @@ on:
       - "missions/**"
       - "README.md"
       - "CHANGELOG.md"
+      - "INSTALL_FOR_AGENTS.md"
+      - ".gitattributes"
   workflow_dispatch:
 
 jobs:
@@ -49,6 +53,24 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb unzip
+
+      - name: Build and verify dedicated addon-only archive
+        run: |
+          ADDON_ARCHIVE="$RUNNER_TEMP/godot-runtime-bridge-addon.zip"
+          git archive --format=zip --output="$ADDON_ARCHIVE" HEAD addons/godot-runtime-bridge
+          unzip -Z1 "$ADDON_ARCHIVE" > "$RUNNER_TEMP/addon-archive-entries.txt"
+          if grep -Ev '^addons/$|^addons/godot-runtime-bridge(/|$)' "$RUNNER_TEMP/addon-archive-entries.txt"; then
+            echo "ERROR: addon archive contains files outside addons/godot-runtime-bridge/." >&2
+            exit 1
+          fi
+          grep -Fx 'addons/godot-runtime-bridge/plugin.cfg' "$RUNNER_TEMP/addon-archive-entries.txt"
+
+      - name: Upload dedicated addon-only archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-runtime-bridge-addon
+          path: ${{ runner.temp }}/godot-runtime-bridge-addon.zip
+          if-no-files-found: error
 
       - name: Install MCP dependencies
         working-directory: mcp

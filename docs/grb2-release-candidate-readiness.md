@@ -100,15 +100,20 @@ They do not replace human judgment.
 
 Current channel truth remains:
 
-- addon/archive/export packaging is addon-oriented
-- archive exports (GitHub "Download ZIP", AssetLib, `git archive`) ship the
-  runtime bridge addon plus the legacy built-in mission pack, and deliberately
-  do **not** ship the GRB 2.0 CLI, MCP helper, templates, proving ground, or
-  product-shape tooling
-- the GRB 2.0 proof workflow requires a full repo clone
-- templates, proving ground, repo-root launchers, and product-shape verification are full-repo surfaces
+- full clones and GitHub source archives ship the complete GRB product surface,
+  including MCP, CLI, launchers, templates, proving ground, and tools
+- the release workflow builds and verifies a dedicated addon-only ZIP from
+  `addons/godot-runtime-bridge/` for AssetLib/addon delivery
+- a future AssetLib version must use a durable GitHub release asset promoted
+  from that verified addon ZIP, never the full GitHub source archive or a
+  temporary Actions-artifact URL
+- agent-driven installation starts from the full source folder and the
+  canonical `INSTALL_FOR_AGENTS.md` contract
+- the GRB 2.0 proof workflow requires the full source surface, whether obtained
+  from a clone or a GitHub source archive
 
-Do not treat addon-only or AssetLib delivery as equivalent to the full-repo GRB 2.0 workflow.
+Do not treat addon-only or AssetLib delivery as equivalent to the full-source
+GRB 2.0 workflow.
 
 ## Deferred To Sprint 13
 
@@ -158,10 +163,11 @@ Sprint 13 Slice 4 additionally delivered:
   comparison against the GRB-shipped rules content instead of the prior
   single-keyword heuristic, so any drift from the current rules surfaces as
   a refresh offer
-- **explicit archive/channel truth** — `.gitattributes`, the README channel
-  section, and this document now state exactly what archive exports ship
-  (addon + legacy mission pack) and what they deliberately omit (GRB 2.0
-  CLI, MCP, templates, proving ground, product-shape tooling)
+- **explicit archive/channel truth** - subsequent install polish supersedes the
+  old addon-oriented source-archive policy: GitHub source archives now carry
+  the full product, while CI builds a separate verified addon-only ZIP
+- **agent-first installation** - `INSTALL_FOR_AGENTS.md` is the canonical safe
+  install/upgrade contract and the README leads with one copy/paste prompt
 
 Still deferred to Sprint 14:
 
@@ -175,7 +181,7 @@ Still deferred to Sprint 14:
 The following remain intentionally out of scope unless a later sprint explicitly changes that:
 
 - PATH/global install polish
-- packaging overhaul
+- package-manager publishing and automatic per-client MCP registration
 - addon-only delivery of the full GRB 2.0 proof/tooling surface
 - schema redesign
 - runtime/protocol redesign

@@ -5,6 +5,10 @@ game through the Godot Runtime Bridge addon.
 
 ## Install
 
+For the recommended agent-driven full install or upgrade, point your coding
+agent at the GRB source folder and have it follow
+[`../INSTALL_FOR_AGENTS.md`](../INSTALL_FOR_AGENTS.md).
+
 Clone the repo and install from `mcp/`:
 
 ```bash

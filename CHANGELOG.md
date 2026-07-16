@@ -9,6 +9,12 @@
   transient-event review. Capture count, interval, label, and optional inline
   images are bounded and validated; partial failures retain their manifest.
 
+- Added an agent-first install/upgrade contract and a one-prompt recommended
+  README path that preserves existing MCP configuration and proves the live
+  connection after reload.
+- GitHub source archives now carry the full repo surface; addon-only delivery
+  is produced as an explicit CI artifact instead of via `export-ignore`.
+
 ## 2.0.2 — 2026-05-06
 
 ### Added

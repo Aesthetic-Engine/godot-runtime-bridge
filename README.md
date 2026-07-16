@@ -36,14 +36,53 @@ There are two independent ways to use GRB:
 
 You don't have to use the proof path to get value from GRB. It's there for when you want something more trustworthy than *"seems fixed."*
 
-## Before You Start
+## Install With Your Coding Agent (Recommended)
+
+The normal install path is: put this full GRB source folder somewhere stable,
+then point your coding agent at it. The agent can install/update the addon,
+configure MCP without erasing other servers, run GRB's readiness checks, and
+prove the connection in a windowed game.
+
+Requirements: **Godot 4.5+**, **Node.js 18+**, and a full GRB source checkout
+or GitHub source archive.
+
+1. Clone GRB (or download the full GitHub source archive) to a stable folder.
+2. Open the Godot project folder - the one containing `project.godot` - in
+   Cursor, Claude Code, Codex, or another MCP-capable coding agent.
+3. Paste this prompt, replacing the two paths:
+
+> Install or update Godot Runtime Bridge for this project. Read
+> `<GRB folder>/INSTALL_FOR_AGENTS.md` completely and follow it. The Godot
+> executable is `<path to Godot>`. Preserve existing worktree changes and MCP
+> servers. Run GRB doctor, tell me when MCP must be restarted, then launch the
+> game windowed, check errors, capture a screenshot, and report W/R/E proof
+> honestly.
+
+After the agent finishes configuring files, **restart/reload the MCP server**
+in your coding client. Running MCP processes do not discover newly installed
+or updated GRB tools automatically. In Cursor, also enable
+`godot-runtime-bridge` under **Settings > Tools & MCP**.
+
+Then try:
+
+- *"Launch my game and take a screenshot of the title screen."*
+- *"Run GRB doctor and fix any installation problem you can safely fix."*
+- *"Run the smoke_boot proof mission and show me what still needs human review."*
+
+The canonical agent procedure, including upgrade safety and definition of
+done, is in [`INSTALL_FOR_AGENTS.md`](INSTALL_FOR_AGENTS.md).
+
+<details>
+<summary><strong>Manual installation and distribution details</strong></summary>
+
+### Before You Start
 
 1. **Install Godot 4.5 or later.** GRB relies on Godot's `Logger` API, which was added in Godot 4.5.
 2. **Create a Godot project** (or open one you already have) and save it somewhere easy to find.
 3. **Open that project folder in your coding agent's editor** (e.g. Cursor, or the editor your Claude Code / Codex / Antigravity setup uses). It should be the folder that contains `project.godot`.
 4. **Know where your Godot executable is.** GRB needs that path later as `GODOT_PATH` so your coding agent can launch your game.
 
-## Choose the Right Install Path
+### Choose the Right Install Path
 
 GRB currently has a few different distribution and usage channels. They are not
 all equivalent.
@@ -65,29 +104,30 @@ In short:
 - **Want MCP, CLI, proof workflow, templates, or the proving ground?** Use a
   full repo clone.
 
-Current export/archive packaging is addon-oriented. Downloading the repo via
-an archive (GitHub "Download ZIP", AssetLib, `git archive`) gives you the
-addon plus the legacy built-in mission pack — **not** the GRB 2.0 CLI, MCP
-helper, templates, proving ground, or product-shape tooling. Do not assume
-every repo-documented workflow is available from an addon-only install or
-export archive; the GRB 2.0 proof workflow requires a full repo clone.
+GitHub source archives now contain the full repo product surface. AssetLib and
+the dedicated addon-only CI artifact remain intentionally limited to
+`addons/godot-runtime-bridge/`. This keeps the human/agent source-folder path
+complete without copying repo tooling into Godot projects.
+When publishing a new AssetLib version, promote that verified addon ZIP to a
+durable GitHub release asset and use the release-asset URL; do not point
+AssetLib at the full source archive.
 
-## Quick Start: Connect Cursor to Your Game
+### Quick Start: Connect Cursor to Your Game
 
 > The setup below is for **Cursor**. If you're using **Claude Code**, **Codex**, **Antigravity**, or another agent client, see [`mcp/README.md`](mcp/README.md) for client-specific instructions. The Godot-side addon install (Step 1) is the same for every client.
 
-### Option A — Let Cursor set it up for you (easiest)
+#### Option A - Let Cursor set it up for you (easiest)
 
 1. In **Cursor Agent mode**, paste this prompt:
 
-   > Set up the Godot Runtime Bridge (GRB) for this project. Install the addon if missing, create .cursor/mcp.json with the GRB MCP server (args: path to godot-runtime-bridge/mcp/index.js), add GODOT_PATH to env with the path to my Godot executable — search common locations or ask me. Run npm install in the mcp folder if needed. Tell me when done.
+   > Read `<GRB folder>/INSTALL_FOR_AGENTS.md` and install or update GRB for this project. Preserve existing MCP servers. My Godot executable is `<path>`. Run doctor and live verification.
 
 2. Go to **Cursor Settings → Tools & MCP** and toggle **godot-runtime-bridge** on. *(This toggle is easy to miss — nothing works until it's on.)*
 3. In chat: *"Connect to Godot via the GRB bridge and confirm once connected."*
 
 That's it. Skip ahead to **[Things to Say to Your Coding Agent](#things-to-say-to-your-coding-agent)**.
 
-### Option B — Do it manually (6 steps)
+#### Option B - Do it manually (6 steps)
 
 ---
 
@@ -185,9 +225,12 @@ You're ready. See **[Things to Say to Your Coding Agent](#things-to-say-to-your-
 
 See [`mcp/README.md`](mcp/README.md) for Claude Code setup (and other agent clients), advanced configuration, and the full list of available AI tools.
 
+</details>
+
 ## If Something Doesn't Work
 
 - **GRB tools don't appear in Cursor** → Check Step 5 (toggle in **Settings → Tools & MCP**). Also check **godot-runtime-bridge → Logs** there for a startup message with hints.
+- **A newly installed tool does not appear** → Restart/reload the MCP server; existing server processes keep the old tool list.
 - **Cursor can't launch Godot** → Re-check `GODOT_PATH` in `.cursor/mcp.json`. Use forward slashes on Windows.
 - **Game launches but nothing seems to happen** → Is the window minimized? Godot throttles hard when minimized. See [Background Testing](#background-testing) below.
 - **Still stuck** → Paste the setup steps into Cursor Agent chat and ask it to help troubleshoot your config.

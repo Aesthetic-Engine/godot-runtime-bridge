@@ -410,6 +410,9 @@ function checkDoctorReadiness() {
 function checkChannelAndDocTruth() {
   const readme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf-8");
   const mcpReadme = fs.readFileSync(path.join(repoRoot, "mcp", "README.md"), "utf-8");
+  const installGuide = fs.readFileSync(path.join(repoRoot, "INSTALL_FOR_AGENTS.md"), "utf-8");
+  const attributes = fs.readFileSync(path.join(repoRoot, ".gitattributes"), "utf-8");
+  const releaseWorkflow = fs.readFileSync(path.join(repoRoot, ".github", "workflows", "grb-release-smoke.yml"), "utf-8");
   const readinessDoc = fs.readFileSync(path.join(repoRoot, "docs", "grb2-release-candidate-readiness.md"), "utf-8");
   const legacyMissions = fs.readFileSync(path.join(repoRoot, "missions", "README.md"), "utf-8");
   const ciDoc = fs.readFileSync(path.join(repoRoot, "docs", "ci.md"), "utf-8");
@@ -433,11 +436,28 @@ function checkChannelAndDocTruth() {
   assertIncludes(wrapperPosix, "cli/grb.mjs", "POSIX launcher");
   assertIncludes(wrapperPosix, "GRB requires Node.js on PATH.", "POSIX launcher");
 
-  assertIncludes(readme, "## Choose the Right Install Path", "README channel truth");
+  assertIncludes(readme, "## Install With Your Coding Agent (Recommended)", "README agent-first install truth");
+  assertIncludes(readme, "INSTALL_FOR_AGENTS.md", "README agent-first install truth");
+  assertIncludes(readme, "restart/reload the MCP server", "README MCP reload truth");
+  assertIncludes(readme, "Choose the Right Install Path", "README channel truth");
   assertIncludes(readme, "Addon-only / AssetLib path", "README channel truth");
   assertIncludes(readme, "Full repo clone", "README channel truth");
   assertIncludes(readme, "GRB 2.0 proof workflow", "README channel truth");
-  assertIncludes(readme, "Current export/archive packaging is addon-oriented", "README channel truth");
+  assertIncludes(readme, "GitHub source archives now contain the full repo product surface", "README channel truth");
+  assertIncludes(readme, "dedicated addon-only CI artifact", "README channel truth");
+  assertConcept(readme, "README AssetLib publishing truth", [
+    "do not point",
+    "AssetLib",
+    "full source archive",
+  ]);
+  assertConcept(installGuide, "agent install contract", [
+    "preserve unrelated and pre-existing changes",
+    "merge only the `godot-runtime-bridge` server entry",
+    "npm ci",
+    "restart or reload mcp",
+    "definition of done",
+    "w/r/e",
+  ]);
   assertIncludes(readme, "This is a **full-repo workflow**, not an addon-only workflow.", "README proof channel truth");
   assertIncludes(readme, "grb.cmd ...` on Windows", "README launcher truth");
   assertIncludes(readme, "`./grb ...` on POSIX", "README launcher truth");
@@ -465,8 +485,13 @@ function checkChannelAndDocTruth() {
   assertIncludes(readinessDoc, "support release-candidate confidence", "release-candidate readiness doc");
   assertIncludes(readinessDoc, "do **not** prove", "release-candidate readiness doc");
   assertIncludes(readinessDoc, "experiential quality or E-tier proof", "release-candidate readiness doc");
-  assertIncludes(readinessDoc, "addon/archive/export packaging is addon-oriented", "release-candidate readiness doc");
-  assertIncludes(readinessDoc, "the GRB 2.0 proof workflow requires a full repo clone", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "GitHub source archives ship the complete GRB product surface", "release-candidate readiness doc");
+  assertIncludes(readinessDoc, "dedicated addon-only ZIP", "release-candidate readiness doc");
+  assert(!attributes.includes("export-ignore"), "source archives must not hide full-product files via export-ignore");
+  assertIncludes(releaseWorkflow, "godot-runtime-bridge-addon.zip", "dedicated addon archive workflow");
+  assertIncludes(releaseWorkflow, "git archive --format=zip", "dedicated addon archive workflow");
+  assertIncludes(releaseWorkflow, "addons/godot-runtime-bridge/plugin.cfg", "dedicated addon archive workflow");
+  assertIncludes(releaseWorkflow, "^addons/$|^addons/godot-runtime-bridge(/|$)", "dedicated addon archive allow-list");
   assertConcept(readinessDoc, "release-candidate readiness doc", [
     "2.0.2",
     "2.0.1",
@@ -582,7 +607,7 @@ function checkLauncherDoctrineSurfaces() {
   const SCAN_DIRS = ["templates", "examples", "docs", "missions", "cli", "mcp", "addons"];
   const SCAN_EXTS = new Set([".md", ".mjs"]);
   const SKIP_DIR_NAMES = new Set(["node_modules", ".godot", "grb_reports", "reports"]);
-  const ROOT_FILES = ["README.md", "CHANGELOG.md", "PROTOCOL.md", "SECURITY.md"];
+  const ROOT_FILES = ["README.md", "INSTALL_FOR_AGENTS.md", "CHANGELOG.md", "PROTOCOL.md", "SECURITY.md"];
   const ALLOW_FILES = new Set([
     "cli/lib/init.mjs",
   ]);
